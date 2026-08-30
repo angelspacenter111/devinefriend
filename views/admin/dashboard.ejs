@@ -198,7 +198,7 @@
 
     $(document).ready(function() {
       // Connect to Socket signaling server
-      socket = io();
+      socket = io({ transports: ['websocket'] });
 
       // Register as admin
       socket.emit('admin-join');

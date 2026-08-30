@@ -3,7 +3,7 @@
  * Friend MVC
  */
 
-const socket = io();
+const socket = io({ transports: ['websocket'] });
 
 // Free public STUN server configuration for NAT traversal
 const rtcConfig = {
