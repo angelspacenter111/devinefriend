@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('../partials/head') %>
+<body>
+
+  <div class="panel-wrapper">
+    <!-- User Sidebar Partial -->
+    <%- include('../partials/user-sidebar') %>
+
+    <!-- Main Content Panel -->
+    <div class="content-panel">
+      <!-- Top Header -->
+      <header class="header-panel shadow-sm">
+        <div class="d-flex align-items-center gap-3">
+          <button class="btn btn-light d-lg-none sidebar-toggle-btn" type="button">
+            <i class="bi bi-list fs-4"></i>
+          </button>
+          <h4 class="mb-0 fw-bold">Purchase Credits</h4>
+        </div>
+        
+        <div class="d-flex align-items-center gap-3">
+          <div class="header-wallet-badge">
+            <i class="bi bi-coin me-1"></i>
+            <span class="fw-bold"><span class="simulated-balance"><%= user.credits %></span> Credits</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-circle bg-light-lavender d-flex align-items-center justify-content-center border" style="width: 38px; height: 38px;">
+              <i class="bi bi-person text-purple"></i>
+            </div>
+            <span class="simulated-name fw-semibold text-dark d-none d-md-block"><%= user.name %></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Contents Canvas -->
+      <main class="main-content-inner">
+        <!-- Info Banner -->
+        <div class="alert alert-info border-0 rounded-3 mb-5 p-3.5" style="background-color: #EEF6FF; border-left: 4px solid #1769E0 !important;">
+          <h5 class="fw-bold text-dark mb-1"><i class="bi bi-info-circle-fill text-primary-blue me-2"></i> Credits = Call Minutes</h5>
+          <p class="text-muted small mb-0">
+            Adding credits loads conversation minutes to your secure dashboard. One credit allows exactly one minute of active calling time. No monthly subscriptions or hidden connection rates.
+          </p>
+        </div>
+
+        <div class="row g-4 row-cols-1 row-cols-md-2 row-cols-lg-3 justify-content-center">
+          <!-- Card 5 Credits -->
+          <div class="col">
+            <div class="card-premium package-card bg-white text-center p-4 h-100 d-flex flex-column justify-content-between">
+              <div>
+                <span class="badge-category mb-3">Starter Pack</span>
+                <h4 class="fw-bold mb-1">5 Credits</h4>
+                <span class="text-muted d-block small mb-3">5 Minutes talk time</span>
+                <div class="package-price mb-3">₹149</div>
+                <p class="text-muted small mb-4">Great for a brief check-in or simple initial conversation.</p>
+              </div>
+              <button class="btn btn-outline-brand w-100 btn-buy-credits" data-credits="5" data-price="₹149">Buy Now</button>
+            </div>
+          </div>
+
+          <!-- Card 10 Credits -->
+          <div class="col">
+            <div class="card-premium package-card bg-white text-center p-4 h-100 d-flex flex-column justify-content-between">
+              <div>
+                <span class="badge-category mb-3 text-primary-blue" style="background-color: #EEF6FF;">Bridge Pack</span>
+                <h4 class="fw-bold mb-1">10 Credits</h4>
+                <span class="text-muted d-block small mb-3">10 Minutes talk time</span>
+                <div class="package-price mb-3">₹299</div>
+                <p class="text-muted small mb-4">Allows a quick overview and talk through of an immediate stressor.</p>
+              </div>
+              <button class="btn btn-outline-brand w-100 btn-buy-credits" data-credits="10" data-price="₹299">Buy Now</button>
+            </div>
+          </div>
+
+          <!-- Card 25 Credits (Popular) -->
+          <div class="col">
+            <div class="card-premium package-card popular bg-white text-center p-4 h-100 d-flex flex-column justify-content-between">
+              <div class="popular-banner">Popular</div>
+              <div>
+                <span class="badge-category mb-3 text-purple" style="background-color: #F5F1FF;">Comfort Pack</span>
+                <h4 class="fw-bold mb-1 text-purple">25 Credits</h4>
+                <span class="text-muted d-block small mb-3">25 Minutes talk time</span>
+                <div class="package-price mb-3 text-purple">₹599</div>
+                <p class="text-muted small mb-4">Our highly recommended option. Grants ample time to speak calmly and breathe.</p>
+              </div>
+              <button class="btn btn-brand w-100 btn-buy-credits" data-credits="25" data-price="₹599">Buy Now</button>
+            </div>
+          </div>
+
+          <!-- Card 50 Credits -->
+          <div class="col">
+            <div class="card-premium package-card bg-white text-center p-4 h-100 d-flex flex-column justify-content-between">
+              <div>
+                <span class="badge-category mb-3 text-primary-pink" style="background-color: #FFF5FA;">Listen Deep</span>
+                <h4 class="fw-bold mb-1">50 Credits</h4>
+                <span class="text-muted d-block small mb-3">50 Minutes talk time</span>
+                <div class="package-price mb-3">₹1,199</div>
+                <p class="text-muted small mb-4">Ideal package if you want multiple conversations or a comprehensive session.</p>
+              </div>
+              <button class="btn btn-outline-brand w-100 btn-buy-credits" data-credits="50" data-price="₹1,199">Buy Now</button>
+            </div>
+          </div>
+
+          <!-- Card 100 Credits -->
+          <div class="col">
+            <div class="card-premium package-card bg-white text-center p-4 h-100 d-flex flex-column justify-content-between">
+              <div>
+                <span class="badge-category mb-3">Safe Haven</span>
+                <h4 class="fw-bold mb-1">100 Credits</h4>
+                <span class="text-muted d-block small mb-3">100 Minutes talk time</span>
+                <div class="package-price mb-3">₹2,199</div>
+                <p class="text-muted small mb-4">Our most cost-effective bulk package, for regular supportive check-ins.</p>
+              </div>
+              <button class="btn btn-outline-brand w-100 btn-buy-credits" data-credits="100" data-price="₹2,199">Buy Now</button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <%- include('../partials/scripts') %>
+</body>
+</html>

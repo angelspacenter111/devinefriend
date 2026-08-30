@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('../partials/head') %>
+<body>
+
+  <div class="panel-wrapper">
+    <!-- Admin Sidebar Partial -->
+    <%- include('../partials/admin-sidebar') %>
+
+    <!-- Main Content Panel -->
+    <div class="content-panel">
+      <!-- Top Header -->
+      <header class="header-panel shadow-sm">
+        <div class="d-flex align-items-center gap-3">
+          <button class="btn btn-light d-lg-none sidebar-toggle-btn" type="button">
+            <i class="bi bi-list fs-4"></i>
+          </button>
+          <h4 class="mb-0 fw-bold">Manage Pricing & Credits</h4>
+        </div>
+        
+        <div class="d-flex align-items-center gap-3">
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-circle bg-light-lavender d-flex align-items-center justify-content-center border" style="width: 38px; height: 38px;">
+              <i class="bi bi-shield-lock text-purple"></i>
+            </div>
+            <span class="fw-semibold text-dark d-none d-md-block">System Admin</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Contents Canvas -->
+      <main class="main-content-inner">
+        <!-- Pricing Config Panel -->
+        <div class="card-premium border-0 bg-white shadow-sm p-4">
+          <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
+            <h5 class="fw-bold mb-0">Active Packages Config</h5>
+            <button class="btn btn-brand btn-sm px-3" data-bs-toggle="modal" data-bs-target="#addPlanModal"><i class="bi bi-plus-lg me-1"></i> Add Pricing Plan</button>
+          </div>
+
+          <div class="table-responsive-custom">
+            <table class="table table-premium mb-0 align-middle">
+              <thead>
+                <tr>
+                  <th>Plan ID</th>
+                  <th>Name</th>
+                  <th>Credits Value</th>
+                  <th>Call Duration</th>
+                  <th>Price Pack</th>
+                  <th>Status Toggle</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="fw-semibold">PLAN-5501</span></td>
+                  <td>Starter Pack</td>
+                  <td><span class="fw-bold text-dark">5 Credits</span></td>
+                  <td>5 Minutes</td>
+                  <td>₹149</td>
+                  <td><span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1.5 btn-admin-toggle-plan cursor-pointer" style="cursor: pointer;">Active</span></td>
+                  <td>
+                    <button class="btn btn-sm btn-light border" data-bs-toggle="modal" data-bs-target="#editPlanModal"><i class="bi bi-pencil-square"></i> Edit</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="fw-semibold">PLAN-5502</span></td>
+                  <td>Comfort Pack</td>
+                  <td><span class="fw-bold text-dark">25 Credits</span></td>
+                  <td>25 Minutes</td>
+                  <td>₹599</td>
+                  <td><span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1.5 btn-admin-toggle-plan cursor-pointer" style="cursor: pointer;">Active</span></td>
+                  <td>
+                    <button class="btn btn-sm btn-light border" data-bs-toggle="modal" data-bs-target="#editPlanModal"><i class="bi bi-pencil-square"></i> Edit</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="fw-semibold">PLAN-5503</span></td>
+                  <td>Listen Deep</td>
+                  <td><span class="fw-bold text-dark">50 Credits</span></td>
+                  <td>50 Minutes</td>
+                  <td>₹1,199</td>
+                  <td><span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1.5 btn-admin-toggle-plan cursor-pointer" style="cursor: pointer;">Active</span></td>
+                  <td>
+                    <button class="btn btn-sm btn-light border" data-bs-toggle="modal" data-bs-target="#editPlanModal"><i class="bi bi-pencil-square"></i> Edit</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Add Plan Bootstrap Modal -->
+  <div class="modal fade" id="addPlanModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+      <div class="modal-content rounded-4 border-0 shadow-lg">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="fw-bold mb-0">Create New pricing Plan</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body py-4">
+          <div class="mb-3">
+            <label class="form-label form-label-custom">Plan Name</label>
+            <input type="text" class="form-control form-control-custom" placeholder="e.g. Bulk Pack">
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label form-label-custom">Credits Value</label>
+              <input type="number" class="form-control form-control-custom" placeholder="e.g. 100">
+            </div>
+            <div class="col-6">
+              <label class="form-label form-label-custom">Price (₹)</label>
+              <input type="number" class="form-control form-control-custom" placeholder="e.g. 1999">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label form-label-custom">Short Description</label>
+            <textarea class="form-control form-control-custom" rows="2" placeholder="e.g. For recurring weekly support conversations"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer border-top-0 pt-0">
+          <button type="button" class="btn btn-sm btn-light border" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-sm btn-brand px-3" data-bs-dismiss="modal" onclick="alert('Pricing plan added successfully in simulation mode!')">Add Plan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Plan Bootstrap Modal -->
+  <div class="modal fade" id="editPlanModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+      <div class="modal-content rounded-4 border-0 shadow-lg">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="fw-bold mb-0">Modify Pricing Plan</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body py-4">
+          <div class="mb-3">
+            <label class="form-label form-label-custom">Plan Name</label>
+            <input type="text" class="form-control form-control-custom" value="Starter Pack">
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label form-label-custom">Credits Value</label>
+              <input type="number" class="form-control form-control-custom" value="5">
+            </div>
+            <div class="col-6">
+              <label class="form-label form-label-custom">Price (₹)</label>
+              <input type="number" class="form-control form-control-custom" value="149">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-top-0 pt-0">
+          <button type="button" class="btn btn-sm btn-light border" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-sm btn-brand px-3" data-bs-dismiss="modal" onclick="alert('Pricing plan updated successfully in simulation mode!')">Update Plan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('../partials/scripts') %>
+</body>
+</html>

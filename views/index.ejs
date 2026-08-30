@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head') %>
+<body>
+
+  <%- include('partials/header') %>
+
+  <!-- Hero Section -->
+  <section class="section-padding bg-soft-gradient position-relative overflow-hidden">
+    <div class="backdrop-glow"></div>
+    <div class="backdrop-glow-left"></div>
+    <div class="container position-relative z-3">
+      <div class="row align-items-center g-5">
+        <!-- Hero Text -->
+        <div class="col-lg-6">
+          <span class="badge-category mb-3"><i class="bi bi-chat-heart me-2"></i> Someone to Talk To</span>
+          <h1 class="display-4 fw-extrabold mb-4" style="line-height: 1.15; color: #182033;">
+            Sometimes, You Just Need <span class="text-primary-blue" style="color: #1769E0;">Someone Who Listens.</span>
+          </h1>
+          <p class="lead text-muted mb-4 font-primary" style="font-size: 1.15rem; font-weight: 300;">
+            Life can feel heavy when you have no one to talk to. I provide a private, respectful space where you can talk openly, share what you're going through, and simply be heard.
+          </p>
+          <div class="d-flex flex-column flex-sm-row gap-3">
+            <a href="/user/dashboard" class="btn btn-brand px-5 py-3 fs-5">Talk With Me</a>
+            <a href="/how-it-works" class="btn btn-outline-brand px-5 py-3 fs-5">How It Works</a>
+          </div>
+        </div>
+        
+        <!-- Hero Visual (SVG Drawing) -->
+        <div class="col-lg-6 text-center">
+          <div class="p-3">
+            <svg class="svg-illustration" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="250" cy="250" r="220" fill="url(#hero-bg-grad)" opacity="0.3"/>
+              <circle cx="250" cy="250" r="160" fill="url(#hero-bg-grad2)" opacity="0.5"/>
+              
+              <path d="M160 360C160 326.863 186.863 300 220 300C225.5 300 230 304.5 230 310V390C230 395.5 225.5 400 220 400C186.863 400 160 373.137 160 360Z" fill="url(#pink-grad)"/>
+              <circle cx="220" cy="250" r="30" fill="url(#pink-grad)"/>
+              
+              <path d="M340 360C340 326.863 313.137 300 280 300C274.5 300 270 304.5 270 310V390C270 395.5 274.5 400 280 400C313.137 400 340 373.137 340 360Z" fill="url(#blue-grad)"/>
+              <circle cx="280" cy="250" r="30" fill="url(#blue-grad)"/>
+              
+              <path d="M220 200C240 180 260 180 280 200" stroke="#7B4DCE" stroke-width="4" stroke-linecap="round" stroke-dasharray="8 8"/>
+              <path d="M200 180C230 150 270 150 300 180" stroke="#E91E8F" stroke-width="3" stroke-linecap="round"/>
+              
+              <path d="M250 242C248 238 242 238 240 240C238 242 238 248 242 250L250 258L258 250C262 248 262 242 260 240C258 238 252 238 250 242Z" fill="#D41473"/>
+              
+              <defs>
+                <linearGradient id="hero-bg-grad" x1="250" y1="30" x2="250" y2="470" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#EEF6FF"/>
+                  <stop offset="1" stop-color="#F5F1FF"/>
+                </linearGradient>
+                <linearGradient id="hero-bg-grad2" x1="250" y1="90" x2="250" y2="410" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#1769E0" stop-opacity="0.2"/>
+                  <stop offset="1" stop-color="#E91E8F" stop-opacity="0.1"/>
+                </linearGradient>
+                <linearGradient id="pink-grad" x1="160" y1="220" x2="230" y2="400" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#E91E8F"/>
+                  <stop offset="1" stop-color="#7B4DCE"/>
+                </linearGradient>
+                <linearGradient id="blue-grad" x1="270" y1="220" x2="340" y2="400" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#1769E0"/>
+                  <stop offset="1" stop-color="#123B8E"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Trust Strip Section -->
+  <section class="py-5 bg-white border-divider shadow-sm position-relative z-3">
+    <div class="container">
+      <div class="row g-4 justify-content-center text-center">
+        <div class="col-md-3 col-6">
+          <div class="d-flex align-items-center justify-content-center gap-3">
+            <div class="fs-2 text-primary-pink"><i class="bi bi-shield-lock"></i></div>
+            <div class="text-start">
+              <h6 class="mb-0 fw-bold">Private Conversations</h6>
+              <small class="text-muted">Strictly confidential</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3 col-6">
+          <div class="d-flex align-items-center justify-content-center gap-3">
+            <div class="fs-2 text-primary-blue"><i class="bi bi-people"></i></div>
+            <div class="text-start">
+              <h6 class="mb-0 fw-bold">Human Support</h6>
+              <small class="text-muted">No bots or templates</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3 col-6">
+          <div class="d-flex align-items-center justify-content-center gap-3">
+            <div class="fs-2 text-purple"><i class="bi bi-wallet2"></i></div>
+            <div class="text-start">
+              <h6 class="mb-0 fw-bold">Simple Credit System</h6>
+              <small class="text-muted">Pay only for active time</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3 col-6">
+          <div class="d-flex align-items-center justify-content-center gap-3">
+            <div class="fs-2 text-primary-blue"><i class="bi bi-emoji-smile"></i></div>
+            <div class="text-start">
+              <h6 class="mb-0 fw-bold">Respectful & Caring</h6>
+              <small class="text-muted">Completely non-judgmental</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How I Can Support You Section -->
+  <section class="section-padding bg-light">
+    <div class="container">
+      <div class="text-center max-width-600 mx-auto mb-5">
+        <span class="badge-category mb-2">My Focus Areas</span>
+        <h2 class="fw-bold mb-3">How I Can Support You</h2>
+        <p class="text-muted">Every conversation is designed around your comfort. Here are common situations where talking to me can help you feel lighter.</p>
+      </div>
+      
+      <div class="row g-4">
+        <!-- 1. Lonely -->
+        <div class="col-md-4">
+          <div class="card-premium h-100 text-center text-sm-start">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-light-lavender text-purple mb-4" style="width: 60px; height: 60px; font-size: 1.5rem;">
+              <i class="bi bi-chat-quote"></i>
+            </div>
+            <h5 class="fw-bold mb-3">When You Feel Lonely</h5>
+            <p class="text-muted mb-0">Sometimes life moves fast and leaves us behind. I am here as an attentive, supportive presence when you simply need someone to listen.</p>
+          </div>
+        </div>
+        <!-- 2. Overwhelming -->
+        <div class="col-md-4">
+          <div class="card-premium h-100 text-center text-sm-start">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-light-lavender text-primary-blue mb-4" style="width: 60px; height: 60px; font-size: 1.5rem; color: #1769E0;">
+              <i class="bi bi-wind"></i>
+            </div>
+            <h5 class="fw-bold mb-3">When Life Feels Overwhelming</h5>
+            <p class="text-muted mb-0">Work, family, or relationships can pile up quickly. Take a breath, speak your mind, and unpack the stress in a quiet space.</p>
+          </div>
+        </div>
+        <!-- 3. Understand -->
+        <div class="col-md-4">
+          <div class="card-premium h-100 text-center text-sm-start">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-light-lavender text-primary-pink mb-4" style="width: 60px; height: 60px; font-size: 1.5rem; color: #E91E8F;">
+              <i class="bi bi-heart"></i>
+            </div>
+            <h5 class="fw-bold mb-3">When You Need to Be Understood</h5>
+            <p class="text-muted mb-0">Share your thoughts without fear of evaluation. You don't need to justify your feelings; your experience is valid as it is.</p>
+          </div>
+        </div>
+        <!-- 4. Difficult Day -->
+        <div class="col-md-4">
+          <div class="card-premium h-100 text-center text-sm-start">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-light-lavender text-primary-blue mb-4" style="width: 60px; height: 60px; font-size: 1.5rem; color: #1769E0;">
+              <i class="bi bi-brightness-high"></i>
+            </div>
+            <h5 class="fw-bold mb-3">When You Have a Difficult Day</h5>
+            <p class="text-muted mb-0">A tough meeting or frustrating conversation can linger. Offloading that negative energy helps you close the day on a positive note.</p>
+          </div>
+        </div>
+        <!-- 5. Encouragement -->
+        <div class="col-md-4">
+          <div class="card-premium h-100 text-center text-sm-start">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-light-lavender text-purple mb-4" style="width: 60px; height: 60px; font-size: 1.5rem;">
+              <i class="bi bi-award"></i>
+            </div>
+            <h5 class="fw-bold mb-3">When You Need Encouragement</h5>
+            <p class="text-muted mb-0">Facing a hurdle or unsure of your direction? Talk it through to organize your thoughts and find validation to keep moving forward.</p>
+          </div>
+        </div>
+        <!-- 6. Just Want to Talk -->
+        <div class="col-md-4">
+          <div class="card-premium h-100 text-center text-sm-start">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-light-lavender text-primary-pink mb-4" style="width: 60px; height: 60px; font-size: 1.5rem; color: #E91E8F;">
+              <i class="bi bi-telephone-inbound"></i>
+            </div>
+            <h5 class="fw-bold mb-3">When You Just Want to Talk</h5>
+            <p class="text-muted mb-0">You don't need to be in crisis to talk to someone. You might want to share a small win or just chat with a friendly, welcoming voice.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works Section -->
+  <section class="section-padding bg-white border-divider">
+    <div class="container">
+      <div class="text-center max-width-600 mx-auto mb-5">
+        <span class="badge-category mb-2">Simplicity First</span>
+        <h2 class="fw-bold mb-3">How It Works</h2>
+        <p class="text-muted">Connecting with me takes just a few steps. Everything is managed through a simple system.</p>
+      </div>
+
+      <div class="row g-4 text-center">
+        <div class="col-md-3 step-card">
+          <div class="step-number">01</div>
+          <h5 class="fw-bold mb-2">Create Your Account</h5>
+          <p class="text-muted px-3">Sign up with your mobile number to create your profile securely.</p>
+        </div>
+        <div class="col-md-3 step-card">
+          <div class="step-number">02</div>
+          <h5 class="fw-bold mb-2">Purchase Credits</h5>
+          <p class="text-muted px-3">Buy conversation credits. 1 credit equals 1 minute of calling time.</p>
+        </div>
+        <div class="col-md-3 step-card">
+          <div class="step-number">03</div>
+          <h5 class="fw-bold mb-2">Start a Voice Call</h5>
+          <p class="text-muted px-3">Press the call button inside the dashboard to connect instantly.</p>
+        </div>
+        <div class="col-md-3 step-card">
+          <div class="step-number">04</div>
+          <h5 class="fw-bold mb-2">Talk & Be Heard</h5>
+          <p class="text-muted px-3">Speak at your own pace. Credits deduct dynamically per minute.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Simple Credit System Section -->
+  <section class="section-padding bg-light">
+    <div class="container">
+      <div class="row align-items-center g-5">
+        <div class="col-lg-5">
+          <span class="badge-category mb-2">Fair Pricing</span>
+          <h2 class="fw-bold mb-3">Simple Credit System</h2>
+          <p class="text-muted mb-4">
+            Your conversations are based entirely on credits. There are no monthly commitments, subscriptions, or hidden charges. You purchase exactly what you need, when you need it.
+          </p>
+          <div class="d-flex align-items-center gap-3 mb-4">
+            <span class="display-3 fw-extrabold text-primary-pink" style="color: #E91E8F;">1</span>
+            <div class="text-start">
+              <span class="fw-bold d-block text-dark" style="font-size: 1.25rem;">Credit</span>
+              <span class="text-muted">equals</span>
+            </div>
+            <span class="display-3 fw-extrabold text-primary-blue" style="color: #1769E0;">1</span>
+            <div class="text-start">
+              <span class="fw-bold d-block text-dark" style="font-size: 1.25rem;">Minute</span>
+              <span class="text-muted">of conversation</span>
+            </div>
+          </div>
+          <a href="/pricing" class="btn btn-brand px-4 py-2.5">View Credit Plans</a>
+        </div>
+        
+        <div class="col-lg-7">
+          <div class="row g-4">
+            <div class="col-sm-6">
+              <div class="card-premium text-center p-4">
+                <span class="text-muted d-block mb-1">Starter Plan</span>
+                <h4 class="fw-bold mb-2 text-primary-blue">5 Credits</h4>
+                <div class="badge-category mb-3">5 Minutes Talk Time</div>
+                <p class="text-muted small">Perfect for a brief conversation to talk through a single issue.</p>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <div class="card-premium text-center p-4" style="border: 1.5px solid #7B4DCE;">
+                <span class="text-muted d-block mb-1">Popular Plan</span>
+                <h4 class="fw-bold mb-2 text-purple">30 Credits</h4>
+                <div class="badge-category mb-3">30 Minutes Talk Time</div>
+                <p class="text-muted small">The ideal session length to unpack a stressful day and breathe.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quote Banner Section -->
+  <section class="section-padding bg-soft-gradient text-center position-relative overflow-hidden">
+    <div class="backdrop-glow"></div>
+    <div class="container position-relative z-3">
+      <div class="max-width-800 mx-auto">
+        <i class="bi bi-quote fs-1 text-primary-pink mb-4" style="color: #E91E8F; font-size: 3rem;"></i>
+        <h2 class="fw-bold font-secondary mb-4" style="line-height: 1.4; color: #182033; font-weight: 600;">
+          "You don't always need someone to fix everything. Sometimes you just need someone who stays, listens and understands."
+        </h2>
+        <p class="text-muted mb-4">— Talk. Be Heard. Feel Lighter. —</p>
+        <a href="/user/dashboard" class="btn btn-brand px-5 py-3 fs-5">Start a Conversation</a>
+      </div>
+    </div>
+  </section>
+
+  <%- include('partials/footer') %>
+  <%- include('partials/scripts') %>
+</body>
+</html>

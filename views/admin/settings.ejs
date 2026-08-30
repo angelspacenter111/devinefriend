@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('../partials/head') %>
+<body>
+
+  <div class="panel-wrapper">
+    <!-- Admin Sidebar Partial -->
+    <%- include('../partials/admin-sidebar') %>
+
+    <!-- Main Content Panel -->
+    <div class="content-panel">
+      <!-- Top Header -->
+      <header class="header-panel shadow-sm">
+        <div class="d-flex align-items-center gap-3">
+          <button class="btn btn-light d-lg-none sidebar-toggle-btn" type="button">
+            <i class="bi bi-list fs-4"></i>
+          </button>
+          <h4 class="mb-0 fw-bold">Platform Settings</h4>
+        </div>
+        
+        <div class="d-flex align-items-center gap-3">
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-circle bg-light-lavender d-flex align-items-center justify-content-center border" style="width: 38px; height: 38px;">
+              <i class="bi bi-shield-lock text-purple"></i>
+            </div>
+            <span class="fw-semibold text-dark d-none d-md-block">System Admin</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Contents Canvas -->
+      <main class="main-content-inner">
+        <div class="row g-4">
+          <!-- Left side: General profile & Password -->
+          <div class="col-lg-6">
+            <div class="card-premium border-0 bg-white shadow-sm p-4 mb-4">
+              <h5 class="fw-bold mb-4">Admin Profile Settings</h5>
+              <form onsubmit="event.preventDefault(); alert('Settings saved successfully in simulation mode!')">
+                <div class="mb-3">
+                  <label class="form-label form-label-custom">Admin Full Name</label>
+                  <input type="text" class="form-control form-control-custom" value="System Administrator">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label form-label-custom">Contact Email</label>
+                  <input type="email" class="form-control form-control-custom" value="admin@friend.com">
+                </div>
+                <button type="submit" class="btn btn-brand px-4 py-2.5">Save Admin Info</button>
+              </form>
+            </div>
+
+            <div class="card-premium border-0 bg-white shadow-sm p-4">
+              <h5 class="fw-bold mb-4">Update Security Password</h5>
+              <form onsubmit="event.preventDefault(); alert('Password updated successfully!')">
+                <div class="mb-3">
+                  <label class="form-label form-label-custom">Current Password</label>
+                  <input type="password" class="form-control form-control-custom" placeholder="••••••••">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label form-label-custom">New Password</label>
+                  <input type="password" class="form-control form-control-custom" placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-brand w-100 py-2.5">Update Password</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Right side: Platform config toggles -->
+          <div class="col-lg-6">
+            <div class="card-premium border-0 bg-white shadow-sm p-4 h-100">
+              <h5 class="fw-bold mb-4">Voice Line configurations</h5>
+              
+              <form onsubmit="event.preventDefault(); alert('Line configurations updated successfully!')">
+                <div class="mb-4">
+                  <label class="form-label form-label-custom">Call Consumption Rates</label>
+                  <div class="input-group">
+                    <input type="number" class="form-control form-control-custom" value="1" style="max-width: 100px;">
+                    <span class="input-group-text bg-white" style="border-radius: 0 10px 10px 0; border-color: rgba(24,32,51,0.1);">Credits per Minute</span>
+                  </div>
+                  <small class="text-muted">Calculates billing deductions dynamically.</small>
+                </div>
+
+                <div class="mb-4">
+                  <label class="form-label form-label-custom">Payment Gateway Currency</label>
+                  <select class="form-select form-control-custom">
+                    <option>INR (₹) - Indian Rupee</option>
+                    <option>USD ($) - US Dollar</option>
+                    <option>EUR (€) - Euro</option>
+                  </select>
+                </div>
+
+                <h6 class="fw-bold mb-3">System Features Toggles</h6>
+                
+                <div class="form-check form-switch mb-3">
+                  <input class="form-check-input" type="checkbox" id="regToggle" checked>
+                  <label class="form-check-label text-muted small" for="regToggle">Enable public registrations</label>
+                </div>
+
+                <div class="form-check form-switch mb-3">
+                  <input class="form-check-input" type="checkbox" id="warningToggle" checked>
+                  <label class="form-check-label text-muted small" for="warningToggle">Trigger automatic low credit notification banner</label>
+                </div>
+
+                <div class="form-check form-switch mb-4">
+                  <input class="form-check-input" type="checkbox" id="lineToggle" checked>
+                  <label class="form-check-label text-muted small" for="lineToggle">Mark voice companion lines as online/ready</label>
+                </div>
+
+                <button type="submit" class="btn btn-brand px-4 py-2.5 mt-3">Save Platform Config</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <%- include('../partials/scripts') %>
+</body>
+</html>

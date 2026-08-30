@@ -1,0 +1,19 @@
+{
+  "name": "friend-emotional-support",
+  "version": "1.0.0",
+  "description": "Friend Emotional Support and Voice Companion Platform",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "connect-mongo": "^6.0.0",
+    "dotenv": "^17.4.2",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "express-session": "^1.19.0",
+    "mongoose": "^9.9.4",
+    "socket.io": "^4.7.4"
+  }
+}

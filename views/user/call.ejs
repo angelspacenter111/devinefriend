@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('../partials/head') %>
+<body class="call-wrapper">
+  <!-- Active engine activator element for custom.js -->
+  <div id="call-screen-trigger"></div>
+
+  <!-- Top bar (Connection & Metadata) -->
+  <div class="container text-center pt-2 position-relative z-3">
+    <div class="d-flex align-items-center justify-content-between">
+      <div class="text-start">
+        <span class="text-white-50 d-block small">Calling Companion</span>
+        <h5 class="fw-bold text-white mb-0">Your Support Partner</h5>
+      </div>
+      
+      <div>
+        <span class="call-status-badge connecting">Connecting...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Center (Avatar & Timer) -->
+  <div class="container text-center my-auto position-relative z-3">
+    <div class="call-circle-avatar mb-4">
+      <div class="call-pulse-animation"></div>
+      <div class="call-pulse-animation-2"></div>
+      <div class="rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 100%; height: 100%; font-size: 4rem; background: linear-gradient(135deg, #1769E0 0%, #E91E8F 100%);">
+        <i class="bi bi-person-fill"></i>
+      </div>
+    </div>
+
+    <div class="call-timer mb-2">00:00</div>
+    
+    <div class="d-flex align-items-center justify-content-center gap-4 text-white-50 small">
+      <div>
+        <i class="bi bi-clock me-1 text-primary-pink" style="color: #E91E8F;"></i> Used: <span id="call-credits-used" class="text-white fw-bold">0</span> Credits
+      </div>
+      <div>
+        <i class="bi bi-coin me-1 text-primary-blue" style="color: #1769E0;"></i> Remaining: <span id="call-credits-remaining" class="text-white fw-bold simulated-balance"><%= user.credits %></span> Credits
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Panel (Controls & Privacy Message) -->
+  <div class="container text-center pb-4 position-relative z-3" id="call-screen-footer-container">
+    <div class="d-flex align-items-center justify-content-center gap-3 mb-5" id="call-active-controls">
+      <button class="call-btn-circle" id="mute-toggle-btn" onclick="$(this).toggleClass('active'); $(this).find('i').toggleClass('bi-mic-mute-fill bi-mic-fill')">
+        <i class="bi bi-mic-fill"></i>
+      </button>
+      <button class="call-btn-circle end-call" id="call-end-btn" title="End Call">
+        <i class="bi bi-telephone-x-fill"></i>
+      </button>
+      <button class="call-btn-circle" id="speaker-toggle-btn" onclick="$(this).toggleClass('active'); $(this).find('i').toggleClass('bi-volume-up-fill bi-volume-down-fill')">
+        <i class="bi bi-volume-up-fill"></i>
+      </button>
+    </div>
+
+    <div class="mb-4" id="call-cancel-btn">
+      <button class="btn btn-danger-brand rounded-pill px-5 py-3 fs-5"><i class="bi bi-telephone-x-fill me-2"></i> Cancel Connection</button>
+    </div>
+
+    <div class="max-width-600 mx-auto bg-white-10 rounded-pill p-2 px-4 d-inline-flex align-items-center gap-2 small text-white-50" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08);">
+      <i class="bi bi-shield-check text-success"></i> 
+      <span>Your conversation is private, respectful, and not recorded.</span>
+    </div>
+  </div>
+
+  <!-- Hidden remote audio elements -->
+  <audio id="remoteAudio" autoplay></audio>
+
+  <!-- Scripts -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    window.sessionUser = {
+      id: "<%= user._id %>",
+      name: "<%= user.name %>",
+      mobile: "<%= user.mobile %>",
+      credits: <%= user.credits %>
+    };
+  </script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/webrtc.js"></script>
+</body>
+</html>

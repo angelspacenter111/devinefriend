@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('../partials/head') %>
+<body>
+
+  <div class="panel-wrapper">
+    <!-- User Sidebar Partial -->
+    <%- include('../partials/user-sidebar') %>
+
+    <!-- Main Content Panel -->
+    <div class="content-panel">
+      <!-- Top Header -->
+      <header class="header-panel shadow-sm">
+        <div class="d-flex align-items-center gap-3">
+          <button class="btn btn-light d-lg-none sidebar-toggle-btn" type="button">
+            <i class="bi bi-list fs-4"></i>
+          </button>
+          <h4 class="mb-0 fw-bold d-none d-sm-block">Dashboard Home</h4>
+        </div>
+        
+        <div class="d-flex align-items-center gap-3">
+          <div class="header-wallet-badge">
+            <i class="bi bi-coin me-1"></i>
+            <span class="fw-bold"><span class="simulated-balance"><%= user.credits %></span> Credits</span>
+            <span class="text-muted small ms-1">(≈ <span class="simulated-balance"><%= user.credits %></span> mins)</span>
+          </div>
+          
+          <div class="dropdown">
+            <button class="btn btn-light rounded-circle p-2 position-relative" type="button" data-bs-toggle="dropdown">
+              <i class="bi bi-bell"></i>
+              <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"></span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 rounded-3">
+              <li><h6 class="dropdown-header">Recent Updates</h6></li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <a class="dropdown-item d-flex gap-2" href="#">
+                  <i class="bi bi-check-circle-fill text-success mt-1"></i>
+                  <div>
+                    <span class="d-block fw-semibold text-dark small">Wallet Credited</span>
+                    <small class="text-muted">Simulated purchase loaded successfully.</small>
+                  </div>
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-circle bg-light-lavender d-flex align-items-center justify-content-center border" style="width: 38px; height: 38px;">
+              <i class="bi bi-person text-purple"></i>
+            </div>
+            <span class="simulated-name fw-semibold text-dark d-none d-md-block"><%= user.name %></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Contents Canvas -->
+      <main class="main-content-inner">
+        <!-- Welcome Card Banner -->
+        <div class="card-hero-premium p-4 p-md-5 bg-soft-gradient position-relative overflow-hidden mb-4">
+          <div class="backdrop-glow"></div>
+          <div class="position-relative z-3">
+            <span class="badge-category mb-2">Welcome Back</span>
+            <h2 class="fw-extrabold text-dark mb-2">Hello, <span class="simulated-name"><%= user.name %></span></h2>
+            <p class="text-muted mb-0" style="font-size: 1.1rem;">How are you feeling today? Remember, you don't have to carry everything alone.</p>
+          </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+          <!-- Voice Call CTA Widget Card -->
+          <div class="col-lg-8">
+            <div class="card-premium h-100 border-0 bg-white shadow-sm p-4 d-flex flex-column justify-content-between">
+              <div>
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                  <span class="badge-category text-primary-pink bg-light-lavender" style="color: #E91E8F;"><i class="bi bi-telephone-fill me-1"></i> Voice Companion Line</span>
+                  <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill small">Online Now</span>
+                </div>
+                <h4 class="fw-bold mb-2">Need Someone to Talk To?</h4>
+                <p class="text-muted small mb-4">
+                  Connect instantly to a private, caring voice conversation. Share whatever is on your mind. No chat history, no logs, complete confidentiality.
+                </p>
+              </div>
+
+              <div class="row g-3 align-items-center mt-3 pt-3 border-top">
+                <div class="col-sm-6 text-center text-sm-start mb-3 mb-sm-0">
+                  <span class="text-muted small d-block">Estimated Talk Time</span>
+                  <h5 class="fw-extrabold mb-0 text-primary-blue"><span class="simulated-balance"><%= user.credits %></span> Minutes Available</h5>
+                </div>
+                <div class="col-sm-6 text-center text-sm-end">
+                  <a href="/user/call" class="btn btn-brand px-4 py-3 w-100 w-sm-auto"><i class="bi bi-telephone-inbound-fill me-2"></i> Start Voice Call</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Wallet Summary Card -->
+          <div class="col-lg-4">
+            <div class="card-premium h-100 border-0 bg-white shadow-sm p-4 d-flex flex-column justify-content-between">
+              <div>
+                <h5 class="fw-bold mb-3">Wallet Credits</h5>
+                <div class="d-flex align-items-baseline gap-2 mb-3">
+                  <span class="display-4 fw-extrabold text-purple" id="dash-wallet-credits"><%= user.credits %></span>
+                  <span class="fw-semibold text-muted">Credits</span>
+                </div>
+                <p class="text-muted small">
+                  Credits are used dynamically during calls. 1 Credit is equivalent to 1 minute of talk time. Unused credits do not expire.
+                </p>
+              </div>
+              <div class="mt-4">
+                <a href="/user/buy-credits" class="btn btn-secondary-light w-100 py-2.5"><i class="bi bi-plus-circle me-1"></i> Purchase Credit Pack</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Metric statistics Cards -->
+        <div class="row g-4 mb-4">
+          <div class="col-sm-6 col-lg-3">
+            <div class="card-premium border-0 bg-white shadow-sm p-3.5 text-center">
+              <i class="bi bi-telephone text-primary-blue fs-3 mb-2"></i>
+              <span class="text-muted small d-block mb-1">Total Calls Placed</span>
+              <h4 class="fw-bold text-dark mb-0" id="dash-total-calls"><%= totalCalls %></h4>
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <div class="card-premium border-0 bg-white shadow-sm p-3.5 text-center">
+              <i class="bi bi-clock-history text-purple fs-3 mb-2"></i>
+              <span class="text-muted small d-block mb-1">Total Minutes Spent</span>
+              <h4 class="fw-bold text-dark mb-0" id="dash-total-mins"><%= totalMins %> mins</h4>
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <div class="card-premium border-0 bg-white shadow-sm p-3.5 text-center">
+              <i class="bi bi-shield-check text-success fs-3 mb-2"></i>
+              <span class="text-muted small d-block mb-1">Call Quality status</span>
+              <h4 class="fw-bold text-success mb-0">Excellent</h4>
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <div class="card-premium border-0 bg-white shadow-sm p-3.5 text-center">
+              <i class="bi bi-chat-quote text-primary-pink fs-3 mb-2"></i>
+              <span class="text-muted small d-block mb-1">Deduction Method</span>
+              <h4 class="fw-bold text-dark mb-0">1 Credit / Min</h4>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Call History Table List -->
+        <div class="card-premium border-0 bg-white shadow-sm p-4">
+          <div class="d-flex align-items-center justify-content-between mb-4">
+            <h5 class="fw-bold mb-0">Recent Conversations</h5>
+            <a href="/user/call-history" class="link-primary small fw-semibold text-decoration-underline">View All History</a>
+          </div>
+          
+          <div class="table-responsive-custom">
+            <table class="table table-premium mb-0 align-middle">
+              <thead>
+                <tr>
+                  <th>Call ID</th>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Duration</th>
+                  <th>Credits Used</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="call-history-table-body">
+                <% if (calls.length === 0) { %>
+                  <tr>
+                    <td colspan="6" class="text-center text-muted py-4">No calls logged yet.</td>
+                  </tr>
+                <% } else { %>
+                  <% calls.forEach(call => { %>
+                    <% 
+                      let badgeClass = "bg-success-subtle text-success";
+                      if (call.status === "Cancelled" || call.status === "Missed") badgeClass = "bg-warning-subtle text-warning";
+                      if (call.status === "Failed") badgeClass = "bg-danger-subtle text-danger";
+                      if (call.status.includes("No Credits")) badgeClass = "bg-danger text-white";
+                    %>
+                    <tr>
+                      <td><span class="fw-semibold"><%= call.callId %></span></td>
+                      <td><%= call.date ? call.date.toISOString().split('T')[0] : '' %></td>
+                      <td><%= call.time %></td>
+                      <td><%= call.duration %></td>
+                      <td><span class="fw-bold"><%= call.credits %> Credits</span></td>
+                      <td><span class="badge <%= badgeClass %> rounded-pill px-2.5 py-1.5"><%= call.status %></span></td>
+                    </tr>
+                  <% }) %>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <%- include('../partials/scripts') %>
+</body>
+</html>

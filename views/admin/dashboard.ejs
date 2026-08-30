@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('../partials/head') %>
+<body>
+
+  <div class="panel-wrapper">
+    <!-- Admin Sidebar Partial -->
+    <%- include('../partials/admin-sidebar') %>
+
+    <!-- Main Content Panel -->
+    <div class="content-panel">
+      <!-- Top Header -->
+      <header class="header-panel shadow-sm">
+        <div class="d-flex align-items-center gap-3">
+          <button class="btn btn-light d-lg-none sidebar-toggle-btn" type="button">
+            <i class="bi bi-list fs-4"></i>
+          </button>
+          <h4 class="mb-0 fw-bold">Admin Dashboard</h4>
+        </div>
+        
+        <div class="d-flex align-items-center gap-3">
+          <span class="badge bg-danger-subtle text-danger px-3 py-1.5 rounded-pill fw-semibold"><i class="bi bi-record-circle-fill me-1"></i> Live Companion: Online</span>
+          <div class="d-flex align-items-center gap-2 border-start ps-3">
+            <div class="rounded-circle bg-light-lavender d-flex align-items-center justify-content-center border" style="width: 38px; height: 38px;">
+              <i class="bi bi-shield-lock text-purple"></i>
+            </div>
+            <span class="fw-semibold text-dark d-none d-md-block">System Admin</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Contents Canvas -->
+      <main class="main-content-inner">
+        <!-- Today Statistics Strip -->
+        <h5 class="fw-bold text-dark mb-3"><i class="bi bi-clock-history me-1 text-primary-pink"></i> Today's Summary</h5>
+        <div class="row g-4 mb-5">
+          <div class="col-6 col-lg-3">
+            <div class="p-3 bg-white rounded-3 shadow-sm border">
+              <span class="text-muted small d-block mb-1">New Users Today</span>
+              <h3 class="fw-extrabold text-primary-blue mb-0"><%= stats.newUsersToday %></h3>
+            </div>
+          </div>
+          <div class="col-6 col-lg-3">
+            <div class="p-3 bg-white rounded-3 shadow-sm border">
+              <span class="text-muted small d-block mb-1">Calls Today</span>
+              <h3 class="fw-extrabold text-purple mb-0"><%= stats.callsToday %></h3>
+            </div>
+          </div>
+          <div class="col-6 col-lg-3">
+            <div class="p-3 bg-white rounded-3 shadow-sm border">
+              <span class="text-muted small d-block mb-1">Minutes Spoken Today</span>
+              <h3 class="fw-extrabold text-success mb-0"><%= stats.minsToday %> min</h3>
+            </div>
+          </div>
+          <div class="col-6 col-lg-3">
+            <div class="p-3 bg-white rounded-3 shadow-sm border">
+              <span class="text-muted small d-block mb-1">Credits Purchased Today</span>
+              <h3 class="fw-extrabold text-dark mb-0"><%= stats.creditsToday %></h3>
+            </div>
+          </div>
+        </div>
+
+        <!-- Global Cumulative Stats Cards -->
+        <h5 class="fw-bold text-dark mb-3"><i class="bi bi-globe me-1 text-primary-blue"></i> Cumulative Metrics</h5>
+        <div class="row g-4 mb-5">
+          <div class="col-sm-6 col-lg-3">
+            <div class="card-premium border-0 bg-white shadow-sm p-4 text-center">
+              <i class="bi bi-people-fill text-primary-blue fs-2 mb-2"></i>
+              <span class="text-muted small d-block mb-1">Total Users Registered</span>
+              <h2 class="fw-bold text-dark mb-0"><%= stats.totalUsers %></h2>
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <div class="card-premium border-0 bg-white shadow-sm p-4 text-center">
+              <i class="bi bi-telephone-inbound-fill text-purple fs-2 mb-2"></i>
+              <span class="text-muted small d-block mb-1">Total Calls Initiated</span>
+              <h2 class="fw-bold text-dark mb-0"><%= stats.totalCalls %></h2>
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <div class="card-premium border-0 bg-white shadow-sm p-4 text-center">
+              <i class="bi bi-clock-fill text-primary-pink fs-2 mb-2"></i>
+              <span class="text-muted small d-block mb-1">Total Minutes Transacted</span>
+              <h2 class="fw-bold text-dark mb-0"><%= stats.totalMins %></h2>
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <div class="card-premium border-0 bg-white shadow-sm p-4 text-center">
+              <i class="bi bi-currency-rupee text-success fs-2 mb-2"></i>
+              <span class="text-muted small d-block mb-1">Overall Revenue Earned</span>
+              <h2 class="fw-bold text-success mb-0">₹<%= stats.totalRevenue.toLocaleString('en-IN') %></h2>
+            </div>
+          </div>
+        </div>
+
+        <!-- Graphs Section (CSS-Based Bar Chart) -->
+        <div class="row g-4 mb-4">
+          <div class="col-lg-6">
+            <div class="card-premium border-0 bg-white shadow-sm p-4">
+              <h5 class="fw-bold mb-2">Weekly Calls Activity</h5>
+              <p class="text-muted small">Number of conversations weekly</p>
+              
+              <div class="chart-container-css">
+                <div class="chart-bar-css-wrapper">
+                  <div class="chart-bar-css" data-val="120" style="height: 40%;"></div>
+                  <span class="chart-bar-label">Mon</span>
+                </div>
+                <div class="chart-bar-css-wrapper">
+                  <div class="chart-bar-css" data-val="190" style="height: 65%;"></div>
+                  <span class="chart-bar-label">Tue</span>
+                </div>
+                <div class="chart-bar-css-wrapper">
+                  <div class="chart-bar-css" data-val="250" style="height: 85%;"></div>
+                  <span class="chart-bar-label">Wed</span>
+                </div>
+                <div class="chart-bar-css-wrapper">
+                  <div class="chart-bar-css" data-val="140" style="height: 50%;"></div>
+                  <span class="chart-bar-label">Thu</span>
+                </div>
+                <div class="chart-bar-css-wrapper">
+                  <div class="chart-bar-css" data-val="290" style="height: 95%;"></div>
+                  <span class="chart-bar-label">Fri</span>
+                </div>
+                <div class="chart-bar-css-wrapper">
+                  <div class="chart-bar-css" data-val="320" style="height: 100%;"></div>
+                  <span class="chart-bar-label">Sat</span>
+                </div>
+                <div class="chart-bar-css-wrapper">
+                  <div class="chart-bar-css" data-val="180" style="height: 60%;"></div>
+                  <span class="chart-bar-label">Sun</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card-premium border-0 bg-white shadow-sm p-4">
+              <h5 class="fw-bold mb-2">Monthly Sales Revenue</h5>
+              <p class="text-muted small">Earnings in thousands (₹)</p>
+              
+              <div class="chart-container-css">
+                <div class="chart-bar-css-wrapper">
+                  <div class="chart-bar-css" data-val="₹45k" style="height: 50%; background: var(--purple-pink-gradient);"></div>
+                  <span class="chart-bar-label">Apr</span>
+                </div>
+                <div class="chart-bar-css-wrapper">
+                  <div class="chart-bar-css" data-val="₹55k" style="height: 60%; background: var(--purple-pink-gradient);"></div>
+                  <span class="chart-bar-label">May</span>
+                </div>
+                <div class="chart-bar-css-wrapper">
+                  <div class="chart-bar-css" data-val="₹72k" style="height: 75%; background: var(--purple-pink-gradient);"></div>
+                  <span class="chart-bar-label">Jun</span>
+                </div>
+                <div class="chart-bar-css-wrapper">
+                  <div class="chart-bar-css" data-val="₹68k" style="height: 70%; background: var(--purple-pink-gradient);"></div>
+                  <span class="chart-bar-label">Jul</span>
+                </div>
+                <div class="chart-bar-css-wrapper">
+                  <div class="chart-bar-css" data-val="₹94k" style="height: 95%; background: var(--purple-pink-gradient);"></div>
+                  <span class="chart-bar-label">Aug</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Incoming Call Modal -->
+  <div class="modal fade" id="incomingCallModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+      <div class="modal-content rounded-4 border-0 shadow-lg text-center p-4">
+        <div class="modal-body py-4">
+          <div class="call-circle-avatar mb-4" style="width: 100px; height: 100px; margin: 0 auto; position: relative;">
+            <div class="call-pulse-animation"></div>
+            <div class="call-pulse-animation-2"></div>
+            <div class="rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 100%; height: 100%; font-size: 2.2rem; background: var(--brand-gradient);">
+              <i class="bi bi-telephone-inbound-fill"></i>
+            </div>
+          </div>
+          <h4 class="fw-bold mb-2">Incoming Voice Call</h4>
+          <p class="text-muted small">User <strong id="modal-caller-name">Jane Doe</strong> is requesting a supportive conversation.</p>
+        </div>
+        <div class="d-flex gap-2 justify-content-center mt-3">
+          <button type="button" class="btn btn-outline-danger px-4 py-2.5 rounded-pill" onclick="rejectIncomingCall()">Decline</button>
+          <button type="button" class="btn btn-brand px-4 py-2.5 rounded-pill" onclick="acceptIncomingCall()">Accept Call</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <%- include('../partials/scripts') %>
+  <script>
+    let socket;
+    let activeCallerId = null;
+
+    $(document).ready(function() {
+      // Connect to Socket signaling server
+      socket = io();
+
+      // Register as admin
+      socket.emit('admin-join');
+
+      // Listen for incoming call request
+      socket.on('incoming-call-alert', function(data) {
+        activeCallerId = data.callerId;
+        $("#modal-caller-name").text(data.callerName);
+        
+        // Store details in local storage for admin call console to access
+        localStorage.setItem("webrtc_caller_id", data.callerId);
+        localStorage.setItem("webrtc_caller_name", data.callerName);
+
+        // Show modal
+        const myModal = new bootstrap.Modal(document.getElementById('incomingCallModal'));
+        myModal.show();
+      });
+    });
+
+    function acceptIncomingCall() {
+      // Trigger accept event to stop ringing for other admins
+      if (socket && activeCallerId) {
+        socket.emit('admin-accept-call', { callerId: activeCallerId });
+      }
+      // Redirect to admin call console
+      window.location.href = "/admin/call";
+    }
+
+    function rejectIncomingCall() {
+      if (socket && activeCallerId) {
+        socket.emit('hangup');
+      }
+      $("#incomingCallModal").modal("hide");
+    }
+  </script>
+</body>
+</html>

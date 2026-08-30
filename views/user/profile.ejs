@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('../partials/head') %>
+<body>
+
+  <div class="panel-wrapper">
+    <!-- User Sidebar Partial -->
+    <%- include('../partials/user-sidebar') %>
+
+    <!-- Main Content Panel -->
+    <div class="content-panel">
+      <!-- Top Header -->
+      <header class="header-panel shadow-sm">
+        <div class="d-flex align-items-center gap-3">
+          <button class="btn btn-light d-lg-none sidebar-toggle-btn" type="button">
+            <i class="bi bi-list fs-4"></i>
+          </button>
+          <h4 class="mb-0 fw-bold">Profile Settings</h4>
+        </div>
+        
+        <div class="d-flex align-items-center gap-3">
+          <div class="header-wallet-badge">
+            <i class="bi bi-coin me-1"></i>
+            <span class="fw-bold"><span class="simulated-balance"><%= user.credits %></span> Credits</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-circle bg-light-lavender d-flex align-items-center justify-content-center border" style="width: 38px; height: 38px;">
+              <i class="bi bi-person text-purple"></i>
+            </div>
+            <span class="simulated-name fw-semibold text-dark d-none d-md-block"><%= user.name %></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Contents Canvas -->
+      <main class="main-content-inner">
+        <% if (typeof successMessage !== 'undefined' && successMessage) { %>
+          <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i><%= successMessage %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        <% } %>
+        <% if (typeof errorMessage !== 'undefined' && errorMessage) { %>
+          <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i><%= errorMessage %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        <% } %>
+
+        <div class="row g-4">
+          <!-- Left side: Personal info form -->
+          <div class="col-lg-7">
+            <div class="card-premium border-0 bg-white shadow-sm p-4">
+              <h5 class="fw-bold mb-4">Personal Details</h5>
+              
+              <form action="/user/profile" method="POST" id="user-profile-form">
+                <!-- Photo Upload Mock -->
+                <div class="d-flex align-items-center gap-3 mb-4">
+                  <div class="rounded-circle bg-light-lavender border d-flex align-items-center justify-content-center" style="width: 76px; height: 76px; font-size: 2.2rem;">
+                    <i class="bi bi-person text-purple"></i>
+                  </div>
+                  <div>
+                    <label class="form-label form-label-custom mb-1">Avatar Image</label>
+                    <div class="d-flex gap-2">
+                      <button type="button" class="btn btn-sm btn-secondary-light">Upload Photo</button>
+                      <button type="button" class="btn btn-sm btn-light border">Remove</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label for="profile-fullname" class="form-label form-label-custom">Full Name (or Screen Name)</label>
+                  <input type="text" class="form-control form-control-custom simulated-fullname-input" id="profile-fullname" name="name" value="<%= user.name %>" required>
+                </div>
+
+                <div class="mb-3">
+                  <label for="profile-mobile" class="form-label form-label-custom">Mobile Number</label>
+                  <input type="text" class="form-control form-control-custom simulated-mobile-input" id="profile-mobile" name="mobile" value="<%= user.mobile %>" required>
+                </div>
+
+                <div class="mb-4">
+                  <label for="profile-email" class="form-label form-label-custom">Email Address (Optional)</label>
+                  <input type="email" class="form-control form-control-custom simulated-email" id="profile-email" name="email" value="<%= user.email || '' %>">
+                  <small class="text-muted">Used solely for receipt deliveries and account notifications.</small>
+                </div>
+
+                <button type="submit" class="btn btn-brand px-4 py-2.5">Save Changes</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Right side: Change password form -->
+          <div class="col-lg-5">
+            <div class="card-premium border-0 bg-white shadow-sm p-4">
+              <h5 class="fw-bold mb-4">Change Password</h5>
+              
+              <form action="/user/change-password" method="POST" id="user-password-form">
+                <div class="mb-3">
+                  <label for="current-password" class="form-label form-label-custom">Current Password</label>
+                  <input type="password" class="form-control form-control-custom" id="current-password" name="currentPassword" required placeholder="••••••••">
+                </div>
+
+                <div class="mb-3">
+                  <label for="new-password" class="form-label form-label-custom">New Password</label>
+                  <input type="password" class="form-control form-control-custom" id="new-password" name="newPassword" required placeholder="••••••••">
+                </div>
+
+                <div class="mb-4">
+                  <label for="confirm-password" class="form-label form-label-custom">Confirm New Password</label>
+                  <input type="password" class="form-control form-control-custom" id="confirm-password" name="confirmPassword" required placeholder="••••••••">
+                </div>
+
+                <button type="submit" class="btn btn-brand w-100 py-2.5">Update Password</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <%- include('../partials/scripts') %>
+</body>
+</html>

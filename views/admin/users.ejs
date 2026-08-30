@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('../partials/head') %>
+<body>
+
+  <div class="panel-wrapper">
+    <!-- Admin Sidebar Partial -->
+    <%- include('../partials/admin-sidebar') %>
+
+    <!-- Main Content Panel -->
+    <div class="content-panel">
+      <!-- Top Header -->
+      <header class="header-panel shadow-sm">
+        <div class="d-flex align-items-center gap-3">
+          <button class="btn btn-light d-lg-none sidebar-toggle-btn" type="button">
+            <i class="bi bi-list fs-4"></i>
+          </button>
+          <h4 class="mb-0 fw-bold">User Directory</h4>
+        </div>
+        
+        <div class="d-flex align-items-center gap-3">
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-circle bg-light-lavender d-flex align-items-center justify-content-center border" style="width: 38px; height: 38px;">
+              <i class="bi bi-shield-lock text-purple"></i>
+            </div>
+            <span class="fw-semibold text-dark d-none d-md-block">System Admin</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Contents Canvas -->
+      <main class="main-content-inner">
+        <!-- User Directory Card -->
+        <div class="card-premium border-0 bg-white shadow-sm p-4">
+          <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
+            <h5 class="fw-bold mb-0">Platform Accounts</h5>
+            <div class="input-group" style="max-width: 300px;">
+              <span class="input-group-text bg-light border-end-0" style="border-radius: 10px 0 0 10px;"><i class="bi bi-search text-muted"></i></span>
+              <input type="text" class="form-control bg-light border-start-0 ps-1" placeholder="Search users by name..." style="border-radius: 0 10px 10px 0; font-size: 0.9rem;">
+            </div>
+          </div>
+
+          <div class="table-responsive-custom">
+            <table class="table table-premium mb-0 align-middle">
+              <thead>
+                <tr>
+                  <th>User ID</th>
+                  <th>Name</th>
+                  <th>Mobile</th>
+                  <th>Credits Balance</th>
+                  <th>Total Calls</th>
+                  <th>Joined Date</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (users.length === 0) { %>
+                  <tr>
+                    <td colspan="8" class="text-center text-muted py-4">No registered users found.</td>
+                  </tr>
+                <% } else { %>
+                  <% users.forEach(usr => { %>
+                    <% 
+                      let badgeClass = "bg-success-subtle text-success";
+                      let statusText = "Active";
+                      if (usr.isBlocked) {
+                        badgeClass = "bg-danger-subtle text-danger";
+                        statusText = "Suspended";
+                      }
+                    %>
+                    <tr>
+                      <td><span class="fw-semibold"><%= usr._id.toString().substring(18) %></span></td>
+                      <td><%= usr.name %></td>
+                      <td><%= usr.mobile %></td>
+                      <td><span class="fw-bold text-purple"><span class="user-credits-val"><%= usr.credits %></span> Credits</span></td>
+                      <td><%= usr.callCount %> calls</td>
+                      <td><%= usr.joined ? usr.joined.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '' %></td>
+                      <td><span class="badge <%= badgeClass %> status-badge rounded-pill px-2.5 py-1.5"><%= statusText %></span></td>
+                      <td>
+                        <div class="d-flex gap-1.5">
+                          <button class="btn btn-sm btn-light border px-2 btn-wallet-edit" title="Edit Wallet Credits" data-bs-toggle="modal" data-bs-target="#editWalletModal" data-id="<%= usr._id %>" data-name="<%= usr.name %>" data-credits="<%= usr.credits %>" <%= usr.isBlocked ? 'disabled' : '' %>><i class="bi bi-wallet2 text-primary-blue"></i> Wallet</button>
+                          
+                          <% if (usr.isBlocked) { %>
+                            <button class="btn btn-sm btn-danger btn-admin-block px-2" data-id="<%= usr._id %>"><i class="bi bi-x-circle me-1"></i> Blocked</button>
+                          <% } else { %>
+                            <button class="btn btn-sm btn-outline-danger btn-admin-block px-2" data-id="<%= usr._id %>"><i class="bi bi-x-circle me-1"></i> Block</button>
+                          <% } %>
+                        </div>
+                      </td>
+                    </tr>
+                  <% }) %>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Wallet Modification Bootstrap Modal -->
+  <div class="modal fade" id="editWalletModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+      <div class="modal-content rounded-4 border-0 shadow-lg">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="fw-bold mb-0">Modify Credits: <span id="modal-user-name" class="text-primary-pink">User</span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body py-4">
+          <p class="text-muted small">Update the wallet balance directly. Add credits for loyalty, or adjust after technical issue refunds.</p>
+          <div class="mb-3">
+            <label class="form-label form-label-custom">Direct Credits Adjustment</label>
+            <input type="number" class="form-control form-control-custom" id="wallet-credits-input" value="25" min="0">
+          </div>
+          <div class="mb-3">
+            <label class="form-label form-label-custom">Reason for Change</label>
+            <select class="form-select form-control-custom">
+              <option>Technical issue credit restore</option>
+              <option>Loyalty promotion reward</option>
+              <option>Manual billing credit load</option>
+              <option>Administrative adjustment</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer border-top-0 pt-0">
+          <button type="button" class="btn btn-sm btn-light border" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-sm btn-brand px-3" id="btn-save-wallet">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('../partials/scripts') %>
+  
+  <script>
+    let currentUserIdForWallet = null;
+
+    $(document).ready(function() {
+      // 1. Handle Wallet Modal Open & Load Values
+      $('.btn-wallet-edit').on('click', function() {
+        currentUserIdForWallet = $(this).data('id');
+        $('#modal-user-name').text($(this).data('name'));
+        $('#wallet-credits-input').val($(this).data('credits'));
+      });
+
+      // 2. Submit Wallet Credit adjustments
+      $('#btn-save-wallet').on('click', function() {
+        const newCredits = $('#wallet-credits-input').val();
+        if (!currentUserIdForWallet) return;
+        
+        $.ajax({
+          url: '/admin/users/update-wallet/' + currentUserIdForWallet,
+          method: 'POST',
+          data: { credits: newCredits },
+          success: function(res) {
+            if (res.success) {
+              $('#editWalletModal').modal('hide');
+              location.reload();
+            } else {
+              alert(res.message || 'Failed to update credits.');
+            }
+          },
+          error: function(err) {
+            alert('Server error updating credits.');
+          }
+        });
+      });
+
+      // 3. Block/Unblock users toggle
+      $('.btn-admin-block').on('click', function() {
+        const $btn = $(this);
+        const userId = $btn.data('id');
+        
+        $.ajax({
+          url: '/admin/users/block/' + userId,
+          method: 'POST',
+          success: function(res) {
+            if (res.success) {
+              if (res.isBlocked) {
+                $btn.removeClass('btn-outline-danger').addClass('btn-danger').html('<i class="bi bi-x-circle me-1"></i> Blocked');
+                $btn.closest('tr').find('.status-badge').removeClass('bg-success-subtle text-success').addClass('bg-danger-subtle text-danger').text('Suspended');
+                $btn.closest('tr').find('.btn-wallet-edit').prop('disabled', true);
+              } else {
+                $btn.removeClass('btn-danger').addClass('btn-outline-danger').html('<i class="bi bi-x-circle me-1"></i> Block');
+                $btn.closest('tr').find('.status-badge').removeClass('bg-danger-subtle text-danger').addClass('bg-success-subtle text-success').text('Active');
+                $btn.closest('tr').find('.btn-wallet-edit').prop('disabled', false);
+              }
+            } else {
+              alert(res.message || 'Failed to update block status.');
+            }
+          },
+          error: function(err) {
+            alert('Server error toggling block status.');
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>

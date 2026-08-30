@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('../partials/head') %>
+<body>
+
+  <div class="panel-wrapper">
+    <!-- Admin Sidebar Partial -->
+    <%- include('../partials/admin-sidebar') %>
+
+    <!-- Main Content Panel -->
+    <div class="content-panel">
+      <!-- Top Header -->
+      <header class="header-panel shadow-sm">
+        <div class="d-flex align-items-center gap-3">
+          <button class="btn btn-light d-lg-none sidebar-toggle-btn" type="button">
+            <i class="bi bi-list fs-4"></i>
+          </button>
+          <h4 class="mb-0 fw-bold">Credit Flow Auditing</h4>
+        </div>
+        
+        <div class="d-flex align-items-center gap-3">
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-circle bg-light-lavender d-flex align-items-center justify-content-center border" style="width: 38px; height: 38px;">
+              <i class="bi bi-shield-lock text-purple"></i>
+            </div>
+            <span class="fw-semibold text-dark d-none d-md-block">System Admin</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Contents Canvas -->
+      <main class="main-content-inner">
+        <!-- Credit Summary strip -->
+        <div class="row g-4 mb-5">
+          <div class="col-md-4">
+            <div class="card-premium border-0 bg-white shadow-sm p-4 text-center">
+              <i class="bi bi-arrow-down-left-circle-fill text-success fs-2 mb-2"></i>
+              <span class="text-muted d-block small mb-1">Total Credits Sold</span>
+              <h3 class="fw-extrabold text-dark mb-0"><%= stats.totalCreditsSold %></h3>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card-premium border-0 bg-white shadow-sm p-4 text-center">
+              <i class="bi bi-arrow-up-right-circle-fill text-danger fs-2 mb-2"></i>
+              <span class="text-muted d-block small mb-1">Total Credits Used</span>
+              <h3 class="fw-extrabold text-dark mb-0"><%= stats.totalCreditsUsed %></h3>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card-premium border-0 bg-white shadow-sm p-4 text-center">
+              <i class="bi bi-safe-fill text-purple fs-2 mb-2"></i>
+              <span class="text-muted d-block small mb-1">Available User Credits (In Circulation)</span>
+              <h3 class="fw-extrabold text-purple mb-0"><%= stats.creditsInCirculation %></h3>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detail Breakdown & CSS Chart -->
+        <div class="row g-4 mb-4">
+          <div class="col-lg-7">
+            <div class="card-premium border-0 bg-white shadow-sm p-4">
+              <h5 class="fw-bold mb-4">Token Consumption History</h5>
+              <div class="chart-container-css">
+                <div class="chart-bar-css-wrapper">
+                  <div class="chart-bar-css" data-val="1,200 Credits" style="height: 45%;"></div>
+                  <span class="chart-bar-label">Mon</span>
+                </div>
+                <div class="chart-bar-css-wrapper">
+                  <div class="chart-bar-css" data-val="2,400 Credits" style="height: 70%;"></div>
+                  <span class="chart-bar-label">Tue</span>
+                </div>
+                <div class="chart-bar-css-wrapper">
+                  <div class="chart-bar-css" data-val="3,100 Credits" style="height: 90%;"></div>
+                  <span class="chart-bar-label">Wed</span>
+                </div>
+                <div class="chart-bar-css-wrapper">
+                  <div class="chart-bar-css" data-val="1,800 Credits" style="height: 55%;"></div>
+                  <span class="chart-bar-label">Thu</span>
+                </div>
+                <div class="chart-bar-css-wrapper">
+                  <div class="chart-bar-css" data-val="3,400 Credits" style="height: 100%;"></div>
+                  <span class="chart-bar-label">Fri</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-5">
+            <div class="card-premium border-0 bg-white shadow-sm p-4">
+              <h5 class="fw-bold mb-3">Credit Circulation Details</h5>
+              <div class="d-grid gap-3 small">
+                <div class="d-flex align-items-center justify-content-between p-2.5 rounded-3 bg-light">
+                  <span class="text-muted">Avg. Session length</span>
+                  <span class="fw-bold text-dark"><%= stats.avgSessionLength %> minutes</span>
+                </div>
+                <div class="d-flex align-items-center justify-content-between p-2.5 rounded-3 bg-light">
+                  <span class="text-muted">Total Conversions Revenue</span>
+                  <span class="fw-bold text-success">₹<%= stats.totalRevenue.toLocaleString('en-IN') %></span>
+                </div>
+                <div class="d-flex align-items-center justify-content-between p-2.5 rounded-3 bg-light">
+                  <span class="text-muted">Avg. Price per Token</span>
+                  <span class="fw-bold text-dark">₹24.9</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <%- include('../partials/scripts') %>
+</body>
+</html>

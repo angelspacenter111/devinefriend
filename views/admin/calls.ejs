@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('../partials/head') %>
+<body>
+
+  <div class="panel-wrapper">
+    <!-- Admin Sidebar Partial -->
+    <%- include('../partials/admin-sidebar') %>
+
+    <!-- Main Content Panel -->
+    <div class="content-panel">
+      <!-- Top Header -->
+      <header class="header-panel shadow-sm">
+        <div class="d-flex align-items-center gap-3">
+          <button class="btn btn-light d-lg-none sidebar-toggle-btn" type="button">
+            <i class="bi bi-list fs-4"></i>
+          </button>
+          <h4 class="mb-0 fw-bold">Call History Database</h4>
+        </div>
+        
+        <div class="d-flex align-items-center gap-3">
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-circle bg-light-lavender d-flex align-items-center justify-content-center border" style="width: 38px; height: 38px;">
+              <i class="bi bi-shield-lock text-purple"></i>
+            </div>
+            <span class="fw-semibold text-dark d-none d-md-block">System Admin</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Contents Canvas -->
+      <main class="main-content-inner">
+        <!-- Calls Directory Card -->
+        <div class="card-premium border-0 bg-white shadow-sm p-4">
+          <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
+            <h5 class="fw-bold mb-0">Voice Connection Records</h5>
+            
+            <div class="d-flex gap-2">
+              <select class="form-select form-control-custom py-1.5" style="font-size: 0.85rem; width: 140px;">
+                <option>All Statuses</option>
+                <option>Completed</option>
+                <option>Cancelled</option>
+                <option>Missed</option>
+                <option>Failed</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-responsive-custom">
+            <table class="table table-premium mb-0 align-middle">
+              <thead>
+                <tr>
+                  <th>Call ID</th>
+                  <th>User</th>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Duration</th>
+                  <th>Credits Charged</th>
+                  <th>Status</th>
+                  <th>Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (calls.length === 0) { %>
+                  <tr>
+                    <td colspan="8" class="text-center text-muted py-4">No calls logged in database.</td>
+                  </tr>
+                <% } else { %>
+                  <% calls.forEach(call => { %>
+                    <% 
+                      let badgeClass = "bg-success-subtle text-success";
+                      if (call.status === "Cancelled" || call.status === "Missed") badgeClass = "bg-warning-subtle text-warning";
+                      if (call.status === "Failed") badgeClass = "bg-danger-subtle text-danger";
+                      if (call.status.includes("No Credits")) badgeClass = "bg-danger text-white";
+                    %>
+                    <tr>
+                      <td><span class="fw-semibold"><%= call.callId %></span></td>
+                      <td><%= call.user ? call.user.name : 'Deleted User' %> (<%= call.user ? call.user._id.toString().substring(18) : 'N/A' %>)</td>
+                      <td><%= call.date ? call.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '' %></td>
+                      <td><%= call.time %></td>
+                      <td><%= call.duration %></td>
+                      <td><span class="fw-bold"><%= call.credits %> Credits</span></td>
+                      <td><span class="badge <%= badgeClass %> rounded-pill px-2.5 py-1"><%= call.status %></span></td>
+                      <td><button class="btn btn-sm btn-light border py-1" onclick="alert('Call ID: <%= call.callId %> | User: <%= call.user ? call.user.name : 'N/A' %> | Duration: <%= call.duration %> | Credits: <%= call.credits %>')"><i class="bi bi-eye"></i> View</button></td>
+                    </tr>
+                  <% }) %>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <%- include('../partials/scripts') %>
+</body>
+</html>

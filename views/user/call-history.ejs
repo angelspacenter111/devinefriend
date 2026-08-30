@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('../partials/head') %>
+<body>
+
+  <div class="panel-wrapper">
+    <!-- User Sidebar Partial -->
+    <%- include('../partials/user-sidebar') %>
+
+    <!-- Main Content Panel -->
+    <div class="content-panel">
+      <!-- Top Header -->
+      <header class="header-panel shadow-sm">
+        <div class="d-flex align-items-center gap-3">
+          <button class="btn btn-light d-lg-none sidebar-toggle-btn" type="button">
+            <i class="bi bi-list fs-4"></i>
+          </button>
+          <h4 class="mb-0 fw-bold">Call History</h4>
+        </div>
+        
+        <div class="d-flex align-items-center gap-3">
+          <div class="header-wallet-badge">
+            <i class="bi bi-coin me-1"></i>
+            <span class="fw-bold"><span class="simulated-balance"><%= user.credits %></span> Credits</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-circle bg-light-lavender d-flex align-items-center justify-content-center border" style="width: 38px; height: 38px;">
+              <i class="bi bi-person text-purple"></i>
+            </div>
+            <span class="simulated-name fw-semibold text-dark d-none d-md-block"><%= user.name %></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Contents Canvas -->
+      <main class="main-content-inner">
+        <!-- History Table Section -->
+        <div class="card-premium border-0 bg-white shadow-sm p-4">
+          <div class="d-flex align-items-center justify-content-between mb-4">
+            <h5 class="fw-bold mb-0">Conversation Logs</h5>
+            <span class="text-muted small">Total records: <span class="fw-semibold"><%= calls.length %></span></span>
+          </div>
+
+          <div class="table-responsive-custom">
+            <table class="table table-premium mb-0 align-middle">
+              <thead>
+                <tr>
+                  <th>Call ID</th>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Duration</th>
+                  <th>Credits Used</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="call-history-table-body">
+                <% if (calls.length === 0) { %>
+                  <tr>
+                    <td colspan="6" class="text-center text-muted py-4">No calls logged yet.</td>
+                  </tr>
+                <% } else { %>
+                  <% calls.forEach(call => { %>
+                    <% 
+                      let badgeClass = "bg-success-subtle text-success";
+                      if (call.status === "Cancelled" || call.status === "Missed") badgeClass = "bg-warning-subtle text-warning";
+                      if (call.status === "Failed") badgeClass = "bg-danger-subtle text-danger";
+                      if (call.status.includes("No Credits")) badgeClass = "bg-danger text-white";
+                    %>
+                    <tr>
+                      <td><span class="fw-semibold"><%= call.callId %></span></td>
+                      <td><%= call.date ? call.date.toISOString().split('T')[0] : '' %></td>
+                      <td><%= call.time %></td>
+                      <td><%= call.duration %></td>
+                      <td><span class="fw-bold"><%= call.credits %> Credits</span></td>
+                      <td><span class="badge <%= badgeClass %> rounded-pill px-2.5 py-1.5"><%= call.status %></span></td>
+                    </tr>
+                  <% }) %>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <%- include('../partials/scripts') %>
+</body>
+</html>
