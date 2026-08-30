@@ -197,14 +197,29 @@
     let activeCallerId = null;
 
     $(document).ready(function() {
+      console.log("[Socket] Initializing connection to signaling server...");
       // Connect to Socket signaling server
       socket = io({ transports: ['websocket'] });
 
-      // Register as admin
-      socket.emit('admin-join');
+      // Connection event listeners for diagnostic logs
+      socket.on('connect', () => {
+        console.log(`[Socket] Connected successfully to signaling server. Socket ID: ${socket.id}`);
+        // Register as admin
+        socket.emit('admin-join');
+        console.log("[Socket] Registered admin-join request sent.");
+      });
+
+      socket.on('connect_error', (error) => {
+        console.error("[Socket Error] Connection failed:", error);
+      });
+
+      socket.on('disconnect', (reason) => {
+        console.warn(`[Socket Warning] Disconnected from signaling server. Reason: ${reason}`);
+      });
 
       // Listen for incoming call request
       socket.on('incoming-call-alert', function(data) {
+        console.log("[Socket] Received incoming-call-alert. Data:", data);
         activeCallerId = data.callerId;
         $("#modal-caller-name").text(data.callerName);
         
@@ -213,21 +228,20 @@
         localStorage.setItem("webrtc_caller_name", data.callerName);
 
         // Show modal
+        console.log("[UI] Displaying incomingCallModal...");
         const myModal = new bootstrap.Modal(document.getElementById('incomingCallModal'));
         myModal.show();
       });
     });
 
     function acceptIncomingCall() {
-      // Trigger accept event to stop ringing for other admins
-      if (socket && activeCallerId) {
-        socket.emit('admin-accept-call', { callerId: activeCallerId });
-      }
-      // Redirect to admin call console
+      console.log(`[UI] Call accepted by admin. Redirecting to call console for peer connection...`);
+      // Redirect to admin call console immediately. The call console script will handle the handshake.
       window.location.href = "/admin/call";
     }
 
     function rejectIncomingCall() {
+      console.log(`[UI] Call rejected by admin. Emitting hangup for caller ID: ${activeCallerId}`);
       if (socket && activeCallerId) {
         socket.emit('hangup');
       }
