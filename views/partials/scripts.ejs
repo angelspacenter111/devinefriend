@@ -9,6 +9,7 @@
       mobile: "<%= user.mobile %>",
       email: "<%= user.email || '' %>",
       credits: <%= user.credits %>,
+      role: "<%= user.role || 'user' %>",
       joined: "<%= user.joined ? user.joined.toISOString().split('T')[0] : '' %>"
     };
   <% } else { %>
@@ -16,4 +17,8 @@
   <% } %>
 </script>
 <script src="/js/custom.js"></script>
+
+<% if (typeof user !== 'undefined' && user && user.role === 'admin') { %>
+  <%- include('./admin-incoming-call') %>
+<% } %>
 

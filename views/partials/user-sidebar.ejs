@@ -16,9 +16,6 @@
     <li class="<%= (typeof activeTab !== 'undefined' && activeTab === 'buy-credits') ? 'active' : '' %>">
       <a href="/user/buy-credits"><i class="bi bi-credit-card-2-front"></i> Buy Credits</a>
     </li>
-    <li class="<%= (typeof activeTab !== 'undefined' && activeTab === 'call') ? 'active' : '' %>">
-      <a href="/user/call"><i class="bi bi-telephone-outbound-fill"></i> Start a Call</a>
-    </li>
     <li class="<%= (typeof activeTab !== 'undefined' && activeTab === 'call-history') ? 'active' : '' %>">
       <a href="/user/call-history"><i class="bi bi-clock-history"></i> Call History</a>
     </li>
@@ -32,9 +29,9 @@
       <a href="/faq"><i class="bi bi-question-circle"></i> Help & Support</a>
     </li>
   </ul>
-  <div class="sidebar-footer">
-    <a href="/logout" class="d-flex align-items-center text-decoration-none text-muted fw-semibold">
-      <i class="bi bi-box-arrow-right me-2 text-danger"></i> Logout
+  <div class="sidebar-footer p-3">
+    <a href="/logout" class="btn btn-outline-danger w-100 rounded-pill py-2 d-flex align-items-center justify-content-center gap-2 fw-semibold">
+      <i class="bi bi-box-arrow-right"></i> Logout
     </a>
   </div>
 </aside>

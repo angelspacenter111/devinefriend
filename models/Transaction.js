@@ -4,16 +4,19 @@ const transactionSchema = new mongoose.Schema({
   txnId: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
+    index: true
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
+    index: true
   },
   date: {
     type: Date,
-    default: Date.now
+    default: Date.now,
+    index: true
   },
   desc: {
     type: String,
@@ -22,7 +25,8 @@ const transactionSchema = new mongoose.Schema({
   type: {
     type: String,
     enum: ['credit', 'debit'],
-    required: true
+    required: true,
+    index: true
   },
   credits: {
     type: Number,
@@ -35,8 +39,22 @@ const transactionSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: ['Successful', 'Completed', 'Failed'],
-    required: true
+    required: true,
+    index: true
+  },
+  callId: {
+    type: String,
+    index: true,
+    default: null
+  },
+  call: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Call',
+    default: null
   }
+}, {
+  timestamps: true
 });
 
 module.exports = mongoose.model('Transaction', transactionSchema);
+

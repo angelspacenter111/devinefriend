@@ -74,6 +74,8 @@ async function startServer() {
       res.status(404).redirect('/');
     });
 
+    const callService = require('./services/callService');
+
     // Socket.io Signaling Logic for WebRTC
     io.on('connection', (socket) => {
       console.log(`[Socket] Client connected: ${socket.id}`);
@@ -86,28 +88,107 @@ async function startServer() {
 
       // When user joins calling screen
       socket.on('join-call-room', (data) => {
-        const roomId = 'call_room';
+        const roomId = data.callId || 'call_room';
         socket.join(roomId);
-        console.log(`[Socket] User ${data.userName} joined room ${roomId}`);
+        socket.callId = data.callId;
+        socket.userId = data.userId;
+        socket.userName = data.userName;
+        socket.role = 'user';
+
+        callService.logStructured('CALL_INCOMING', {
+          callId: data.callId,
+          userId: data.userId,
+          userName: data.userName,
+          socketId: socket.id,
+          roomId: roomId
+        });
 
         // Notify all active admin monitors of incoming call request
         io.to('admins').emit('incoming-call-alert', {
+          callId: data.callId,
           callerId: socket.id,
           callerName: data.userName,
+          userId: data.userId,
           roomId: roomId
         });
       });
 
       // When admin accepts call
-      socket.on('admin-accept-call', (data) => {
-        const roomId = 'call_room';
+      socket.on('admin-accept-call', async (data) => {
+        const roomId = data.callId || 'call_room';
         socket.join(roomId);
-        console.log(`[Socket] Admin accepted call from caller: ${data.callerId}`);
+        socket.callId = data.callId;
+        socket.role = 'admin';
 
-        // Notify user client that peer has connected, trigger WebRTC PeerConnection handshake
-        socket.to(roomId).emit('peer-connected', {
-          adminId: socket.id
+        callService.logStructured('CALL_ACCEPTED', {
+          callId: data.callId,
+          adminId: data.adminId,
+          adminName: data.adminName,
+          socketId: socket.id
         });
+
+        if (data.callId) {
+          try {
+            await callService.acceptCall({
+              callId: data.callId,
+              admin: { _id: data.adminId, name: data.adminName }
+            });
+          } catch (e) {
+            console.error('[Socket Error] acceptCall failed:', e);
+          }
+        }
+
+        // Notify caller client that peer has connected, trigger WebRTC PeerConnection handshake
+        socket.to(roomId).emit('peer-connected', {
+          callId: data.callId,
+          adminId: socket.id,
+          adminName: data.adminName || 'Support Partner'
+        });
+      });
+
+      // When admin rejects/declines call
+      socket.on('admin-reject-call', async (data) => {
+        const callId = data.callId || socket.callId;
+        const roomId = callId || 'call_room';
+
+        callService.logStructured('CALL_REJECTED', {
+          callId,
+          callerId: data.callerId,
+          socketId: socket.id
+        });
+
+        if (callId) {
+          try {
+            await callService.finalizeCall(callId, { reason: 'Rejected' });
+          } catch (e) {
+            console.error('[Socket Error] finalizeCall (reject) failed:', e);
+          }
+        }
+
+        socket.to(roomId).emit('call-rejected', { callId, reason: 'Declined by Advisor' });
+        io.to('admins').emit('call-dismissed', { callId });
+        socket.leave(roomId);
+      });
+
+      // When WebRTC peer connection is established
+      socket.on('call-connected', async (data) => {
+        const callId = data.callId || socket.callId;
+        const roomId = callId || 'call_room';
+
+        callService.logStructured('CALL_CONNECTED', {
+          callId,
+          socketId: socket.id
+        });
+
+        if (callId) {
+          try {
+            await callService.connectCall({ callId });
+          } catch (e) {
+            console.error('[Socket Error] connectCall failed:', e);
+          }
+        }
+
+        io.to(roomId).emit('call-active', { callId, connectedAt: new Date() });
       });
 
       // Forward WebRTC SDP Offer
@@ -134,17 +215,65 @@ async function startServer() {
         });
       });
 
-      // Hangup calls
-      socket.on('hangup', () => {
-        const roomId = 'call_room';
-        console.log(`[Socket] Call terminated by: ${socket.id}`);
-        socket.to(roomId).emit('peer-disconnected');
+      // Hangup call
+      socket.on('hangup', async (data) => {
+        const callId = (data && data.callId) || socket.callId;
+        const reason = (data && data.reason) || 'Completed';
+        const roomId = callId || 'call_room';
+
+        callService.logStructured('CALL_ENDED', {
+          callId,
+          reason,
+          socketId: socket.id
+        });
+
+        if (callId) {
+          try {
+            const final = await callService.finalizeCall(callId, { reason });
+            if (final && final.call) {
+              io.to(roomId).emit('call-finalized', {
+                callId,
+                duration: final.call.duration,
+                credits: final.call.credits,
+                status: final.call.status,
+                remainingCredits: final.remainingCredits
+              });
+            }
+          } catch (e) {
+            console.error('[Socket Error] finalizeCall on hangup failed:', e);
+          }
+        }
+
+        // Notify admins if call was cancelled or missed before answer
+        if (reason === 'Cancelled' || reason === 'Missed') {
+          io.to('admins').emit('call-cancelled', { callId, reason });
+        }
+
+        socket.to(roomId).emit('peer-disconnected', { callId, reason });
         socket.leave(roomId);
       });
 
-      // Connection drop
-      socket.on('disconnect', () => {
-        socket.to('call_room').emit('peer-disconnected');
+      // Connection drop / Browser Refresh / Tab Close
+      socket.on('disconnect', async () => {
+        const callId = socket.callId;
+        callService.logStructured('SOCKET_DISCONNECTED', {
+          socketId: socket.id,
+          callId: callId || null
+        });
+
+        if (callId) {
+          const roomId = callId;
+          // Notify any pending admin monitor
+          io.to('admins').emit('call-cancelled', { callId, reason: 'Disconnected' });
+          socket.to(roomId).emit('peer-disconnected', { callId, reason: 'Disconnected' });
+          try {
+            await callService.finalizeCall(callId, { reason: 'Completed' });
+          } catch (e) {
+            console.error('[Socket Error] finalizeCall on disconnect failed:', e);
+          }
+        } else {
+          socket.to('call_room').emit('peer-disconnected');
+        }
       });
     });
 

@@ -1,6 +1,8 @@
 const User = require('../models/User');
 const Call = require('../models/Call');
 const Transaction = require('../models/Transaction');
+const callService = require('../services/callService');
+
 
 // Helper to convert mm:ss to numerical minutes
 const parseMins = (durationStr) => {
@@ -179,17 +181,57 @@ exports.getUsers = async (req, res) => {
 
 exports.getCalls = async (req, res) => {
   try {
-    const calls = await Call.find({}).populate('user').sort({ date: -1 });
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = 15;
+    const skip = (page - 1) * limit;
+
+    const { status, q } = req.query;
+    const filter = {};
+
+    if (status && status !== 'All' && status !== 'All Statuses') {
+      filter.status = status;
+    }
+
+    if (q && q.trim() !== '') {
+      const searchRegex = new RegExp(q.trim(), 'i');
+      const matchingUsers = await User.find({
+        $or: [{ name: searchRegex }, { mobile: searchRegex }]
+      }).select('_id');
+      const userIds = matchingUsers.map(u => u._id);
+
+      filter.$or = [
+        { callId: searchRegex },
+        { user: { $in: userIds } }
+      ];
+    }
+
+    const totalCalls = await Call.countDocuments(filter);
+    const totalPages = Math.ceil(totalCalls / limit) || 1;
+
+    const calls = await Call.find(filter)
+      .populate('user')
+      .populate('admin')
+      .populate('transaction')
+      .sort({ date: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
     res.render('admin/calls', {
       title: 'Call History Database - Friend Control',
       activeTab: 'calls',
-      calls
+      calls,
+      currentPage: page,
+      totalPages,
+      totalCalls,
+      selectedStatus: status || 'All',
+      searchQuery: q || ''
     });
   } catch (error) {
     console.error('[Admin Calls Error]', error);
     res.status(500).send('Server Error');
   }
 };
+
 
 exports.getTransactions = async (req, res) => {
   try {
@@ -295,12 +337,134 @@ exports.getSettings = (req, res) => {
   });
 };
 
-exports.getCall = (req, res) => {
+exports.getCall = async (req, res) => {
+  const callId = req.query.callId;
+  if (!callId) {
+    return res.redirect('/admin/dashboard');
+  }
+  let callerName = 'Calling Client';
+  try {
+    const callRecord = await Call.findOne({ callId }).populate('user');
+    if (callRecord && callRecord.user && callRecord.user.name) {
+      callerName = callRecord.user.name;
+    } else if (callRecord && callRecord.callerName) {
+      callerName = callRecord.callerName;
+    }
+  } catch (err) {
+    console.warn('[Admin Call] Error fetching caller name:', err);
+  }
+
   res.render('admin/call', {
     title: 'Voice Call Console - Friend Control',
-    activeTab: 'calls'
+    activeTab: 'calls',
+    callId: callId,
+    callerName: callerName,
+    user: req.user
   });
 };
+
+// AJAX endpoint for Admin to finalize call and deduct credits
+exports.postEndCall = async (req, res) => {
+  try {
+    const { callId, status } = req.body;
+    if (!callId) {
+      return res.status(400).json({ success: false, message: 'callId is required.' });
+    }
+
+    const checkCall = await Call.findOne({ callId });
+    if (!checkCall) {
+      return res.status(404).json({ success: false, message: 'Call not found.' });
+    }
+
+    const result = await callService.finalizeCall(callId, { reason: status || 'Completed' });
+
+    return res.json({
+      status: true,
+      success: true,
+      message: 'Call finalized successfully.',
+      data: {
+        call_id: result.call.callId,
+        duration: result.call.duration,
+        durationSeconds: result.call.durationSeconds,
+        credits_used: result.creditsDeducted,
+        credit_status: result.call.creditStatus,
+        status: result.call.status,
+        remaining_credits: result.remainingCredits
+      }
+    });
+  } catch (error) {
+    console.error('[Admin End Call Error]', error);
+    return res.status(500).json({ status: false, success: false, message: 'Server error saving call log.' });
+  }
+};
+
+// GET Call Details by Call ID for Admin Inspection Modal
+exports.getCallDetails = async (req, res) => {
+  try {
+    const { callId } = req.params;
+    const call = await Call.findOne({ callId })
+      .populate('user')
+      .populate('admin')
+      .populate('transaction');
+
+    if (!call) {
+      return res.status(404).json({ success: false, message: 'Call not found.' });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        callId: call.callId,
+        user: {
+          name: call.user ? call.user.name : 'N/A',
+          mobile: call.user ? call.user.mobile : 'N/A',
+          id: call.user ? call.user._id : 'N/A'
+        },
+        admin: {
+          name: call.admin ? call.admin.name : (call.receiverName || 'System Admin'),
+          id: call.admin ? call.admin._id : 'N/A'
+        },
+        callType: call.callType || 'Voice',
+        status: call.status,
+        date: call.date ? call.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+        time: call.time,
+        startTime: call.startTime ? new Date(call.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : (call.time || 'N/A'),
+        connectedTime: call.connectedTime ? new Date(call.connectedTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Not Connected',
+        endTime: call.endTime ? new Date(call.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'N/A',
+        duration: call.duration || '00:00',
+        durationSeconds: call.durationSeconds || 0,
+        creditRate: call.creditRate || 1,
+        credits: call.credits || 0,
+        creditStatus: call.creditStatus || 'none',
+        transactionId: call.transaction ? call.transaction.txnId : 'None'
+      }
+    });
+  } catch (error) {
+    console.error('[Admin Call Details Error]', error);
+    return res.status(500).json({ success: false, message: 'Server error loading call details.' });
+  }
+};
+
+// POST End Call from Admin side
+exports.postEndCall = async (req, res) => {
+  try {
+    const { callId, status } = req.body;
+    if (!callId) {
+      return res.status(400).json({ success: false, message: 'callId is required.' });
+    }
+    const result = await callService.finalizeCall(callId, { reason: status || 'Completed' });
+    return res.json({
+      status: true,
+      success: true,
+      message: 'Call finalized successfully by admin.',
+      data: result
+    });
+  } catch (error) {
+    console.error('[Admin End Call Error]', error);
+    return res.status(500).json({ success: false, message: 'Server error ending call.' });
+  }
+};
+
 
 // POST Block / Unblock User
 exports.postToggleBlock = async (req, res) => {

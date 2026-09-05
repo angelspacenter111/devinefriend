@@ -126,75 +126,105 @@ exports.postBuyCredits = async (req, res) => {
   }
 };
 
-exports.getCall = (req, res) => {
-  res.render('user/call', {
-    title: 'Voice Call - Friend',
-    activeTab: 'call',
-    user: req.user
-  });
-};
+const callService = require('../services/callService');
 
-// AJAX endpoint to log call details and deduct credits
-exports.postEndCall = async (req, res) => {
+exports.getCall = async (req, res) => {
   try {
-    const { duration, status, creditsUsed } = req.body;
     const user = req.user;
-
-    const billingCredits = parseInt(creditsUsed, 10) || 0;
-
-    // Deduct user credits
-    user.credits = Math.max(0, user.credits - billingCredits);
-    await user.save();
-
-    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const dateStr = new Date().toISOString().split('T')[0];
-
-    // Log the Call in DB
-    const newCall = new Call({
-      callId: "CALL-" + Math.floor(1000 + Math.random() * 9000),
-      user: user._id,
-      time: timeStr,
-      duration: duration || "00:00",
-      credits: billingCredits,
-      status: status || 'Completed'
-    });
-    const savedCall = await newCall.save();
-
-    // Log call charges transaction in DB if credits were spent
-    if (billingCredits > 0) {
-      const newTxn = new Transaction({
-        txnId: "TXN-" + Math.floor(1000 + Math.random() * 9000) + Math.floor(10 + Math.random() * 90),
-        user: user._id,
-        desc: `Call Charges (${savedCall.callId})`,
-        type: 'debit',
-        credits: billingCredits,
-        amount: '₹0',
-        status: 'Completed'
-      });
-      await newTxn.save();
+    if (user.credits < 1) {
+      return res.redirect('/user/buy-credits?lowCredits=true');
     }
 
+    const call = await callService.initiateCall({ user, callType: 'Voice' });
+
+    res.render('user/call', {
+      title: 'Voice Call - Friend',
+      activeTab: 'call',
+      user,
+      call
+    });
+  } catch (error) {
+    console.error('[User Call Initiation Error]', error);
+    if (error.code === 'INSUFFICIENT_CREDITS') {
+      return res.redirect('/user/buy-credits?lowCredits=true');
+    }
+    res.status(500).send('Server Error initiating call');
+  }
+};
+
+// AJAX endpoint to securely finalize call and deduct credits
+exports.postEndCall = async (req, res) => {
+  try {
+    const { callId, status } = req.body;
+    const user = req.user;
+
+    if (!callId) {
+      return res.status(400).json({ success: false, message: 'callId is required.' });
+    }
+
+    // Verify call belongs to the logged-in user
+    const checkCall = await Call.findOne({ callId });
+    if (!checkCall) {
+      return res.status(404).json({ success: false, message: 'Call not found.' });
+    }
+    if (checkCall.user.toString() !== user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Unauthorized to finalize this call.' });
+    }
+
+    const result = await callService.finalizeCall(callId, { reason: status || 'Completed' });
+
     return res.json({
+      status: true,
       success: true,
-      message: 'Call logged and billing computed successfully.',
-      credits: user.credits
+      message: 'Call finalized successfully.',
+      data: {
+        call_id: result.call.callId,
+        duration: result.call.duration,
+        durationSeconds: result.call.durationSeconds,
+        credits_used: result.creditsDeducted,
+        credit_status: result.call.creditStatus,
+        status: result.call.status,
+        remaining_credits: result.remainingCredits
+      }
     });
   } catch (error) {
     console.error('[End Call Error]', error);
-    return res.status(500).json({ success: false, message: 'Server error saving call log.' });
+    return res.status(500).json({ status: false, success: false, message: 'Server error saving call log.' });
   }
 };
 
 exports.getCallHistory = async (req, res) => {
   try {
     const user = req.user;
-    const calls = await Call.find({ user: user._id }).sort({ date: -1 });
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = 10;
+    const skip = (page - 1) * limit;
+
+    // Fetch the most recent call for the dedicated Last Call Summary card at the top
+    const latestCall = await Call.findOne({ user: user._id })
+      .populate('admin')
+      .sort({ date: -1, createdAt: -1 });
+
+    // Total calls count for pagination
+    const totalCalls = await Call.countDocuments({ user: user._id });
+    const totalPages = Math.ceil(totalCalls / limit) || 1;
+
+    // Paginated list of all calls
+    const calls = await Call.find({ user: user._id })
+      .populate('admin')
+      .sort({ date: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     res.render('user/call-history', {
       title: 'Call History - Friend',
       activeTab: 'call-history',
       user,
-      calls
+      latestCall,
+      calls,
+      currentPage: page,
+      totalPages,
+      totalCalls
     });
   } catch (error) {
     console.error('[Call History Error]', error);

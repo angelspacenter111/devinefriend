@@ -9,8 +9,8 @@
   <div class="container text-center pt-2 position-relative z-3">
     <div class="d-flex align-items-center justify-content-between">
       <div class="text-start">
-        <span class="text-white-50 d-block small">Calling Companion</span>
-        <h5 class="fw-bold text-white mb-0">Your Support Partner</h5>
+        <span class="text-white-50 d-block small">Calling Companion • <strong class="text-white"><%= typeof call !== 'undefined' && call ? call.callId : '' %></strong></span>
+        <h5 class="fw-bold text-white mb-0"><%= typeof call !== 'undefined' && call && call.receiverName ? call.receiverName : 'Your Support Partner' %></h5>
       </div>
       
       <div>
@@ -43,20 +43,20 @@
 
   <!-- Bottom Panel (Controls & Privacy Message) -->
   <div class="container text-center pb-4 position-relative z-3" id="call-screen-footer-container">
-    <div class="d-flex align-items-center justify-content-center gap-3 mb-5" id="call-active-controls">
-      <button class="call-btn-circle" id="mute-toggle-btn" onclick="$(this).toggleClass('active'); $(this).find('i').toggleClass('bi-mic-mute-fill bi-mic-fill')">
+    <div class="d-flex align-items-center justify-content-center gap-3 mb-5 d-none" id="call-active-controls">
+      <button class="call-btn-circle" id="mute-toggle-btn" onclick="toggleLocalMute()" title="Mute/Unmute Mic">
         <i class="bi bi-mic-fill"></i>
       </button>
       <button class="call-btn-circle end-call" id="call-end-btn" title="End Call">
         <i class="bi bi-telephone-x-fill"></i>
       </button>
-      <button class="call-btn-circle" id="speaker-toggle-btn" onclick="$(this).toggleClass('active'); $(this).find('i').toggleClass('bi-volume-up-fill bi-volume-down-fill')">
+      <button class="call-btn-circle" id="speaker-toggle-btn" onclick="toggleRemoteSpeaker()" title="Mute/Unmute Speaker">
         <i class="bi bi-volume-up-fill"></i>
       </button>
     </div>
 
-    <div class="mb-4" id="call-cancel-btn">
-      <button class="btn btn-danger-brand rounded-pill px-5 py-3 fs-5"><i class="bi bi-telephone-x-fill me-2"></i> Cancel Connection</button>
+    <div class="mb-4" id="call-cancel-btn-wrapper">
+      <button class="btn btn-danger-brand rounded-pill px-5 py-3 fs-5" id="call-cancel-btn"><i class="bi bi-telephone-x-fill me-2"></i> Cancel Connection</button>
     </div>
 
     <div class="max-width-600 mx-auto bg-white-10 rounded-pill p-2 px-4 d-inline-flex align-items-center gap-2 small text-white-50" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08);">
@@ -78,6 +78,8 @@
       mobile: "<%= user.mobile %>",
       credits: <%= user.credits %>
     };
+    window.activeCallId = "<%= typeof call !== 'undefined' && call ? call.callId : '' %>";
+    window.isCaller = true;
   </script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/webrtc.js"></script>

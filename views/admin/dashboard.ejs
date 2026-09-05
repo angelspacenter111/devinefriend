@@ -20,12 +20,26 @@
         
         <div class="d-flex align-items-center gap-3">
           <span class="badge bg-danger-subtle text-danger px-3 py-1.5 rounded-pill fw-semibold"><i class="bi bi-record-circle-fill me-1"></i> Live Companion: Online</span>
-          <div class="d-flex align-items-center gap-2 border-start ps-3">
-            <div class="rounded-circle bg-light-lavender d-flex align-items-center justify-content-center border" style="width: 38px; height: 38px;">
-              <i class="bi bi-shield-lock text-purple"></i>
-            </div>
-            <span class="fw-semibold text-dark d-none d-md-block">System Admin</span>
+          <div class="dropdown">
+            <button class="btn btn-light d-flex align-items-center gap-2 border rounded-pill py-1 px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <div class="rounded-circle bg-light-lavender d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                <i class="bi bi-shield-lock text-purple"></i>
+              </div>
+              <span class="fw-semibold text-dark d-none d-md-block small">System Admin</span>
+              <i class="bi bi-chevron-down text-muted small ms-1"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 rounded-3">
+              <li><h6 class="dropdown-header">Admin Control</h6></li>
+              <li><a class="dropdown-item" href="/admin/settings"><i class="bi bi-gear me-2 text-muted"></i>Settings</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item text-danger fw-semibold" href="/admin/logout"><i class="bi bi-box-arrow-right me-2 text-danger"></i>Logout</a></li>
+            </ul>
           </div>
+
+          <a href="/admin/logout" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 d-flex align-items-center gap-1.5 fw-semibold" title="Logout from Admin Panel">
+            <i class="bi bi-box-arrow-right"></i>
+            <span class="d-none d-sm-inline">Logout</span>
+          </a>
         </div>
       </header>
 
@@ -167,86 +181,6 @@
     </div>
   </div>
 
-  <!-- Incoming Call Modal -->
-  <div class="modal fade" id="incomingCallModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
-      <div class="modal-content rounded-4 border-0 shadow-lg text-center p-4">
-        <div class="modal-body py-4">
-          <div class="call-circle-avatar mb-4" style="width: 100px; height: 100px; margin: 0 auto; position: relative;">
-            <div class="call-pulse-animation"></div>
-            <div class="call-pulse-animation-2"></div>
-            <div class="rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 100%; height: 100%; font-size: 2.2rem; background: var(--brand-gradient);">
-              <i class="bi bi-telephone-inbound-fill"></i>
-            </div>
-          </div>
-          <h4 class="fw-bold mb-2">Incoming Voice Call</h4>
-          <p class="text-muted small">User <strong id="modal-caller-name">Jane Doe</strong> is requesting a supportive conversation.</p>
-        </div>
-        <div class="d-flex gap-2 justify-content-center mt-3">
-          <button type="button" class="btn btn-outline-danger px-4 py-2.5 rounded-pill" onclick="rejectIncomingCall()">Decline</button>
-          <button type="button" class="btn btn-brand px-4 py-2.5 rounded-pill" onclick="acceptIncomingCall()">Accept Call</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="/socket.io/socket.io.js"></script>
   <%- include('../partials/scripts') %>
-  <script>
-    let socket;
-    let activeCallerId = null;
-
-    $(document).ready(function() {
-      console.log("[Socket] Initializing connection to signaling server...");
-      // Connect to Socket signaling server
-      socket = io({ transports: ['websocket'] });
-
-      // Connection event listeners for diagnostic logs
-      socket.on('connect', () => {
-        console.log(`[Socket] Connected successfully to signaling server. Socket ID: ${socket.id}`);
-        // Register as admin
-        socket.emit('admin-join');
-        console.log("[Socket] Registered admin-join request sent.");
-      });
-
-      socket.on('connect_error', (error) => {
-        console.error("[Socket Error] Connection failed:", error);
-      });
-
-      socket.on('disconnect', (reason) => {
-        console.warn(`[Socket Warning] Disconnected from signaling server. Reason: ${reason}`);
-      });
-
-      // Listen for incoming call request
-      socket.on('incoming-call-alert', function(data) {
-        console.log("[Socket] Received incoming-call-alert. Data:", data);
-        activeCallerId = data.callerId;
-        $("#modal-caller-name").text(data.callerName);
-        
-        // Store details in local storage for admin call console to access
-        localStorage.setItem("webrtc_caller_id", data.callerId);
-        localStorage.setItem("webrtc_caller_name", data.callerName);
-
-        // Show modal
-        console.log("[UI] Displaying incomingCallModal...");
-        const myModal = new bootstrap.Modal(document.getElementById('incomingCallModal'));
-        myModal.show();
-      });
-    });
-
-    function acceptIncomingCall() {
-      console.log(`[UI] Call accepted by admin. Redirecting to call console for peer connection...`);
-      // Redirect to admin call console immediately. The call console script will handle the handshake.
-      window.location.href = "/admin/call";
-    }
-
-    function rejectIncomingCall() {
-      console.log(`[UI] Call rejected by admin. Emitting hangup for caller ID: ${activeCallerId}`);
-      if (socket && activeCallerId) {
-        socket.emit('hangup');
-      }
-      $("#incomingCallModal").modal("hide");
-    }
-  </script>
 </body>
 </html>

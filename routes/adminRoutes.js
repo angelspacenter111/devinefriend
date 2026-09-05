@@ -27,7 +27,10 @@ router.get('/settings', adminController.getSettings);
 router.get('/call', adminController.getCall);
 
 // Admin actions endpoints
+router.get('/calls/:callId/details', adminController.getCallDetails);
+router.post('/end-call', adminController.postEndCall);
 router.post('/users/block/:id', adminController.postToggleBlock);
 router.post('/users/update-wallet/:id', adminController.postUpdateCredits);
 
 module.exports = router;
+

@@ -1,0 +1,162 @@
+<!-- Global Admin Incoming Call Modal & WebRTC Signaling Receiver -->
+<div class="modal fade" id="incomingCallModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" style="z-index: 9999;">
+  <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+    <div class="modal-content rounded-4 border-0 shadow-lg text-center p-4">
+      <div class="modal-body py-4">
+        <div class="call-circle-avatar mb-4" style="width: 100px; height: 100px; margin: 0 auto; position: relative;">
+          <div class="call-pulse-animation"></div>
+          <div class="call-pulse-animation-2"></div>
+          <div class="rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 100%; height: 100%; font-size: 2.2rem; background: var(--brand-gradient, linear-gradient(135deg, #1769E0 0%, #E91E8F 100%));">
+            <i class="bi bi-telephone-inbound-fill"></i>
+          </div>
+        </div>
+        <h4 class="fw-bold mb-2">Incoming Voice Call</h4>
+        <p class="text-muted small">User <strong id="modal-caller-name">Companion User</strong> is requesting a supportive conversation.</p>
+      </div>
+      <div class="d-flex gap-2 justify-content-center mt-3">
+        <button type="button" class="btn btn-outline-danger px-4 py-2.5 rounded-pill" id="btn-incoming-decline">Decline</button>
+        <button type="button" class="btn btn-brand px-4 py-2.5 rounded-pill" id="btn-incoming-accept">Accept Call</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  (function() {
+    let adminSocket = null;
+    let activeCallId = null;
+    let activeCallerId = null;
+    let isProcessingAction = false;
+
+    function getIncomingModalInstance() {
+      const modalEl = document.getElementById('incomingCallModal');
+      return modalEl && typeof bootstrap !== 'undefined' ? bootstrap.Modal.getOrCreateInstance(modalEl) : null;
+    }
+
+    function resetIncomingCallState() {
+      activeCallId = null;
+      activeCallerId = null;
+      isProcessingAction = false;
+      const $declineBtn = $("#btn-incoming-decline");
+      const $acceptBtn = $("#btn-incoming-accept");
+      if ($declineBtn.length) $declineBtn.prop('disabled', false).text('Decline');
+      if ($acceptBtn.length) $acceptBtn.prop('disabled', false).text('Accept Call');
+    }
+
+    function sendAdminJoin() {
+      if (adminSocket && adminSocket.connected) {
+        console.log(`[Admin Signaling] Emitting admin-join. Socket ID: ${adminSocket.id}`);
+        adminSocket.emit('admin-join');
+      }
+    }
+
+    $(document).ready(function() {
+      // Avoid initializing on active call console (/admin/call)
+      if (window.location.pathname.startsWith('/admin/call')) {
+        return;
+      }
+
+      console.log("[Admin Signaling] Initializing socket connection...");
+      adminSocket = io();
+
+      adminSocket.on('connect', function() {
+        console.log(`[Admin Signaling] Connected. Socket ID: ${adminSocket.id}`);
+        sendAdminJoin();
+      });
+
+      adminSocket.on('connect_error', function(err) {
+        console.error("[Admin Signaling Error] Connection error:", err);
+      });
+
+      adminSocket.on('disconnect', function(reason) {
+        console.warn(`[Admin Signaling Warning] Disconnected: ${reason}`);
+      });
+
+      // Handle incoming call alert from any user
+      adminSocket.on('incoming-call-alert', function(data) {
+        console.log("[Admin Signaling] Received incoming-call-alert:", data);
+        if (!data || !data.callId) return;
+
+        activeCallId = data.callId;
+        activeCallerId = data.callerId || '';
+        isProcessingAction = false;
+
+        $("#modal-caller-name").text(data.callerName || 'Companion User');
+
+        // Persist in localStorage for /admin/call
+        localStorage.setItem("active_call_id", data.callId);
+        if (data.callerId) localStorage.setItem("webrtc_caller_id", data.callerId);
+        if (data.callerName) localStorage.setItem("webrtc_caller_name", data.callerName);
+
+        const modal = getIncomingModalInstance();
+        if (modal) {
+          console.log("[Admin UI] Showing incomingCallModal for Call ID:", activeCallId);
+          modal.show();
+        }
+      });
+
+      // Dismiss modal if caller cancels or disconnects
+      adminSocket.on('call-cancelled', function(data) {
+        if (data && activeCallId && data.callId === activeCallId) {
+          console.log(`[Admin Signaling] Call ${data.callId} cancelled by caller.`);
+          const modal = getIncomingModalInstance();
+          if (modal) modal.hide();
+          resetIncomingCallState();
+        }
+      });
+
+      adminSocket.on('call-dismissed', function(data) {
+        if (data && activeCallId && data.callId === activeCallId) {
+          console.log(`[Admin Signaling] Call ${data.callId} dismissed.`);
+          const modal = getIncomingModalInstance();
+          if (modal) modal.hide();
+          resetIncomingCallState();
+        }
+      });
+
+      // Modal close listener
+      const modalEl = document.getElementById('incomingCallModal');
+      if (modalEl) {
+        modalEl.addEventListener('hidden.bs.modal', function() {
+          resetIncomingCallState();
+        });
+      }
+
+      // Accept Call Action
+      $(document).off('click', '#btn-incoming-accept').on('click', '#btn-incoming-accept', function() {
+        if (isProcessingAction) return;
+        if (!activeCallId) {
+          console.warn("[Admin UI] Cannot accept: activeCallId is missing.");
+          return;
+        }
+        isProcessingAction = true;
+
+        console.log(`[Admin UI] Accepting call ID: ${activeCallId}. Redirecting to /admin/call...`);
+        $("#btn-incoming-accept").prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Connecting...');
+        $("#btn-incoming-decline").prop('disabled', true);
+
+        const targetCallId = activeCallId;
+        const targetCallerId = activeCallerId || '';
+        window.location.href = `/admin/call?callId=${encodeURIComponent(targetCallId)}&callerId=${encodeURIComponent(targetCallerId)}`;
+      });
+
+      // Decline Call Action
+      $(document).off('click', '#btn-incoming-decline').on('click', '#btn-incoming-decline', function() {
+        if (isProcessingAction) return;
+        isProcessingAction = true;
+
+        console.log(`[Admin UI] Declining call ID: ${activeCallId}...`);
+        $("#btn-incoming-decline").prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Declining...');
+        $("#btn-incoming-accept").prop('disabled', true);
+
+        if (adminSocket && activeCallId) {
+          adminSocket.emit('admin-reject-call', { callId: activeCallId, callerId: activeCallerId });
+        }
+        const modal = getIncomingModalInstance();
+        if (modal) modal.hide();
+        resetIncomingCallState();
+      });
+    });
+  })();
+</script>
