@@ -15,10 +15,13 @@
   <% } else { %>
     window.sessionUser = null;
   <% } %>
+  window.isAdvisorOnline = <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'true' : 'false' %>;
 </script>
+<script src="/socket.io/socket.io.js"></script>
 <script src="/js/custom.js"></script>
 
 <% if (typeof user !== 'undefined' && user && user.role === 'admin') { %>
   <%- include('./admin-incoming-call') %>
 <% } %>
+
 

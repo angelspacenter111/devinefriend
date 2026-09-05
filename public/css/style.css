@@ -692,3 +692,43 @@ a:hover {
   z-index: 0;
   pointer-events: none;
 }
+
+/* Real-Time Advisor Presence Indicator Styles */
+.status-indicator-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  vertical-align: middle;
+  transition: all 0.3s ease;
+}
+.status-indicator-dot.online {
+  background-color: #10B981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+  animation: status-pulse-green 2s infinite;
+}
+.status-indicator-dot.offline {
+  background-color: #94A3B8;
+  box-shadow: none;
+}
+@keyframes status-pulse-green {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.header-advisor-badge {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s ease;
+}
+.advisor-sidebar-status {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+.btn-advisor-offline {
+  background: linear-gradient(135deg, #64748b 0%, #475569 100%) !important;
+  border-color: #475569 !important;
+}
+

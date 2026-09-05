@@ -19,6 +19,14 @@
         </div>
         
         <div class="d-flex align-items-center gap-3">
+          <div class="header-advisor-badge d-flex align-items-center gap-2 px-3 py-1.5 rounded-pill" title="Live Support Advisor Status">
+            <span class="status-indicator-dot <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'online' : 'offline' %>"></span>
+            <span class="small fw-semibold text-muted d-none d-sm-inline">Advisor:</span>
+            <span class="small fw-bold advisor-status-text <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'text-success' : 'text-secondary' %>">
+              <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'Online' : 'Offline' %>
+            </span>
+          </div>
+
           <div class="header-wallet-badge">
             <i class="bi bi-coin me-1"></i>
             <span class="fw-bold"><span class="simulated-balance"><%= user.credits %></span> Credits</span>
@@ -88,7 +96,10 @@
               <div>
                 <div class="d-flex align-items-center justify-content-between mb-3">
                   <span class="badge-category text-primary-pink bg-light-lavender" style="color: #E91E8F;"><i class="bi bi-telephone-fill me-1"></i> Voice Companion Line</span>
-                  <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill small">Online Now</span>
+                  <span class="badge <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'bg-success-subtle text-success border-success-subtle' : 'bg-secondary-subtle text-secondary border-secondary-subtle' %> border px-2.5 py-1 rounded-pill small advisor-status-badge" id="dash-advisor-status-badge">
+                    <span class="status-indicator-dot <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'online' : 'offline' %> me-1"></span>
+                    <span class="advisor-status-text full-text"><%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'Online Now' : 'Currently Offline' %></span>
+                  </span>
                 </div>
                 <h4 class="fw-bold mb-2">Need Someone to Talk To?</h4>
                 <p class="text-muted small mb-4">
@@ -101,9 +112,11 @@
                   <span class="text-muted small d-block">Estimated Talk Time</span>
                   <h5 class="fw-extrabold mb-0 text-primary-blue"><span class="simulated-balance"><%= user.credits %></span> Minutes Available</h5>
                 </div>
-                <div class="col-sm-6 text-center text-sm-end">
+                <div class="col-sm-6 text-center text-sm-end" id="dash-call-btn-container">
                   <% if (user.credits >= 1) { %>
-                    <a href="/user/call" class="btn btn-brand px-4 py-3 w-100 w-sm-auto"><i class="bi bi-telephone-inbound-fill me-2"></i> Start Voice Call</a>
+                    <a href="/user/call" class="btn btn-brand px-4 py-3 w-100 w-sm-auto btn-start-call <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? '' : 'btn-advisor-offline' %>" id="dash-start-call-btn">
+                      <i class="bi bi-telephone-inbound-fill me-2"></i> Start Voice Call
+                    </a>
                   <% } else { %>
                     <a href="/user/buy-credits?lowCredits=true" class="btn btn-brand px-4 py-3 w-100 w-sm-auto" title="Recharge required to make calls"><i class="bi bi-telephone-inbound-fill me-2"></i> Start Voice Call</a>
                   <% } %>
@@ -211,6 +224,38 @@
           </div>
         </div>
       </main>
+    </div>
+  <!-- Advisor Offline Modal -->
+  <div class="modal fade" id="advisorOfflineModal" tabindex="-1" aria-labelledby="advisorOfflineModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+      <div class="modal-content rounded-4 border-0 shadow-lg text-center p-4">
+        <div class="modal-body py-3">
+          <div class="rounded-circle bg-light d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 70px; height: 70px;">
+            <i class="bi bi-person-x-fill text-muted fs-1"></i>
+          </div>
+          <h5 class="fw-bold mb-2">Advisor is Currently Offline</h5>
+          <p class="text-muted small mb-3">
+            Our support advisors are currently away from the console. You will see the live status change to <strong class="text-success">Online Now</strong> automatically as soon as an advisor connects.
+          </p>
+          <div class="p-3 bg-light rounded-3 text-start small mb-3">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted">Available Talk Time:</span>
+              <strong class="text-dark"><%= user.credits %> Minutes</strong>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span class="text-muted">Live Status:</span>
+              <span class="badge bg-secondary-subtle text-secondary rounded-pill px-2.5 py-1 advisor-status-badge">
+                <span class="status-indicator-dot offline me-1"></span>
+                <span class="advisor-status-text">Currently Offline</span>
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="d-flex gap-2 justify-content-center">
+          <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Wait Here</button>
+          <a href="/user/call" class="btn btn-outline-brand rounded-pill px-4">Call Anyway</a>
+        </div>
+      </div>
     </div>
   </div>
 

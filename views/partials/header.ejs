@@ -29,6 +29,13 @@
         </li>
       </ul>
       <div class="d-flex align-items-center gap-3">
+        <div class="d-none d-sm-flex align-items-center gap-1.5 px-3 py-1.5 rounded-pill bg-light border small" title="Live Advisor Availability">
+          <span class="status-indicator-dot <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'online' : 'offline' %> me-1"></span>
+          <span class="text-muted small">Live Advisor:</span>
+          <strong class="advisor-status-text <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'text-success' : 'text-secondary' %>">
+            <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'Online' : 'Offline' %>
+          </strong>
+        </div>
         <% if (typeof session !== 'undefined' && session && session.userId) { %>
           <a href="<%= session.role === 'admin' ? '/admin/dashboard' : '/user/dashboard' %>" class="btn btn-brand px-4 py-2">Dashboard</a>
           <a href="/<%= session.role === 'admin' ? 'admin/logout' : 'logout' %>" class="nav-link px-0 text-dark fw-semibold">Logout</a>

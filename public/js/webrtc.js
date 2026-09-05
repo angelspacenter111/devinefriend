@@ -206,9 +206,13 @@ function initializeReceiverFlow() {
 
   transitionTo(CallState.ACCEPTED, { callerId, callId: currentCallId });
 
-  // Accept call alert
+  // Accept call alert & maintain presence
   function emitAdminAccept() {
     console.log(`[WebRTC] Emitting admin-accept-call for Call ID: ${currentCallId}, Socket ID: ${socket.id}`);
+    socket.emit('admin-join', {
+      adminId: (window.sessionUser && window.sessionUser.id) || null,
+      name: (window.sessionUser && window.sessionUser.name) || "Support Advisor"
+    });
     socket.emit('admin-accept-call', {
       callId: currentCallId,
       callerId: callerId,

@@ -369,6 +369,40 @@ async function finalizeCall(callId, { reason = 'Completed', forcedEndTime = null
 }
 
 /**
+ * Active Admin Presence Registry for Real-Time Online/Offline Status
+ */
+const activeAdminSockets = new Map(); // socketId -> { adminId, name, joinedAt }
+
+function registerAdminPresence(socketId, info = {}) {
+  activeAdminSockets.set(socketId, {
+    adminId: info.adminId || null,
+    name: info.name || 'Admin',
+    joinedAt: new Date()
+  });
+  logStructured('ADMIN_ONLINE', { socketId, activeCount: activeAdminSockets.size });
+  return getAdvisorPresenceInfo();
+}
+
+function unregisterAdminPresence(socketId) {
+  if (activeAdminSockets.has(socketId)) {
+    activeAdminSockets.delete(socketId);
+    logStructured('ADMIN_OFFLINE', { socketId, activeCount: activeAdminSockets.size });
+  }
+  return getAdvisorPresenceInfo();
+}
+
+function isAdvisorOnline() {
+  return activeAdminSockets.size > 0;
+}
+
+function getAdvisorPresenceInfo() {
+  return {
+    isOnline: activeAdminSockets.size > 0,
+    count: activeAdminSockets.size
+  };
+}
+
+/**
  * Helper to fetch a single call with all populated relations
  */
 async function getCallById(callId) {
@@ -383,6 +417,10 @@ module.exports = {
   connectCall,
   finalizeCall,
   getCallById,
-  logStructured
+  logStructured,
+  registerAdminPresence,
+  unregisterAdminPresence,
+  isAdvisorOnline,
+  getAdvisorPresenceInfo
 };
 

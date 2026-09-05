@@ -12,6 +12,7 @@ const { Server } = require('socket.io');
 const session = require('express-session');
 const { MongoStore } = require('connect-mongo');
 const connectDB = require('./config/db');
+const callService = require('./services/callService');
 
 const PORT = process.env.PORT || 3000;
 
@@ -48,10 +49,19 @@ async function startServer() {
       }
     }));
 
-    // Make session variables available in EJS templates
+    // Make session variables and live advisor presence available in all EJS templates
     app.use((req, res, next) => {
       res.locals.session = req.session;
+      res.locals.isAdvisorOnline = callService.isAdvisorOnline();
       next();
+    });
+
+    // Real-time Advisor Online Status API
+    app.get('/api/advisor-status', (req, res) => {
+      res.json({
+        success: true,
+        ...callService.getAdvisorPresenceInfo()
+      });
     });
 
     // Serve Static Assets from Public folder
@@ -74,16 +84,27 @@ async function startServer() {
       res.status(404).redirect('/');
     });
 
-    const callService = require('./services/callService');
-
-    // Socket.io Signaling Logic for WebRTC
+    // Socket.io Signaling Logic for WebRTC & Live Presence
     io.on('connection', (socket) => {
       console.log(`[Socket] Client connected: ${socket.id}`);
 
-      // When admin dashboard mounts, register admin channel
-      socket.on('admin-join', () => {
+      // Emit immediate current advisor presence state to newly connected client
+      socket.emit('advisor-status', callService.getAdvisorPresenceInfo());
+
+      // Query current advisor presence status on demand
+      socket.on('get-advisor-status', (callback) => {
+        const info = callService.getAdvisorPresenceInfo();
+        if (typeof callback === 'function') callback(info);
+        else socket.emit('advisor-status', info);
+      });
+
+      // When admin mounts (dashboard, console, or active call), register admin presence
+      socket.on('admin-join', (data) => {
         socket.join('admins');
-        console.log(`[Socket] Admin registered: ${socket.id}`);
+        socket.isAdmin = true;
+        const presence = callService.registerAdminPresence(socket.id, data || {});
+        io.emit('advisor-status', presence);
+        console.log(`[Socket] Admin registered: ${socket.id}, Total online admins: ${presence.count}`);
       });
 
       // When user joins calling screen
@@ -260,6 +281,13 @@ async function startServer() {
           socketId: socket.id,
           callId: callId || null
         });
+
+        // If disconnected socket was an admin, update presence and broadcast live status
+        if (socket.isAdmin) {
+          const presence = callService.unregisterAdminPresence(socket.id);
+          io.emit('advisor-status', presence);
+          console.log(`[Socket] Admin disconnected: ${socket.id}, Remaining online admins: ${presence.count}`);
+        }
 
         if (callId) {
           const roomId = callId;

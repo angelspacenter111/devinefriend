@@ -21,7 +21,6 @@
   </div>
 </div>
 
-<script src="/socket.io/socket.io.js"></script>
 <script>
   (function() {
     let adminSocket = null;
@@ -47,7 +46,10 @@
     function sendAdminJoin() {
       if (adminSocket && adminSocket.connected) {
         console.log(`[Admin Signaling] Emitting admin-join. Socket ID: ${adminSocket.id}`);
-        adminSocket.emit('admin-join');
+        adminSocket.emit('admin-join', {
+          adminId: (window.sessionUser && window.sessionUser.id) || null,
+          name: (window.sessionUser && window.sessionUser.name) || 'Support Advisor'
+        });
       }
     }
 

@@ -6,6 +6,17 @@
       <span class="text-white fw-extrabold text-uppercase brand-text">Friend</span>
     </a>
   </div>
+
+  <div class="px-3 py-2 mx-3 mb-3 rounded-3 advisor-sidebar-status text-white-50">
+    <div class="d-flex align-items-center justify-content-between">
+      <span class="small text-white"><i class="bi bi-headset me-1 text-primary-pink"></i> Support</span>
+      <span class="badge <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-secondary-subtle text-secondary border border-secondary-subtle' %> rounded-pill px-2.5 py-0.5 small advisor-status-badge">
+        <span class="status-indicator-dot <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'online' : 'offline' %> me-1"></span>
+        <span class="advisor-status-text"><%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'Online' : 'Offline' %></span>
+      </span>
+    </div>
+  </div>
+
   <ul class="sidebar-menu">
     <li class="<%= (typeof activeTab !== 'undefined' && activeTab === 'dashboard') ? 'active' : '' %>">
       <a href="/user/dashboard"><i class="bi bi-grid-fill"></i> Dashboard</a>

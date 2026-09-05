@@ -14,6 +14,81 @@ $(document).ready(function () {
   }
   updateUIBalances();
 
+  // Real-Time Advisor Presence Status UI Synchronization
+  function updateAdvisorStatusUI(isOnline) {
+    window.isAdvisorOnline = !!isOnline;
+    const $dots = $(".status-indicator-dot");
+    const $badges = $(".advisor-status-badge");
+    const $texts = $(".advisor-status-text");
+    const $callBtns = $(".btn-start-call");
+
+    if (isOnline) {
+      $dots.removeClass("offline").addClass("online");
+      $badges.removeClass("bg-secondary bg-secondary-subtle text-secondary border-secondary-subtle")
+             .addClass("bg-success-subtle text-success border-success-subtle");
+      $texts.each(function() {
+        const $t = $(this);
+        $t.removeClass("text-secondary").addClass("text-success");
+        if ($t.text().trim().includes("Offline") || $t.text().trim().includes("Online")) {
+          $t.text($t.hasClass("full-text") ? "Online Now" : "Online");
+        }
+      });
+      $callBtns.removeClass("btn-advisor-offline");
+      $("#dash-advisor-status-badge .advisor-status-text").text("Online Now");
+    } else {
+      $dots.removeClass("online").addClass("offline");
+      $badges.removeClass("bg-success bg-success-subtle text-success border-success-subtle")
+             .addClass("bg-secondary-subtle text-secondary border-secondary-subtle");
+      $texts.each(function() {
+        const $t = $(this);
+        $t.removeClass("text-success").addClass("text-secondary");
+        if ($t.text().trim().includes("Offline") || $t.text().trim().includes("Online")) {
+          $t.text($t.hasClass("full-text") ? "Currently Offline" : "Offline");
+        }
+      });
+      $callBtns.addClass("btn-advisor-offline");
+      $("#dash-advisor-status-badge .advisor-status-text").text("Currently Offline");
+    }
+  }
+
+  // Initial presence render
+  if (typeof window.isAdvisorOnline !== 'undefined') {
+    updateAdvisorStatusUI(window.isAdvisorOnline);
+  }
+
+  // Intercept click on Start Voice Call if advisor is offline to show informative modal
+  $(document).on("click", ".btn-start-call.btn-advisor-offline", function(e) {
+    e.preventDefault();
+    const modalEl = document.getElementById('advisorOfflineModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modal.show();
+    } else {
+      alert("Support advisors are currently offline. Please wait or try calling again in a moment.");
+    }
+  });
+
+  // Connect to live presence channel if not on active WebRTC call screen
+  const isCallConsole = window.location.pathname.startsWith('/user/call') || window.location.pathname.startsWith('/admin/call');
+  if (!isCallConsole && typeof io !== 'undefined') {
+    try {
+      const presenceSocket = io();
+      presenceSocket.on('advisor-status', function (data) {
+        if (data && typeof data.isOnline !== 'undefined') {
+          const wasOnline = window.isAdvisorOnline;
+          updateAdvisorStatusUI(data.isOnline);
+
+          // If advisor just came online while user is on dashboard, show warm notification
+          if (!wasOnline && data.isOnline && window.location.pathname.includes('/user/dashboard')) {
+            showToast("A support advisor is now Online and ready to talk!", "success");
+          }
+        }
+      });
+    } catch (e) {
+      console.warn("[Presence] Could not connect to presence socket:", e);
+    }
+  }
+
   // Toast Notification System
   function showToast(message, type = "success") {
     // Check if container exists, if not create it
