@@ -1,20 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <%- include('../partials/head') %>
-<body>
+<body class="app-mode">
+
+  <!-- Mobile-First App Top Bar -->
+  <%- include('../partials/app-header', { pageTitle: 'Transactions', showBack: true, backUrl: '/user/wallet' }) %>
 
   <div class="panel-wrapper">
-    <!-- User Sidebar Partial -->
+    <!-- Desktop Left Sidebar -->
     <%- include('../partials/user-sidebar') %>
 
     <!-- Main Content Panel -->
     <div class="content-panel">
-      <!-- Top Header -->
-      <header class="header-panel shadow-sm">
+      <!-- Desktop Header Panel -->
+      <header class="header-panel shadow-sm d-none d-lg-flex">
         <div class="d-flex align-items-center gap-3">
-          <button class="btn btn-light d-lg-none sidebar-toggle-btn" type="button">
-            <i class="bi bi-list fs-4"></i>
-          </button>
           <h4 class="mb-0 fw-bold">Transactions</h4>
         </div>
         
@@ -23,87 +23,131 @@
             <i class="bi bi-coin me-1"></i>
             <span class="fw-bold"><span class="simulated-balance"><%= user.credits %></span> Credits</span>
           </div>
-          <div class="dropdown">
-            <button class="btn btn-light d-flex align-items-center gap-2 border rounded-pill py-1 px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <div class="rounded-circle bg-light-lavender d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
-                <i class="bi bi-person text-purple"></i>
-              </div>
-              <span class="simulated-name fw-semibold text-dark d-none d-md-block small"><%= user.name %></span>
-              <i class="bi bi-chevron-down text-muted small ms-1"></i>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 rounded-3">
-              <li><h6 class="dropdown-header">Signed in as <br><strong class="text-dark"><%= user.name %></strong></h6></li>
-              <li><a class="dropdown-item" href="/user/profile"><i class="bi bi-person-gear me-2 text-muted"></i>Profile Settings</a></li>
-              <li><a class="dropdown-item" href="/user/wallet"><i class="bi bi-wallet2 me-2 text-muted"></i>My Wallet</a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item text-danger fw-semibold" href="/logout"><i class="bi bi-box-arrow-right me-2 text-danger"></i>Logout</a></li>
-            </ul>
-          </div>
-
-          <a href="/logout" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 d-flex align-items-center gap-1.5 fw-semibold" title="Logout from account">
+          <a href="/user/profile" class="btn btn-light d-flex align-items-center gap-2 border rounded-pill py-1 px-3">
+            <div class="rounded-circle bg-light-lavender d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+              <i class="bi bi-person text-purple"></i>
+            </div>
+            <span class="simulated-name fw-semibold text-dark small"><%= user.name %></span>
+          </a>
+          <a href="/logout" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 d-flex align-items-center gap-1.5 fw-semibold" title="Logout">
             <i class="bi bi-box-arrow-right"></i>
-            <span class="d-none d-sm-inline">Logout</span>
+            <span>Logout</span>
           </a>
         </div>
       </header>
 
       <!-- Main Contents Canvas -->
       <main class="main-content-inner">
-        <!-- Transaction Table Section -->
-        <div class="card-premium border-0 bg-white shadow-sm p-4">
-          <div class="d-flex align-items-center justify-content-between mb-4">
-            <h5 class="fw-bold mb-0">Financial & Spend Ledger</h5>
-            <span class="text-muted small">Updated in real-time</span>
+        <div class="app-container">
+
+          <!-- Balance Overview Summary -->
+          <div class="app-card bg-light border-0 p-3.5 mb-4 d-flex align-items-center justify-content-between">
+            <div>
+              <span class="text-muted small d-block">Available Account Balance</span>
+              <h3 class="fw-extrabold text-primary mb-0"><span class="simulated-balance"><%= user.credits %></span> Credits</h3>
+            </div>
+            <a href="/user/buy-credits" class="btn btn-brand rounded-pill px-3.5 py-2 small fw-semibold app-tap-active">
+              <i class="bi bi-plus-circle me-1"></i> Top Up
+            </a>
           </div>
 
-          <div class="table-responsive-custom">
-            <table class="table table-premium mb-0 align-middle">
-              <thead>
-                <tr>
-                  <th>Transaction ID</th>
-                  <th>Date</th>
-                  <th>Description</th>
-                  <th>Type</th>
-                  <th>Credits</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% if (transactions.length === 0) { %>
-                  <tr>
-                    <td colspan="7" class="text-center text-muted py-4">No transactions found.</td>
-                  </tr>
-                <% } else { %>
-                  <% transactions.forEach(txn => { %>
-                    <%
-                      const typeBadge = txn.type === "credit" 
-                        ? `<span class="badge bg-success-subtle text-success"><i class="bi bi-arrow-down-left me-1"></i> Recharge</span>`
-                        : `<span class="badge bg-danger-subtle text-danger"><i class="bi bi-arrow-up-right me-1"></i> Call Spend</span>`;
-                      
-                      const creditFormatted = txn.type === "credit"
-                        ? `<span class="text-success fw-bold">+${txn.credits} Credits</span>`
-                        : `<span class="text-danger fw-bold">-${txn.credits} Credits</span>`;
-                    %>
+          <!-- Transaction List / Feed -->
+          <div class="app-card p-0 overflow-hidden mb-4">
+            <div class="p-3.5 px-4 d-flex align-items-center justify-content-between border-bottom bg-white">
+              <h5 class="fw-bold mb-0 text-dark">Financial Ledger</h5>
+              <small class="text-muted">Real-time sync</small>
+            </div>
+
+            <% if (transactions.length === 0) { %>
+              <div class="text-center py-5 px-3">
+                <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mb-3" style="width: 56px; height: 56px;">
+                  <i class="bi bi-receipt text-muted fs-4"></i>
+                </div>
+                <h6 class="fw-bold text-dark mb-1">No Transactions Found</h6>
+                <p class="text-muted small mb-0">Purchases and talk time deductions will appear here.</p>
+              </div>
+            <% } else { %>
+              
+              <!-- Mobile Feed List View -->
+              <div class="app-list-group border-0 rounded-0 d-md-none">
+                <% transactions.forEach(txn => { %>
+                  <%
+                    const isCredit = txn.type === "credit";
+                    const iconBg = isCredit ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger";
+                    const iconName = isCredit ? "bi-arrow-down-left" : "bi-arrow-up-right";
+                  %>
+                  <div class="app-list-item">
+                    <div class="d-flex align-items-center">
+                      <div class="app-list-icon <%= iconBg %>">
+                        <i class="bi <%= iconName %>"></i>
+                      </div>
+                      <div>
+                        <strong class="d-block text-dark small"><%= txn.desc %></strong>
+                        <small class="text-muted">
+                          <%= txn.date ? txn.date.toISOString().split('T')[0] : '' %> • Ref: <%= txn.txnId %>
+                        </small>
+                      </div>
+                    </div>
+                    <div class="text-end">
+                      <span class="d-block fw-bold <%= isCredit ? 'text-success' : 'text-danger' %>">
+                        <%= isCredit ? '+' : '-' %><%= txn.credits %> cr
+                      </span>
+                      <small class="text-muted"><%= txn.amount %></small>
+                    </div>
+                  </div>
+                <% }) %>
+              </div>
+
+              <!-- Desktop Table View -->
+              <div class="table-responsive-custom d-none d-md-block">
+                <table class="table table-premium mb-0 align-middle">
+                  <thead>
                     <tr>
-                      <td><span class="fw-semibold"><%= txn.txnId %></span></td>
-                      <td><%= txn.date ? txn.date.toISOString().split('T')[0] : '' %></td>
-                      <td><%= txn.desc %></td>
-                      <td><%- typeBadge %></td>
-                      <td><%- creditFormatted %></td>
-                      <td><span class="fw-bold"><%= txn.amount %></span></td>
-                      <td><span class="badge bg-success-subtle text-success rounded-pill px-2 py-1"><%= txn.status %></span></td>
+                      <th>Transaction ID</th>
+                      <th>Date</th>
+                      <th>Description</th>
+                      <th>Type</th>
+                      <th>Credits</th>
+                      <th>Amount</th>
+                      <th>Status</th>
                     </tr>
-                  <% }) %>
-                <% } %>
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody>
+                    <% transactions.forEach(txn => { %>
+                      <%
+                        const typeBadge = txn.type === "credit" 
+                          ? `<span class="badge bg-success-subtle text-success"><i class="bi bi-arrow-down-left me-1"></i> Recharge</span>`
+                          : `<span class="badge bg-danger-subtle text-danger"><i class="bi bi-arrow-up-right me-1"></i> Call Spend</span>`;
+                        
+                        const creditFormatted = txn.type === "credit"
+                          ? `<span class="text-success fw-bold">+${txn.credits} Credits</span>`
+                          : `<span class="text-danger fw-bold">-${txn.credits} Credits</span>`;
+                      %>
+                      <tr>
+                        <td><span class="fw-semibold text-dark"><%= txn.txnId %></span></td>
+                        <td><%= txn.date ? txn.date.toISOString().split('T')[0] : '' %></td>
+                        <td><%= txn.desc %></td>
+                        <td><%- typeBadge %></td>
+                        <td><%- creditFormatted %></td>
+                        <td><span class="fw-bold"><%= txn.amount %></span></td>
+                        <td><span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1"><%= txn.status %></span></td>
+                      </tr>
+                    <% }) %>
+                  </tbody>
+                </table>
+              </div>
+            <% } %>
           </div>
+
         </div>
       </main>
     </div>
   </div>
 
+  <!-- Mobile Bottom Navigation Bar -->
+  <%- include('../partials/app-bottom-nav') %>
+
+  <!-- Shared JavaScript Scripts -->
   <%- include('../partials/scripts') %>
 </body>
 </html>

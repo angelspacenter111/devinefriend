@@ -1,71 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
 <%- include('../partials/head') %>
-<body class="call-wrapper">
+<body class="call-wrapper" style="overflow: hidden; background: #0F172A;">
   <!-- Active engine activator element for custom.js -->
   <div id="call-screen-trigger"></div>
 
-  <!-- Top bar (Connection & Metadata) -->
-  <div class="container text-center pt-2 position-relative z-3">
-    <div class="d-flex align-items-center justify-content-between">
-      <div class="text-start">
-        <span class="text-white-50 d-block small">Calling Companion • <strong class="text-white"><%= typeof call !== 'undefined' && call ? call.callId : '' %></strong></span>
-        <h5 class="fw-bold text-white mb-0"><%= typeof call !== 'undefined' && call && call.receiverName ? call.receiverName : 'Your Support Partner' %></h5>
-      </div>
-      
-      <div>
-        <span class="call-status-badge connecting">Connecting...</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Center (Avatar & Timer) -->
-  <div class="container text-center my-auto position-relative z-3">
-    <div class="call-circle-avatar mb-4">
-      <div class="call-pulse-animation"></div>
-      <div class="call-pulse-animation-2"></div>
-      <div class="rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 100%; height: 100%; font-size: 4rem; background: linear-gradient(135deg, #1769E0 0%, #E91E8F 100%);">
-        <i class="bi bi-person-fill"></i>
-      </div>
-    </div>
-
-    <div class="call-timer mb-2">00:00</div>
+  <!-- Native Mobile Full-Screen Audio Call Interface -->
+  <div class="native-call-screen">
     
-    <div class="d-flex align-items-center justify-content-center gap-4 text-white-50 small">
-      <div>
-        <i class="bi bi-clock me-1 text-primary-pink" style="color: #E91E8F;"></i> Used: <span id="call-credits-used" class="text-white fw-bold">0</span> Credits
+    <!-- Top Header Bar -->
+    <div class="call-header-bar">
+      <div class="d-flex align-items-center gap-2">
+        <a href="/user/dashboard" class="btn btn-outline-light btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.15);" title="Return to Dashboard">
+          <i class="bi bi-chevron-down fs-6"></i>
+        </a>
+        <span class="badge rounded-pill px-3 py-1.5 text-white-50 small font-monospace" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.1);">
+          ID: <%= typeof call !== 'undefined' && call ? call.callId : '' %>
+        </span>
       </div>
+
       <div>
-        <i class="bi bi-coin me-1 text-primary-blue" style="color: #1769E0;"></i> Remaining: <span id="call-credits-remaining" class="text-white fw-bold simulated-balance"><%= user.credits %></span> Credits
+        <span class="call-status-badge connecting call-status-pill connecting">
+          <span class="status-indicator-dot online me-1"></span> Connecting...
+        </span>
       </div>
     </div>
+
+    <!-- Center Stage: Life Advisor Avatar, Waves & Timer -->
+    <div class="call-center-stage">
+      <div class="call-meta-info mb-4">
+        <div class="badge rounded-pill px-3 py-1 small text-white-50 mb-2" style="background: rgba(255, 255, 255, 0.08);">
+          <i class="bi bi-patch-check-fill text-warning me-1"></i> Personal Life Advisor
+        </div>
+        <h2><%= typeof call !== 'undefined' && call && call.receiverName ? call.receiverName : 'Life Advisor' %></h2>
+        <p>Private 1-on-1 Audio Consultation</p>
+      </div>
+
+      <!-- Pulsing Radial Sound Wave Rings -->
+      <div class="call-avatar-container">
+        <div class="call-avatar-ring-pulse"></div>
+        <div class="call-avatar-ring-pulse"></div>
+        <div class="call-avatar-ring-pulse"></div>
+        <div class="call-avatar-inner">
+          <i class="bi bi-person-heart"></i>
+        </div>
+      </div>
+
+      <!-- Live Call Duration Timer -->
+      <div class="call-live-timer call-timer mb-2">00:00</div>
+
+      <!-- Audio Soundwave Bars when active -->
+      <div class="soundwave-visualizer mb-3" style="height: 28px; gap: 4px;">
+        <span class="soundwave-bar" style="background: #E91E8F;"></span>
+        <span class="soundwave-bar" style="background: #1769E0;"></span>
+        <span class="soundwave-bar" style="background: #7B4DCE;"></span>
+        <span class="soundwave-bar" style="background: #E91E8F;"></span>
+        <span class="soundwave-bar" style="background: #1769E0;"></span>
+        <span class="soundwave-bar" style="background: #7B4DCE;"></span>
+        <span class="soundwave-bar" style="background: #E91E8F;"></span>
+        <span class="soundwave-bar" style="background: #1769E0;"></span>
+      </div>
+
+      <!-- Real-time Credit Counters -->
+      <div class="call-credits-badge-group">
+        <div class="call-credits-badge">
+          <i class="bi bi-stopwatch text-warning me-1"></i>
+          Used: <strong id="call-credits-used">0</strong> cr
+        </div>
+        <div class="call-credits-badge">
+          <i class="bi bi-coin text-primary-blue me-1"></i>
+          Remaining: <strong id="call-credits-remaining" class="simulated-balance"><%= user.credits %></strong> cr
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Controls Area -->
+    <div class="text-center" id="call-screen-footer-container">
+      
+      <!-- Active Call Dialpad Controls (Visible when connected) -->
+      <div class="call-actions-bar d-none" id="call-active-controls">
+        <button class="call-ctrl-btn app-tap-active" id="mute-toggle-btn" onclick="toggleLocalMute()" title="Mute / Unmute Microphone">
+          <i class="bi bi-mic-fill"></i>
+          <small class="d-block" style="font-size: 0.65rem; margin-top: 2px;">Mute</small>
+        </button>
+
+        <button class="call-ctrl-btn end-btn end-call app-tap-active" id="call-end-btn" title="End Call">
+          <i class="bi bi-telephone-x-fill"></i>
+        </button>
+
+        <button class="call-ctrl-btn app-tap-active" id="speaker-toggle-btn" onclick="toggleRemoteSpeaker()" title="Speaker On / Off">
+          <i class="bi bi-volume-up-fill"></i>
+          <small class="d-block" style="font-size: 0.65rem; margin-top: 2px;">Speaker</small>
+        </button>
+      </div>
+
+      <!-- Cancel Connection Button (Visible while ringing / connecting) -->
+      <div class="mb-4" id="call-cancel-btn-wrapper">
+        <button class="btn btn-danger btn-lg rounded-pill px-5 py-3 shadow-lg fs-5 app-tap-active" id="call-cancel-btn">
+          <i class="bi bi-telephone-x-fill me-2"></i> Cancel Connection
+        </button>
+      </div>
+
+      <!-- Privacy & Security Guarantee -->
+      <div class="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill text-white-50 small" style="background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.1);">
+        <i class="bi bi-shield-lock-fill text-success"></i>
+        <span>Encrypted 1-on-1 audio • Not recorded • Strict Privacy</span>
+      </div>
+    </div>
+
   </div>
 
-  <!-- Bottom Panel (Controls & Privacy Message) -->
-  <div class="container text-center pb-4 position-relative z-3" id="call-screen-footer-container">
-    <div class="d-flex align-items-center justify-content-center gap-3 mb-5 d-none" id="call-active-controls">
-      <button class="call-btn-circle" id="mute-toggle-btn" onclick="toggleLocalMute()" title="Mute/Unmute Mic">
-        <i class="bi bi-mic-fill"></i>
-      </button>
-      <button class="call-btn-circle end-call" id="call-end-btn" title="End Call">
-        <i class="bi bi-telephone-x-fill"></i>
-      </button>
-      <button class="call-btn-circle" id="speaker-toggle-btn" onclick="toggleRemoteSpeaker()" title="Mute/Unmute Speaker">
-        <i class="bi bi-volume-up-fill"></i>
-      </button>
-    </div>
-
-    <div class="mb-4" id="call-cancel-btn-wrapper">
-      <button class="btn btn-danger-brand rounded-pill px-5 py-3 fs-5" id="call-cancel-btn"><i class="bi bi-telephone-x-fill me-2"></i> Cancel Connection</button>
-    </div>
-
-    <div class="max-width-600 mx-auto bg-white-10 rounded-pill p-2 px-4 d-inline-flex align-items-center gap-2 small text-white-50" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08);">
-      <i class="bi bi-shield-check text-success"></i> 
-      <span>Your conversation is private, respectful, and not recorded.</span>
-    </div>
-  </div>
-
-  <!-- Hidden remote audio elements -->
+  <!-- Hidden remote audio element for WebRTC -->
   <audio id="remoteAudio" autoplay></audio>
 
   <!-- Scripts -->
@@ -83,5 +128,6 @@
   </script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/webrtc.js"></script>
+  <script src="/js/custom.js"></script>
 </body>
 </html>

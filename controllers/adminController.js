@@ -1,7 +1,32 @@
 const User = require('../models/User');
 const Call = require('../models/Call');
 const Transaction = require('../models/Transaction');
+const PricingPlan = require('../models/PricingPlan');
 const callService = require('../services/callService');
+
+// Default pricing plans seed configuration
+const defaultPlans = [
+  { planId: 'PLAN-5501', name: 'Starter Pack', badge: 'Starter', credits: 5, price: 149, description: 'Quick initial check-in or brief conversation.', order: 1, isPopular: false, isActive: true },
+  { planId: 'PLAN-5502', name: 'Bridge Pack', badge: 'Bridge', credits: 10, price: 299, description: 'Talk through an immediate worry or stressor.', order: 2, isPopular: false, isActive: true },
+  { planId: 'PLAN-5503', name: 'Comfort Pack', badge: 'Comfort', credits: 25, price: 599, description: 'Ample time to speak calmly, reflect and breathe.', order: 3, isPopular: true, isActive: true },
+  { planId: 'PLAN-5504', name: 'Deep Listen', badge: 'Deep Listen', credits: 50, price: 1199, description: 'Ideal for multiple in-depth conversation sessions.', order: 4, isPopular: false, isActive: true },
+  { planId: 'PLAN-5505', name: 'Best Value', badge: 'Best Value', credits: 100, price: 2199, description: 'Maximum savings for regular check-in support.', order: 5, isPopular: false, isActive: true }
+];
+
+const getOrSeedPricingPlans = async () => {
+  try {
+    const count = await PricingPlan.countDocuments({});
+    if (count === 0) {
+      console.log('[Pricing Setup] Seeding default pricing plans...');
+      await PricingPlan.insertMany(defaultPlans);
+    }
+    return await PricingPlan.find({}).sort({ order: 1, credits: 1 });
+  } catch (err) {
+    console.error('[Pricing Setup Error]', err);
+    return defaultPlans;
+  }
+};
+exports.getOrSeedPricingPlans = getOrSeedPricingPlans;
 
 
 // Helper to convert mm:ss to numerical minutes
@@ -87,8 +112,10 @@ exports.postLogin = async (req, res) => {
     // Set Session
     req.session.userId = admin._id;
     req.session.role = admin.role;
-
-    res.redirect('/admin/dashboard');
+    req.session.save((err) => {
+      if (err) console.error('[Admin Login Session Save Error]', err);
+      res.redirect('/admin/dashboard');
+    });
   } catch (error) {
     console.error('[Admin Login Error]', error);
     res.render('admin/login', {
@@ -104,47 +131,81 @@ exports.getDashboard = async (req, res) => {
     startOfToday.setHours(0, 0, 0, 0);
 
     // 1. Today's stats
-    const newUsersToday = await User.countDocuments({ role: 'user', joined: { $gte: startOfToday } });
-    const callsToday = await Call.countDocuments({ date: { $gte: startOfToday } });
+    const newUsersToday = (await User.countDocuments({ role: 'user', joined: { $gte: startOfToday } })) || 0;
+    const callsToday = (await Call.countDocuments({ date: { $gte: startOfToday } })) || 0;
     
-    const callsTodayList = await Call.find({ date: { $gte: startOfToday }, status: 'Completed' });
+    const callsTodayList = (await Call.find({ date: { $gte: startOfToday }, status: 'Completed' }).populate('user')) || [];
     const minsToday = callsTodayList.reduce((acc, c) => acc + parseMins(c.duration), 0);
-    const minsTodayRounded = Math.round(minsToday);
+    const minsTodayRounded = Math.round(minsToday) || 0;
+    const creditsUsedToday = callsTodayList.reduce((acc, c) => acc + (c.credits || 0), 0);
 
-    const txnsTodayList = await Transaction.find({ date: { $gte: startOfToday }, type: 'credit', status: 'Successful' });
-    const creditsToday = txnsTodayList.reduce((acc, t) => acc + t.credits, 0);
+    const txnsTodayList = (await Transaction.find({ date: { $gte: startOfToday }, type: 'credit', status: { $in: ['Successful', 'Completed'] } })) || [];
+    const creditsBoughtToday = txnsTodayList.reduce((acc, t) => acc + ((t && t.credits) || 0), 0);
+    const todayRevenue = txnsTodayList.reduce((acc, t) => {
+      const val = parseInt(((t && t.amount) || '').replace(/[^0-9]/g, ''), 10) || 0;
+      return acc + val;
+    }, 0);
+
+    // User-wise credit usage today (konsa user ne kitne credits use kiye)
+    const userUsageMap = {};
+    callsTodayList.forEach(call => {
+      const u = call.user;
+      const uid = u ? (u._id ? u._id.toString() : u.toString()) : (call.callerName || 'Unknown');
+      const uName = u && u.name ? u.name : (call.callerName || 'Client');
+      const uMobile = u && u.mobile ? u.mobile : '';
+      if (!userUsageMap[uid]) {
+        userUsageMap[uid] = {
+          userId: uid,
+          name: uName,
+          mobile: uMobile,
+          creditsUsed: 0,
+          callsCount: 0,
+          totalDurationMins: 0
+        };
+      }
+      userUsageMap[uid].creditsUsed += (call.credits || 0);
+      userUsageMap[uid].callsCount += 1;
+      userUsageMap[uid].totalDurationMins += Math.round(parseMins(call.duration));
+    });
+    const todayUserUsageList = Object.values(userUsageMap).sort((a, b) => b.creditsUsed - a.creditsUsed);
 
     // 2. Cumulative Stats
-    const totalUsers = await User.countDocuments({ role: 'user' });
-    const totalCalls = await Call.countDocuments({});
+    const totalUsers = (await User.countDocuments({ role: 'user' })) || 0;
+    const totalCalls = (await Call.countDocuments({})) || 0;
     
-    const completedCalls = await Call.find({ status: 'Completed' });
+    const completedCalls = (await Call.find({ status: 'Completed' })) || [];
     const totalMins = completedCalls.reduce((acc, c) => acc + parseMins(c.duration), 0);
-    const totalMinsRounded = Math.round(totalMins);
+    const totalMinsRounded = Math.round(totalMins) || 0;
+    const totalCreditsUsed = completedCalls.reduce((acc, c) => acc + (c.credits || 0), 0);
 
-    const recharges = await Transaction.find({ type: 'credit', status: 'Successful' });
+    const recharges = (await Transaction.find({ type: 'credit', status: { $in: ['Successful', 'Completed'] } })) || [];
     const totalRevenue = recharges.reduce((acc, t) => {
-      const val = parseInt(t.amount.replace(/[^0-9]/g, ''), 10) || 0;
+      const val = parseInt(((t && t.amount) || '').replace(/[^0-9]/g, ''), 10) || 0;
       return acc + val;
     }, 0);
 
     // 3. Recent 5 users, recent 5 calls
-    const recentUsers = await User.find({ role: 'user' }).sort({ joined: -1 }).limit(5);
-    const recentCalls = await Call.find({}).populate('user').sort({ date: -1 }).limit(5);
+    const recentUsers = (await User.find({ role: 'user' }).sort({ joined: -1 }).limit(5)) || [];
+    const recentCalls = (await Call.find({}).populate('user').sort({ date: -1 }).limit(5)) || [];
 
     res.render('admin/dashboard', {
-      title: 'Admin Dashboard - Friend Control',
+      title: 'Life Advisor Console - Friend Control',
       activeTab: 'dashboard',
       stats: {
         newUsersToday,
         callsToday,
         minsToday: minsTodayRounded,
-        creditsToday,
+        creditsToday: creditsBoughtToday,
+        creditsUsedToday,
+        todayRevenue,
+        todayRechargesCount: txnsTodayList.length || 0,
         totalUsers,
         totalCalls,
         totalMins: totalMinsRounded,
-        totalRevenue
+        totalRevenue,
+        totalCreditsUsed
       },
+      todayUserUsageList,
       recentUsers,
       recentCalls
     });
@@ -159,12 +220,15 @@ exports.getUsers = async (req, res) => {
     // Get all users
     const users = await User.find({ role: 'user' }).sort({ joined: -1 });
     
-    // We can also calculate total calls for each user to populate table
+    // Calculate total calls and total credits consumed by each user
     const usersWithCalls = await Promise.all(users.map(async (user) => {
       const callCount = await Call.countDocuments({ user: user._id });
+      const completedUserCalls = await Call.find({ user: user._id, status: 'Completed' });
+      const creditsUsed = completedUserCalls.reduce((sum, c) => sum + (c.credits || 0), 0);
       return {
         ...user.toObject(),
-        callCount
+        callCount,
+        creditsUsed
       };
     }));
 
@@ -185,25 +249,60 @@ exports.getCalls = async (req, res) => {
     const limit = 15;
     const skip = (page - 1) * limit;
 
-    const { status, q } = req.query;
-    const filter = {};
+    const { status, q, userName, date } = req.query;
+    const conditions = [];
 
+    // 1. Status Filter
     if (status && status !== 'All' && status !== 'All Statuses') {
-      filter.status = status;
+      conditions.push({ status: status });
     }
 
-    if (q && q.trim() !== '') {
-      const searchRegex = new RegExp(q.trim(), 'i');
+    // 2. Date Filter (YYYY-MM-DD)
+    if (date && date.trim() !== '') {
+      const parts = date.trim().split('-');
+      if (parts.length === 3) {
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        
+        const localStart = new Date(year, month, day, 0, 0, 0, 0);
+        const localEnd = new Date(year, month, day, 23, 59, 59, 999);
+        const utcStart = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+        const utcEnd = new Date(Date.UTC(year, month, day, 23, 59, 59, 999));
+        
+        const minStart = localStart < utcStart ? localStart : utcStart;
+        const maxEnd = localEnd > utcEnd ? localEnd : utcEnd;
+
+        conditions.push({
+          $or: [
+            { date: { $gte: minStart, $lte: maxEnd } },
+            { startTime: { $gte: minStart, $lte: maxEnd } },
+            { createdAt: { $gte: minStart, $lte: maxEnd } }
+          ]
+        });
+      }
+    }
+
+    // 3. User Name / Phone / Call ID Filter
+    const nameSearch = (userName || q || '').trim();
+    if (nameSearch !== '') {
+      const searchRegex = new RegExp(nameSearch, 'i');
       const matchingUsers = await User.find({
         $or: [{ name: searchRegex }, { mobile: searchRegex }]
       }).select('_id');
       const userIds = matchingUsers.map(u => u._id);
 
-      filter.$or = [
-        { callId: searchRegex },
-        { user: { $in: userIds } }
-      ];
+      conditions.push({
+        $or: [
+          { callId: searchRegex },
+          { callerName: searchRegex },
+          { receiverName: searchRegex },
+          { user: { $in: userIds } }
+        ]
+      });
     }
+
+    const filter = conditions.length > 0 ? { $and: conditions } : {};
 
     const totalCalls = await Call.countDocuments(filter);
     const totalPages = Math.ceil(totalCalls / limit) || 1;
@@ -224,7 +323,9 @@ exports.getCalls = async (req, res) => {
       totalPages,
       totalCalls,
       selectedStatus: status || 'All',
-      searchQuery: q || ''
+      userNameQuery: nameSearch,
+      selectedDate: date || '',
+      searchQuery: nameSearch
     });
   } catch (error) {
     console.error('[Admin Calls Error]', error);
@@ -287,11 +388,135 @@ exports.getCredits = async (req, res) => {
   }
 };
 
-exports.getPricing = (req, res) => {
-  res.render('admin/pricing', {
-    title: 'Manage Pricing Plans - Friend Control',
-    activeTab: 'pricing'
-  });
+exports.getPricing = async (req, res) => {
+  try {
+    const plans = await getOrSeedPricingPlans();
+    res.render('admin/pricing', {
+      title: 'Manage Pricing Plans - Friend Control',
+      activeTab: 'pricing',
+      plans
+    });
+  } catch (error) {
+    console.error('[Admin Pricing Error]', error);
+    res.status(500).send('Server Error');
+  }
+};
+
+exports.postUpdatePricing = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, credits, price, description, badge, isPopular, isActive } = req.body;
+
+    let plan = await PricingPlan.findById(id);
+    if (!plan) {
+      plan = await PricingPlan.findOne({ planId: id });
+    }
+    if (!plan) {
+      return res.status(404).json({ success: false, message: 'Pricing plan not found.' });
+    }
+
+    if (name) plan.name = name.trim();
+    if (credits) plan.credits = parseInt(credits, 10);
+    if (price) plan.price = parseInt(price, 10);
+    if (typeof description !== 'undefined') plan.description = description.trim();
+    if (badge) plan.badge = badge.trim();
+    if (typeof isPopular !== 'undefined') plan.isPopular = (isPopular === true || isPopular === 'true');
+    if (typeof isActive !== 'undefined') plan.isActive = (isActive === true || isActive === 'true');
+
+    await plan.save();
+    return res.json({ success: true, message: 'Credit pack charges updated successfully!', plan });
+  } catch (error) {
+    console.error('[Update Pricing Error]', error);
+    return res.status(500).json({ success: false, message: 'Failed to update pricing plan.' });
+  }
+};
+
+exports.postTogglePricing = async (req, res) => {
+  try {
+    const { id } = req.params;
+    let plan = await PricingPlan.findById(id);
+    if (!plan) {
+      plan = await PricingPlan.findOne({ planId: id });
+    }
+    if (!plan) {
+      return res.status(404).json({ success: false, message: 'Pricing plan not found.' });
+    }
+
+    plan.isActive = !plan.isActive;
+    await plan.save();
+    return res.json({ success: true, message: `Plan ${plan.isActive ? 'activated' : 'deactivated'} successfully!`, isActive: plan.isActive });
+  } catch (error) {
+    console.error('[Toggle Pricing Error]', error);
+    return res.status(500).json({ success: false, message: 'Failed to toggle plan status.' });
+  }
+};
+
+exports.postAddPricing = async (req, res) => {
+  try {
+    const { name, credits, price, description, badge, isPopular } = req.body;
+    if (!name || !credits || !price) {
+      return res.status(400).json({ success: false, message: 'Plan name, credits, and price are required.' });
+    }
+
+    const numCredits = parseInt(credits, 10);
+    const numPrice = parseInt(price, 10);
+
+    if (isNaN(numCredits) || numCredits <= 0) {
+      return res.status(400).json({ success: false, message: 'Credits must be a positive number.' });
+    }
+    if (isNaN(numPrice) || numPrice < 0) {
+      return res.status(400).json({ success: false, message: 'Price must be a valid positive amount.' });
+    }
+
+    // Generate guaranteed unique planId
+    let nextNum = 5501;
+    const allExistingPlans = await PricingPlan.find({}).select('planId order');
+    const existingIds = new Set(allExistingPlans.map(p => p.planId));
+    while (existingIds.has('PLAN-' + nextNum)) {
+      nextNum++;
+    }
+    const planId = 'PLAN-' + nextNum;
+
+    // Determine max order
+    const maxOrder = allExistingPlans.reduce((max, p) => Math.max(max, p.order || 0), 0);
+
+    const newPlan = new PricingPlan({
+      planId,
+      name: name.trim(),
+      badge: badge && badge.trim() ? badge.trim() : 'Special',
+      credits: numCredits,
+      price: numPrice,
+      description: description ? description.trim() : '',
+      isPopular: (isPopular === true || isPopular === 'true' || isPopular === 'on'),
+      order: maxOrder + 1,
+      isActive: true
+    });
+
+    await newPlan.save();
+    return res.json({ success: true, message: 'New recharge pack added successfully!', plan: newPlan });
+  } catch (error) {
+    console.error('[Add Pricing Error]', error);
+    return res.status(500).json({ success: false, message: error.message || 'Failed to create pricing plan.' });
+  }
+};
+
+exports.postDeletePricing = async (req, res) => {
+  try {
+    const { id } = req.params;
+    let plan = await PricingPlan.findById(id);
+    if (!plan) {
+      plan = await PricingPlan.findOne({ planId: id });
+    }
+    if (!plan) {
+      return res.status(404).json({ success: false, message: 'Pricing plan not found.' });
+    }
+
+    await PricingPlan.deleteOne({ _id: plan._id });
+    return res.json({ success: true, message: `Recharge pack '${plan.name}' deleted successfully!` });
+  } catch (error) {
+    console.error('[Delete Pricing Error]', error);
+    return res.status(500).json({ success: false, message: 'Failed to delete recharge pack.' });
+  }
 };
 
 exports.getReports = async (req, res) => {

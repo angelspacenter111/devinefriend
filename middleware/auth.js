@@ -31,13 +31,21 @@ const requireAuth = async (req, res, next) => {
 };
 
 const requireAdmin = async (req, res, next) => {
+  const isAjax = req.xhr || (req.headers['x-requested-with'] === 'XMLHttpRequest') || (req.headers.accept && req.headers.accept.includes('application/json'));
+
   if (!req.session || !req.session.userId || req.session.role !== 'admin') {
+    if (isAjax) {
+      return res.status(401).json({ success: false, message: 'Session expired. Please log in again.' });
+    }
     return res.redirect('/admin/login');
   }
   try {
     const user = await User.findById(req.session.userId);
     if (!user || user.role !== 'admin') {
       req.session.destroy(() => {
+        if (isAjax) {
+          return res.status(401).json({ success: false, message: 'Unauthorized. Admin access required.' });
+        }
         res.redirect('/admin/login');
       });
       return;
@@ -47,6 +55,9 @@ const requireAdmin = async (req, res, next) => {
     next();
   } catch (error) {
     console.error('[Admin Auth Middleware] Error:', error);
+    if (isAjax) {
+      return res.status(500).json({ success: false, message: 'Authentication error.' });
+    }
     res.redirect('/admin/login');
   }
 };

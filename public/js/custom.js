@@ -64,7 +64,7 @@ $(document).ready(function () {
       const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
       modal.show();
     } else {
-      alert("Support advisors are currently offline. Please wait or try calling again in a moment.");
+      alert("Life Advisors are currently in consultation or offline. Please wait or try calling again in a moment.");
     }
   });
 
@@ -78,9 +78,9 @@ $(document).ready(function () {
           const wasOnline = window.isAdvisorOnline;
           updateAdvisorStatusUI(data.isOnline);
 
-          // If advisor just came online while user is on dashboard, show warm notification
+          // If Life Advisor just came online while user is on dashboard, show warm notification
           if (!wasOnline && data.isOnline && window.location.pathname.includes('/user/dashboard')) {
-            showToast("A support advisor is now Online and ready to talk!", "success");
+            showToast("Your Life Advisor is now Online and ready to talk!", "success");
           }
         }
       });
@@ -121,6 +121,7 @@ $(document).ready(function () {
     const $btn = $(this);
     const creditsToBuy = parseInt($btn.data("credits"));
     const price = $btn.data("price");
+    const planId = $btn.data("plan-id");
     
     if (isNaN(creditsToBuy)) return;
 
@@ -131,18 +132,18 @@ $(document).ready(function () {
     $.ajax({
       url: '/user/buy-credits',
       method: 'POST',
-      data: { credits: creditsToBuy, price: price },
+      data: { credits: creditsToBuy, price: price, planId: planId },
       success: function(res) {
         $btn.html(origText).prop("disabled", false);
         if (res.success) {
           if (window.sessionUser) {
             window.sessionUser.credits = res.credits;
           }
-          saveUser(getUser());
+          $(".simulated-balance").text(res.credits);
           showToast(`Successfully purchased ${creditsToBuy} credits!`, "success");
           $("#checkoutModal").modal("hide");
           
-          // Reload page to update ledger tables
+          // Reload page to reflect updated balance
           setTimeout(() => {
             location.reload();
           }, 1000);
@@ -226,4 +227,23 @@ $(document).ready(function () {
       showToast("Pricing plan activated", "success");
     }
   });
+
+  // Mood Selector Interactive Handler
+  $(document).on("click", ".mood-chip", function () {
+    $(".mood-chip").removeClass("active");
+    $(this).addClass("active");
+    const mood = $(this).text().trim();
+    showToast(`Mood selected: ${mood}`, "success");
+  });
+
+  // Progressive Web App (PWA) Service Worker Registration
+  if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/sw.js').then(function(registration) {
+        console.log('[PWA] ServiceWorker registered with scope:', registration.scope);
+      }, function(err) {
+        console.log('[PWA] ServiceWorker registration failed:', err);
+      });
+    });
+  }
 });

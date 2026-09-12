@@ -1,0 +1,79 @@
+<!-- Admin Native Top App Bar -->
+<header class="app-top-bar shadow-sm">
+  <div class="container-fluid px-3">
+    <!-- Left: Brand / Console Badge -->
+    <div class="app-title-group">
+      <div class="app-avatar-pill" style="background: linear-gradient(135deg, #10B981, #1E293B);">
+        <i class="bi bi-shield-check"></i>
+      </div>
+      <div>
+        <h1 class="app-brand-name" style="font-size: 1.05rem;">Life Advisor Console</h1>
+        <div class="d-flex align-items-center gap-1.5">
+          <span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-0.5 small fw-semibold">
+            <span class="status-indicator-dot online me-1"></span> Live Active
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Today's Earnings Badge & Admin Dropdown -->
+    <div class="d-flex align-items-center gap-2">
+      <% if (typeof stats !== 'undefined' && stats && stats.todayRevenue != null) { %>
+        <div class="d-none d-sm-inline-flex align-items-center gap-1.5 px-3 py-1.5 rounded-pill bg-success-subtle border border-success-subtle text-success small fw-bold" title="Today's Total Income">
+          <i class="bi bi-currency-rupee"></i>
+          <span><%= Number(stats.todayRevenue).toLocaleString('en-IN') %></span>
+          <small class="text-muted fw-normal" style="font-size: 0.72rem;">Today</small>
+        </div>
+      <% } %>
+
+      <!-- Admin Quick Navigation Menu -->
+      <div class="dropdown">
+        <button class="btn btn-light rounded-circle p-2 app-tap-active position-relative" style="width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.05); border: none;" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-three-dots-vertical text-dark"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2 rounded-4 p-2" style="min-width: 220px; z-index: 1050;">
+          <li class="px-3 py-2 border-bottom mb-1">
+            <small class="text-muted d-block">Admin Account</small>
+            <strong class="text-dark d-block">System Life Advisor</strong>
+          </li>
+          <li>
+            <a class="dropdown-item rounded-3 py-2 d-flex align-items-center gap-2" href="/admin/dashboard">
+              <i class="bi bi-speedometer2 text-primary"></i> Dashboard
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item rounded-3 py-2 d-flex align-items-center gap-2" href="/admin/users">
+              <i class="bi bi-people-fill text-success"></i> Users Management
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item rounded-3 py-2 d-flex align-items-center gap-2" href="/admin/calls">
+              <i class="bi bi-telephone-fill text-purple"></i> Call Logs
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item rounded-3 py-2 d-flex align-items-center gap-2" href="/admin/transactions">
+              <i class="bi bi-credit-card-fill text-warning"></i> Recharges & Income
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item rounded-3 py-2 d-flex align-items-center gap-2" href="/admin/pricing">
+              <i class="bi bi-box-seam-fill text-danger"></i> Recharge Packs
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item rounded-3 py-2 d-flex align-items-center gap-2" href="/admin/settings">
+              <i class="bi bi-gear-fill text-secondary"></i> Settings
+            </a>
+          </li>
+          <li><hr class="dropdown-divider my-1"></li>
+          <li>
+            <a class="dropdown-item rounded-3 py-2 text-danger fw-semibold d-flex align-items-center gap-2" href="/admin/logout">
+              <i class="bi bi-box-arrow-right text-danger"></i> Logout
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</header>

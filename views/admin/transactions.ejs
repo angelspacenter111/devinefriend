@@ -1,7 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <%- include('../partials/head') %>
-<body>
+<body class="app-mode">
+
+  <!-- Admin Mobile Top App Bar -->
+  <%- include('../partials/admin-header') %>
 
   <div class="panel-wrapper">
     <!-- Admin Sidebar Partial -->
@@ -9,97 +12,128 @@
 
     <!-- Main Content Panel -->
     <div class="content-panel">
-      <!-- Top Header -->
-      <header class="header-panel shadow-sm">
+      <!-- Top Header (Desktop) -->
+      <header class="header-panel shadow-sm d-none d-lg-flex">
         <div class="d-flex align-items-center gap-3">
-          <button class="btn btn-light d-lg-none sidebar-toggle-btn" type="button">
-            <i class="bi bi-list fs-4"></i>
-          </button>
-          <h4 class="mb-0 fw-bold">Transaction Audits</h4>
+          <h4 class="mb-0 fw-bold">Platform Recharges & Ledger</h4>
         </div>
         
         <div class="d-flex align-items-center gap-3">
-          <div class="dropdown">
-            <button class="btn btn-light d-flex align-items-center gap-2 border rounded-pill py-1 px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <div class="rounded-circle bg-light-lavender d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
-                <i class="bi bi-shield-lock text-purple"></i>
-              </div>
-              <span class="fw-semibold text-dark d-none d-md-block small">System Admin</span>
-              <i class="bi bi-chevron-down text-muted small ms-1"></i>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 rounded-3">
-              <li><h6 class="dropdown-header">Admin Control</h6></li>
-              <li><a class="dropdown-item" href="/admin/settings"><i class="bi bi-gear me-2 text-muted"></i>Settings</a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item text-danger fw-semibold" href="/admin/logout"><i class="bi bi-box-arrow-right me-2 text-danger"></i>Logout</a></li>
-            </ul>
-          </div>
-
+          <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill fw-semibold">
+            <span class="status-indicator-dot online me-1"></span> Live Ledger Active
+          </span>
           <a href="/admin/logout" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 d-flex align-items-center gap-1.5 fw-semibold" title="Logout from Admin Panel">
             <i class="bi bi-box-arrow-right"></i>
-            <span class="d-none d-sm-inline">Logout</span>
+            <span>Logout</span>
           </a>
         </div>
       </header>
 
       <!-- Main Contents Canvas -->
       <main class="main-content-inner">
-        <!-- Transaction Directory Card -->
-        <div class="card-premium border-0 bg-white shadow-sm p-4">
-          <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
-            <h5 class="fw-bold mb-0">Platform Payments Ledger</h5>
-            
-            <div class="d-flex gap-2">
-              <input type="text" class="form-control form-control-custom py-1.5" style="font-size: 0.85rem; width: 200px;" placeholder="Search Transaction ID...">
+        <div class="app-container">
+          <!-- Transaction Directory Card -->
+          <div class="card-premium border-0 bg-white shadow-sm p-4">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
+              <div>
+                <h5 class="fw-bold mb-0">Platform Payments & Recharges</h5>
+                <small class="text-muted">Direct money inflows and credit allotments</small>
+              </div>
             </div>
-          </div>
 
-          <div class="table-responsive-custom">
-            <table class="table table-premium mb-0 align-middle">
-              <thead>
-                <tr>
-                  <th>Transaction ID</th>
-                  <th>Date</th>
-                  <th>User</th>
-                  <th>Description</th>
-                  <th>Credits Loaded</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% if (transactions.length === 0) { %>
+            <!-- Mobile Feed View (Native App Style for Phones) -->
+            <div class="mobile-card-feed d-md-none mb-3">
+              <% if (transactions.length === 0) { %>
+                <div class="text-center py-4 text-muted small bg-light rounded-3 p-3">No transactions found in database.</div>
+              <% } else { %>
+                <% transactions.forEach(txn => { %>
+                  <% 
+                    const isCredit = txn.type === "credit";
+                    let badgeClass = "bg-success-subtle text-success";
+                    if (txn.status === "Failed") badgeClass = "bg-danger-subtle text-danger";
+                  %>
+                  <div class="mobile-data-card">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                      <span class="badge <%= badgeClass %> rounded-pill px-2.5 py-1"><%= txn.status %></span>
+                      <strong class="text-dark fs-6"><%= txn.amount %></strong>
+                    </div>
+                    
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                      <div>
+                        <strong class="d-block text-dark small"><%= txn.user ? txn.user.name : 'Deleted User' %></strong>
+                        <small class="text-muted"><%= txn.desc %></small>
+                      </div>
+                      <div class="text-end">
+                        <span class="fw-bold <%= isCredit ? 'text-success' : 'text-danger' %> small d-block">
+                          <%= isCredit ? '+' : '-' %><%= txn.credits %> Cr
+                        </span>
+                        <small class="text-muted font-monospace"><%= txn.date ? txn.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '' %></small>
+                      </div>
+                    </div>
+
+                    <div class="pt-2 border-top d-flex align-items-center justify-content-between">
+                      <small class="text-muted font-monospace" style="font-size: 0.72rem;"><%= txn.txnId %></small>
+                      <span class="badge bg-light text-secondary border rounded-pill px-2 py-0.5" style="font-size: 0.7rem;">Inflow</span>
+                    </div>
+                  </div>
+                <% }) %>
+              <% } %>
+            </div>
+
+            <!-- Desktop Table View -->
+            <div class="table-responsive-custom d-none d-md-block">
+              <table class="table table-premium mb-0 align-middle">
+                <thead>
                   <tr>
-                    <td colspan="7" class="text-center text-muted py-4">No transactions found in database.</td>
+                    <th>Transaction ID</th>
+                    <th>Date</th>
+                    <th>User</th>
+                    <th>Description</th>
+                    <th>Credits Loaded</th>
+                    <th>Amount Received</th>
+                    <th>Status</th>
                   </tr>
-                <% } else { %>
-                  <% transactions.forEach(txn => { %>
-                    <% 
-                      const creditFormatted = txn.type === "credit"
-                        ? `<span class="text-success fw-bold">+${txn.credits} Credits</span>`
-                        : `<span class="text-danger fw-bold">-${txn.credits} Credits</span>`;
-                      
-                      let badgeClass = "bg-success-subtle text-success";
-                      if (txn.status === "Failed") badgeClass = "bg-danger-subtle text-danger";
-                    %>
+                </thead>
+                <tbody>
+                  <% if (transactions.length === 0) { %>
                     <tr>
-                      <td><span class="fw-semibold"><%= txn.txnId %></span></td>
-                      <td><%= txn.date ? txn.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '' %></td>
-                      <td><%= txn.user ? txn.user.name : 'Deleted User' %> (<%= txn.user ? txn.user._id.toString().substring(18) : 'N/A' %>)</td>
-                      <td><%= txn.desc %></td>
-                      <td><%- creditFormatted %></td>
-                      <td><span class="fw-bold"><%= txn.amount %></span></td>
-                      <td><span class="badge <%= badgeClass %> rounded-pill px-2.5 py-1"><%= txn.status %></span></td>
+                      <td colspan="7" class="text-center text-muted py-4">No transactions found in database.</td>
                     </tr>
-                  <% }) %>
-                <% } %>
-              </tbody>
-            </table>
+                  <% } else { %>
+                    <% transactions.forEach(txn => { %>
+                      <% 
+                        const creditFormatted = txn.type === "credit"
+                          ? `<span class="text-success fw-bold">+${txn.credits} Credits</span>`
+                          : `<span class="text-danger fw-bold">-${txn.credits} Credits</span>`;
+                        
+                        let badgeClass = "bg-success-subtle text-success";
+                        if (txn.status === "Failed") badgeClass = "bg-danger-subtle text-danger";
+                      %>
+                      <tr>
+                        <td><span class="fw-semibold"><%= txn.txnId %></span></td>
+                        <td><%= txn.date ? txn.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '' %></td>
+                        <td><%= txn.user ? txn.user.name : 'Deleted User' %> (<%= txn.user ? txn.user._id.toString().substring(18) : 'N/A' %>)</td>
+                        <td><%= txn.desc %></td>
+                        <td><%- creditFormatted %></td>
+                        <td><strong class="text-dark"><%= txn.amount %></strong></td>
+                        <td><span class="badge <%= badgeClass %> rounded-pill px-2.5 py-1"><%= txn.status %></span></td>
+                      </tr>
+                    <% }) %>
+                  <% } %>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </main>
     </div>
   </div>
+
+  <!-- Admin Mobile Bottom Navigation -->
+  <%- include('../partials/admin-bottom-nav') %>
+
+  <!-- Admin Incoming Call Notification Modal -->
+  <%- include('../partials/admin-incoming-call') %>
 
   <%- include('../partials/scripts') %>
 </body>

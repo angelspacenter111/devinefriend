@@ -1,0 +1,64 @@
+<!-- Mobile-First Fixed Bottom Navigation Bar -->
+<nav class="app-bottom-nav" aria-label="Mobile Navigation">
+  <!-- Tab 1: Home / Dashboard -->
+  <a href="/user/dashboard" class="nav-tab-item app-tap-active <%= (typeof activeTab !== 'undefined' && activeTab === 'dashboard') ? 'active' : '' %>">
+    <div class="nav-tab-icon">
+      <i class="bi bi-<%= (typeof activeTab !== 'undefined' && activeTab === 'dashboard') ? 'grid-fill' : 'grid' %>"></i>
+    </div>
+    <span class="nav-tab-label">Home</span>
+  </a>
+
+  <!-- Tab 2: Wallet -->
+  <a href="/user/wallet" class="nav-tab-item app-tap-active <%= (typeof activeTab !== 'undefined' && (activeTab === 'wallet' || activeTab === 'buy-credits')) ? 'active' : '' %>">
+    <div class="nav-tab-icon">
+      <i class="bi bi-<%= (typeof activeTab !== 'undefined' && (activeTab === 'wallet' || activeTab === 'buy-credits')) ? 'wallet2' : 'wallet' %>"></i>
+    </div>
+    <span class="nav-tab-label">Wallet</span>
+  </a>
+
+  <!-- Center Tab: Call Floating Action Button (FAB) -->
+  <div class="nav-tab-fab-wrap">
+    <a href="/user/call" class="nav-tab-fab btn-start-call app-tap-active <%= typeof isAdvisorOnline !== 'undefined' && !isAdvisorOnline ? 'btn-advisor-offline' : '' %>" title="Start Instant Call">
+      <i class="bi bi-telephone-fill"></i>
+    </a>
+    <span class="nav-tab-fab-label">Call</span>
+  </div>
+
+  <!-- Tab 4: Call History -->
+  <a href="/user/call-history" class="nav-tab-item app-tap-active <%= (typeof activeTab !== 'undefined' && activeTab === 'call-history') ? 'active' : '' %>">
+    <div class="nav-tab-icon">
+      <i class="bi bi-<%= (typeof activeTab !== 'undefined' && activeTab === 'call-history') ? 'clock-fill' : 'clock-history' %>"></i>
+    </div>
+    <span class="nav-tab-label">History</span>
+  </a>
+
+  <!-- Tab 5: Profile Settings -->
+  <a href="/user/profile" class="nav-tab-item app-tap-active <%= (typeof activeTab !== 'undefined' && activeTab === 'profile') ? 'active' : '' %>">
+    <div class="nav-tab-icon">
+      <i class="bi bi-<%= (typeof activeTab !== 'undefined' && activeTab === 'profile') ? 'person-fill' : 'person' %>"></i>
+    </div>
+    <span class="nav-tab-label">Profile</span>
+  </a>
+</nav>
+
+<!-- Offline Advisor Dialog (App Bottom Sheet Modal) -->
+<div class="modal fade bottom-sheet" id="advisorOfflineModal" tabindex="-1" aria-labelledby="advisorOfflineModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content text-center p-4">
+      <div class="bottom-sheet-handle d-md-none"></div>
+      <div class="my-3">
+        <div class="rounded-circle bg-warning-subtle text-warning d-inline-flex align-items-center justify-content-center mb-3" style="width: 72px; height: 72px; font-size: 2rem;">
+          <i class="bi bi-moon-stars-fill"></i>
+        </div>
+        <h4 class="fw-bold text-dark mb-2">Advisor Is Currently Offline</h4>
+        <p class="text-muted small px-2 mb-4">
+          Our supportive listening companions are currently assisting others or resting. Please check back shortly or explore our community guidance.
+        </p>
+        <div class="d-grid gap-2">
+          <button type="button" class="btn btn-brand py-2.5 rounded-pill" data-bs-dismiss="modal">I'll Check Back Soon</button>
+          <a href="/faq" class="btn btn-light py-2.5 rounded-pill text-dark">Browse Support Guides</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

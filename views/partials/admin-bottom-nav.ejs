@@ -1,0 +1,42 @@
+<!-- Admin Mobile Fixed Bottom Navigation Bar -->
+<nav class="app-bottom-nav" aria-label="Admin Navigation">
+  <!-- Tab 1: Dashboard -->
+  <a href="/admin/dashboard" class="nav-tab-item app-tap-active <%= (typeof activeTab !== 'undefined' && activeTab === 'dashboard') ? 'active' : '' %>">
+    <div class="nav-tab-icon">
+      <i class="bi bi-<%= (typeof activeTab !== 'undefined' && activeTab === 'dashboard') ? 'speedometer2' : 'speedometer' %>"></i>
+    </div>
+    <span class="nav-tab-label">Dashboard</span>
+  </a>
+
+  <!-- Tab 2: Users -->
+  <a href="/admin/users" class="nav-tab-item app-tap-active <%= (typeof activeTab !== 'undefined' && activeTab === 'users') ? 'active' : '' %>">
+    <div class="nav-tab-icon">
+      <i class="bi bi-<%= (typeof activeTab !== 'undefined' && activeTab === 'users') ? 'people-fill' : 'people' %>"></i>
+    </div>
+    <span class="nav-tab-label">Users</span>
+  </a>
+
+  <!-- Tab 3: Calls -->
+  <a href="/admin/calls" class="nav-tab-item app-tap-active <%= (typeof activeTab !== 'undefined' && activeTab === 'calls') ? 'active' : '' %>">
+    <div class="nav-tab-icon">
+      <i class="bi bi-<%= (typeof activeTab !== 'undefined' && activeTab === 'calls') ? 'telephone-fill' : 'telephone' %>"></i>
+    </div>
+    <span class="nav-tab-label">Calls</span>
+  </a>
+
+  <!-- Tab 4: Recharge Packs -->
+  <a href="/admin/pricing" class="nav-tab-item app-tap-active <%= (typeof activeTab !== 'undefined' && activeTab === 'pricing') ? 'active' : '' %>">
+    <div class="nav-tab-icon">
+      <i class="bi bi-<%= (typeof activeTab !== 'undefined' && activeTab === 'pricing') ? 'box-seam-fill' : 'box-seam' %>"></i>
+    </div>
+    <span class="nav-tab-label">Packs</span>
+  </a>
+
+  <!-- Tab 5: Settings -->
+  <a href="/admin/settings" class="nav-tab-item app-tap-active <%= (typeof activeTab !== 'undefined' && activeTab === 'settings') ? 'active' : '' %>">
+    <div class="nav-tab-icon">
+      <i class="bi bi-<%= (typeof activeTab !== 'undefined' && activeTab === 'settings') ? 'gear-fill' : 'gear' %>"></i>
+    </div>
+    <span class="nav-tab-label">Settings</span>
+  </a>
+</nav>

@@ -163,7 +163,7 @@ async function startServer() {
         socket.to(roomId).emit('peer-connected', {
           callId: data.callId,
           adminId: socket.id,
-          adminName: data.adminName || 'Support Partner'
+          adminName: data.adminName || 'Life Advisor'
         });
       });
 

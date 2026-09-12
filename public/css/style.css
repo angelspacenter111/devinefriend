@@ -364,7 +364,7 @@ a:hover {
   min-height: 70px;
 }
 .main-content-inner {
-  padding: 2.5rem;
+  padding: 1.5rem 1.8rem;
   flex-grow: 1;
 }
 
@@ -404,32 +404,55 @@ a:hover {
   outline: none;
 }
 
-/* Custom Table */
+/* Custom Table - Compact & Neat App Style */
 .table-premium {
   background: var(--white);
-  border-radius: var(--card-radius);
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid rgba(24, 32, 51, 0.05);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  font-size: 0.82rem;
+  margin-bottom: 0;
+  width: 100%;
 }
 .table-premium th {
   background: #F8FAFC;
   font-family: var(--font-secondary);
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: var(--muted-text);
+  font-weight: 700;
+  font-size: 0.72rem;
+  color: #64748B;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  padding: 1.2rem 1.5rem;
-  border-bottom: 1.5px solid rgba(24, 32, 51, 0.05);
+  padding: 0.6rem 0.85rem;
+  border-bottom: 1px solid #E2E8F0;
+  white-space: nowrap;
 }
 .table-premium td {
-  padding: 1.2rem 1.5rem;
+  padding: 0.6rem 0.85rem;
   vertical-align: middle;
-  border-bottom: 1px solid rgba(24, 32, 51, 0.04);
+  border-bottom: 1px solid #F1F5F9;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: #1E293B;
 }
 .table-premium tr:last-child td {
   border-bottom: none;
+}
+.table-premium tr:hover td {
+  background: #F8FAFC;
+}
+.table-premium .btn {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.table-premium .badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  letter-spacing: 0.2px;
 }
 
 /* Call Simulator Interface Styles */

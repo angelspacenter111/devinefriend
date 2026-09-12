@@ -1,29 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <%- include('../partials/head') %>
-<body>
+<body class="app-mode">
+
+  <!-- Mobile-First App Top Bar -->
+  <%- include('../partials/app-header', { pageTitle: 'Home', showBack: false }) %>
 
   <div class="panel-wrapper">
-    <!-- User Sidebar Partial -->
+    <!-- Desktop Left Sidebar -->
     <%- include('../partials/user-sidebar') %>
 
     <!-- Main Content Panel -->
     <div class="content-panel">
-      <!-- Top Header -->
-      <header class="header-panel shadow-sm">
+      <!-- Desktop Header Panel (Visible on Desktop) -->
+      <header class="header-panel shadow-sm d-none d-lg-flex">
         <div class="d-flex align-items-center gap-3">
-          <button class="btn btn-light d-lg-none sidebar-toggle-btn" type="button">
-            <i class="bi bi-list fs-4"></i>
-          </button>
-          <h4 class="mb-0 fw-bold d-none d-sm-block">Dashboard Home</h4>
+          <h4 class="mb-0 fw-bold text-dark">Life Advisor Dashboard</h4>
         </div>
         
         <div class="d-flex align-items-center gap-3">
-          <div class="header-advisor-badge d-flex align-items-center gap-2 px-3 py-1.5 rounded-pill" title="Live Support Advisor Status">
+          <div class="header-advisor-badge d-flex align-items-center gap-2 px-3 py-1.5 rounded-pill" title="Live Life Advisor Status">
             <span class="status-indicator-dot <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'online' : 'offline' %>"></span>
-            <span class="small fw-semibold text-muted d-none d-sm-inline">Advisor:</span>
+            <span class="small fw-semibold text-muted">Life Advisor:</span>
             <span class="small fw-bold advisor-status-text <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'text-success' : 'text-secondary' %>">
-              <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'Online' : 'Offline' %>
+              <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'Online Now' : 'Currently Offline' %>
             </span>
           </div>
 
@@ -32,233 +32,234 @@
             <span class="fw-bold"><span class="simulated-balance"><%= user.credits %></span> Credits</span>
             <span class="text-muted small ms-1">(≈ <span class="simulated-balance"><%= user.credits %></span> mins)</span>
           </div>
-          
-          <div class="dropdown">
-            <button class="btn btn-light rounded-circle p-2 position-relative" type="button" data-bs-toggle="dropdown">
-              <i class="bi bi-bell"></i>
-              <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"></span>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 rounded-3">
-              <li><h6 class="dropdown-header">Recent Updates</h6></li>
-              <li><hr class="dropdown-divider"></li>
-              <li>
-                <a class="dropdown-item d-flex gap-2" href="#">
-                  <i class="bi bi-check-circle-fill text-success mt-1"></i>
-                  <div>
-                    <span class="d-block fw-semibold text-dark small">Wallet Credited</span>
-                    <small class="text-muted">Simulated purchase loaded successfully.</small>
-                  </div>
-                </a>
-              </li>
-            </ul>
-          </div>
 
-          <div class="dropdown">
-            <button class="btn btn-light d-flex align-items-center gap-2 border rounded-pill py-1 px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <div class="rounded-circle bg-light-lavender d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
-                <i class="bi bi-person text-purple"></i>
-              </div>
-              <span class="simulated-name fw-semibold text-dark d-none d-md-block small"><%= user.name %></span>
-              <i class="bi bi-chevron-down text-muted small ms-1"></i>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 rounded-3">
-              <li><h6 class="dropdown-header">Signed in as <br><strong class="text-dark"><%= user.name %></strong></h6></li>
-              <li><a class="dropdown-item" href="/user/profile"><i class="bi bi-person-gear me-2 text-muted"></i>Profile Settings</a></li>
-              <li><a class="dropdown-item" href="/user/wallet"><i class="bi bi-wallet2 me-2 text-muted"></i>My Wallet</a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item text-danger fw-semibold" href="/logout"><i class="bi bi-box-arrow-right me-2 text-danger"></i>Logout</a></li>
-            </ul>
-          </div>
+          <a href="/user/profile" class="btn btn-light d-flex align-items-center gap-2 border rounded-pill py-1 px-3">
+            <div class="rounded-circle bg-light-lavender d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+              <i class="bi bi-person text-purple"></i>
+            </div>
+            <span class="simulated-name fw-semibold text-dark small"><%= user.name %></span>
+          </a>
 
-          <a href="/logout" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 d-flex align-items-center gap-1.5 fw-semibold" title="Logout from account">
+          <a href="/logout" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 d-flex align-items-center gap-1.5 fw-semibold" title="Logout">
             <i class="bi bi-box-arrow-right"></i>
-            <span class="d-none d-sm-inline">Logout</span>
+            <span>Logout</span>
           </a>
         </div>
       </header>
 
       <!-- Main Contents Canvas -->
       <main class="main-content-inner">
-        <!-- Welcome Card Banner -->
-        <div class="card-hero-premium p-4 p-md-5 bg-soft-gradient position-relative overflow-hidden mb-4">
-          <div class="backdrop-glow"></div>
-          <div class="position-relative z-3">
-            <span class="badge-category mb-2">Welcome Back</span>
-            <h2 class="fw-extrabold text-dark mb-2">Hello, <span class="simulated-name"><%= user.name %></span></h2>
-            <p class="text-muted mb-0" style="font-size: 1.1rem;">How are you feeling today? Remember, you don't have to carry everything alone.</p>
-          </div>
-        </div>
+        <div class="app-container">
 
-        <div class="row g-4 mb-4">
-          <!-- Voice Call CTA Widget Card -->
-          <div class="col-lg-8">
-            <div class="card-premium h-100 border-0 bg-white shadow-sm p-4 d-flex flex-column justify-content-between">
-              <div>
-                <div class="d-flex align-items-center justify-content-between mb-3">
-                  <span class="badge-category text-primary-pink bg-light-lavender" style="color: #E91E8F;"><i class="bi bi-telephone-fill me-1"></i> Voice Companion Line</span>
-                  <span class="badge <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'bg-success-subtle text-success border-success-subtle' : 'bg-secondary-subtle text-secondary border-secondary-subtle' %> border px-2.5 py-1 rounded-pill small advisor-status-badge" id="dash-advisor-status-badge">
-                    <span class="status-indicator-dot <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'online' : 'offline' %> me-1"></span>
-                    <span class="advisor-status-text full-text"><%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'Online Now' : 'Currently Offline' %></span>
-                  </span>
-                </div>
-                <h4 class="fw-bold mb-2">Need Someone to Talk To?</h4>
-                <p class="text-muted small mb-4">
-                  Connect instantly to a private, caring voice conversation. Share whatever is on your mind. No chat history, no logs, complete confidentiality.
-                </p>
-              </div>
-
-              <div class="row g-3 align-items-center mt-3 pt-3 border-top">
-                <div class="col-sm-6 text-center text-sm-start mb-3 mb-sm-0">
-                  <span class="text-muted small d-block">Estimated Talk Time</span>
-                  <h5 class="fw-extrabold mb-0 text-primary-blue"><span class="simulated-balance"><%= user.credits %></span> Minutes Available</h5>
-                </div>
-                <div class="col-sm-6 text-center text-sm-end" id="dash-call-btn-container">
-                  <% if (user.credits >= 1) { %>
-                    <a href="/user/call" class="btn btn-brand px-4 py-3 w-100 w-sm-auto btn-start-call <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? '' : 'btn-advisor-offline' %>" id="dash-start-call-btn">
-                      <i class="bi bi-telephone-inbound-fill me-2"></i> Start Voice Call
-                    </a>
-                  <% } else { %>
-                    <a href="/user/buy-credits?lowCredits=true" class="btn btn-brand px-4 py-3 w-100 w-sm-auto" title="Recharge required to make calls"><i class="bi bi-telephone-inbound-fill me-2"></i> Start Voice Call</a>
-                  <% } %>
-                </div>
-              </div>
+          <!-- 1. Warm Greeting & Guidance Subtitle -->
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+              <span class="text-muted small fw-semibold text-uppercase letter-spacing-1">Personal Guidance Space</span>
+              <h2 class="fw-extrabold text-dark mb-0">Welcome, <%= user.name %> ✨</h2>
+              <p class="text-muted small mb-0 mt-1">Take a deep breath. Speak freely with your personal Life Advisor.</p>
             </div>
-          </div>
-
-          <!-- Wallet Summary Card -->
-          <div class="col-lg-4">
-            <div class="card-premium h-100 border-0 bg-white shadow-sm p-4 d-flex flex-column justify-content-between">
-              <div>
-                <h5 class="fw-bold mb-3">Wallet Credits</h5>
-                <div class="d-flex align-items-baseline gap-2 mb-3">
-                  <span class="display-4 fw-extrabold text-purple" id="dash-wallet-credits"><%= user.credits %></span>
-                  <span class="fw-semibold text-muted">Credits</span>
-                </div>
-                <p class="text-muted small">
-                  Credits are used dynamically during calls. 1 Credit is equivalent to 1 minute of talk time. Unused credits do not expire.
-                </p>
-              </div>
-              <div class="mt-4">
-                <a href="/user/buy-credits" class="btn btn-secondary-light w-100 py-2.5"><i class="bi bi-plus-circle me-1"></i> Purchase Credit Pack</a>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Metric statistics Cards -->
-        <div class="row g-4 mb-4">
-          <div class="col-sm-6 col-lg-3">
-            <div class="card-premium border-0 bg-white shadow-sm p-3.5 text-center">
-              <i class="bi bi-telephone text-primary-blue fs-3 mb-2"></i>
-              <span class="text-muted small d-block mb-1">Total Calls Placed</span>
-              <h4 class="fw-bold text-dark mb-0" id="dash-total-calls"><%= totalCalls %></h4>
-            </div>
-          </div>
-          <div class="col-sm-6 col-lg-3">
-            <div class="card-premium border-0 bg-white shadow-sm p-3.5 text-center">
-              <i class="bi bi-clock-history text-purple fs-3 mb-2"></i>
-              <span class="text-muted small d-block mb-1">Total Minutes Spent</span>
-              <h4 class="fw-bold text-dark mb-0" id="dash-total-mins"><%= totalMins %> mins</h4>
-            </div>
-          </div>
-          <div class="col-sm-6 col-lg-3">
-            <div class="card-premium border-0 bg-white shadow-sm p-3.5 text-center">
-              <i class="bi bi-shield-check text-success fs-3 mb-2"></i>
-              <span class="text-muted small d-block mb-1">Call Quality status</span>
-              <h4 class="fw-bold text-success mb-0">Excellent</h4>
-            </div>
-          </div>
-          <div class="col-sm-6 col-lg-3">
-            <div class="card-premium border-0 bg-white shadow-sm p-3.5 text-center">
-              <i class="bi bi-chat-quote text-primary-pink fs-3 mb-2"></i>
-              <span class="text-muted small d-block mb-1">Deduction Method</span>
-              <h4 class="fw-bold text-dark mb-0">1 Credit / Min</h4>
-            </div>
-          </div>
-        </div>
-
-        <!-- Recent Call History Table List -->
-        <div class="card-premium border-0 bg-white shadow-sm p-4">
-          <div class="d-flex align-items-center justify-content-between mb-4">
-            <h5 class="fw-bold mb-0">Recent Conversations</h5>
-            <a href="/user/call-history" class="link-primary small fw-semibold text-decoration-underline">View All History</a>
-          </div>
-          
-          <div class="table-responsive-custom">
-            <table class="table table-premium mb-0 align-middle">
-              <thead>
-                <tr>
-                  <th>Call ID</th>
-                  <th>Date</th>
-                  <th>Time</th>
-                  <th>Duration</th>
-                  <th>Credits Used</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% if (calls.length === 0) { %>
-                  <tr>
-                    <td colspan="6" class="text-center text-muted py-4">No calls logged yet.</td>
-                  </tr>
-                <% } else { %>
-                  <% calls.forEach(call => { %>
-                    <% 
-                      let badgeClass = "bg-success-subtle text-success";
-                      if (call.status === "Cancelled" || call.status === "Missed") badgeClass = "bg-warning-subtle text-warning";
-                      if (call.status === "Failed") badgeClass = "bg-danger-subtle text-danger";
-                      if (call.status.includes("No Credits")) badgeClass = "bg-danger text-white";
-                    %>
-                    <tr>
-                      <td><span class="fw-semibold"><%= call.callId %></span></td>
-                      <td><%= call.date ? call.date.toISOString().split('T')[0] : '' %></td>
-                      <td><%= call.time %></td>
-                      <td><%= call.duration %></td>
-                      <td><span class="fw-bold"><%= call.credits %> Credits</span></td>
-                      <td><span class="badge <%= badgeClass %> rounded-pill px-2.5 py-1.5"><%= call.status %></span></td>
-                    </tr>
-                  <% }) %>
-                <% } %>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </main>
-    </div>
-  <!-- Advisor Offline Modal -->
-  <div class="modal fade" id="advisorOfflineModal" tabindex="-1" aria-labelledby="advisorOfflineModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
-      <div class="modal-content rounded-4 border-0 shadow-lg text-center p-4">
-        <div class="modal-body py-3">
-          <div class="rounded-circle bg-light d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 70px; height: 70px;">
-            <i class="bi bi-person-x-fill text-muted fs-1"></i>
-          </div>
-          <h5 class="fw-bold mb-2">Advisor is Currently Offline</h5>
-          <p class="text-muted small mb-3">
-            Our support advisors are currently away from the console. You will see the live status change to <strong class="text-success">Online Now</strong> automatically as soon as an advisor connects.
-          </p>
-          <div class="p-3 bg-light rounded-3 text-start small mb-3">
-            <div class="d-flex justify-content-between mb-1">
-              <span class="text-muted">Available Talk Time:</span>
-              <strong class="text-dark"><%= user.credits %> Minutes</strong>
-            </div>
-            <div class="d-flex justify-content-between">
-              <span class="text-muted">Live Status:</span>
-              <span class="badge bg-secondary-subtle text-secondary rounded-pill px-2.5 py-1 advisor-status-badge">
-                <span class="status-indicator-dot offline me-1"></span>
-                <span class="advisor-status-text">Currently Offline</span>
+            <div class="d-none d-sm-block">
+              <span class="badge bg-white text-muted border px-3 py-2 rounded-pill small shadow-sm">
+                <i class="bi bi-shield-lock-fill text-success me-1"></i> 100% Confidential • 1-on-1 Audio
               </span>
             </div>
           </div>
+
+          <!-- 2. Classic Life Advisor Hero Card -->
+          <div class="life-advisor-hero-card">
+            <div class="row align-items-center g-4 position-relative z-3">
+              <div class="col-lg-8">
+                <!-- Status Pill -->
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <span class="advisor-status-glow-pill <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'online' : 'offline' %> advisor-status-badge" id="dash-advisor-status-badge">
+                    <span class="status-indicator-dot <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'online' : 'offline' %>"></span>
+                    <span class="advisor-status-text full-text"><%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'Life Advisor Online Now' : 'Life Advisor Offline' %></span>
+                  </span>
+                  <span class="badge rounded-pill px-3 py-1.5 small text-white-50" style="background: rgba(255, 255, 255, 0.08);">
+                    <i class="bi bi-patch-check-fill text-warning me-1"></i> Certified Guidance
+                  </span>
+                </div>
+
+                <h3 class="display-6 fw-extrabold text-white mb-2" style="letter-spacing: -0.5px;">Speak With Your Life Advisor</h3>
+                <p class="text-white-50 small mb-4" style="max-width: 520px; line-height: 1.7; font-size: 0.95rem;">
+                  Navigating relationship crossroads, heavy thoughts, career pressure, or personal dilemmas? Connect 1-on-1 with an experienced Life Advisor for clarity, compassion, and direction.
+                </p>
+
+                <!-- Sound Wave & Available Talk Time Bar -->
+                <div class="d-flex align-items-center gap-3">
+                  <div class="soundwave-visualizer">
+                    <span class="soundwave-bar"></span>
+                    <span class="soundwave-bar"></span>
+                    <span class="soundwave-bar"></span>
+                    <span class="soundwave-bar"></span>
+                    <span class="soundwave-bar"></span>
+                    <span class="soundwave-bar"></span>
+                  </div>
+                  <span class="text-white-50 small">
+                    Available Time: <strong class="text-white"><span class="simulated-balance"><%= user.credits %></span> minutes</strong>
+                  </span>
+                </div>
+              </div>
+
+              <div class="col-lg-4 text-center text-lg-end" id="dash-call-btn-container">
+                <% if (user.credits >= 1) { %>
+                  <a href="/user/call" class="btn btn-brand btn-lg rounded-pill px-4 py-3.5 shadow-lg w-100 app-tap-active btn-start-call <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? '' : 'btn-advisor-offline' %>" id="dash-start-call-btn" style="font-size: 1.1rem;">
+                    <i class="bi bi-telephone-fill me-2"></i> Call Life Advisor
+                  </a>
+                <% } else { %>
+                  <a href="/user/buy-credits?lowCredits=true" class="btn btn-warning btn-lg rounded-pill px-4 py-3.5 shadow-lg w-100 app-tap-active" title="Recharge required to talk" style="font-size: 1.1rem;">
+                    <i class="bi bi-coin me-2"></i> Add Credits to Call
+                  </a>
+                <% } %>
+                <small class="text-white-50 d-block mt-2 text-center text-lg-end" style="font-size: 0.75rem;">
+                  1 Credit = 1 Minute • Pure Audio Privacy
+                </small>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. What's On Your Mind Today? (Curated Life Topics) -->
+          <div class="mb-4">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="text-dark fw-bold small">Choose what you wish to discuss:</span>
+              <small class="text-muted">Tap to focus</small>
+            </div>
+            <div class="topic-scroll-row">
+              <button class="topic-chip app-tap-active active" type="button">
+                <span>🧭 Life Direction & Career</span>
+              </button>
+              <button class="topic-chip app-tap-active" type="button">
+                <span>💔 Relationship Advice</span>
+              </button>
+              <button class="topic-chip app-tap-active" type="button">
+                <span>😰 Stress & Overthinking</span>
+              </button>
+              <button class="topic-chip app-tap-active" type="button">
+                <span>💭 Late Night Thoughts</span>
+              </button>
+              <button class="topic-chip app-tap-active" type="button">
+                <span>☕ Just Need Someone to Listen</span>
+              </button>
+              <button class="topic-chip app-tap-active" type="button">
+                <span>🌱 Emotional Healing</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 4. Wallet & Usage Quick Stats Cards -->
+          <div class="row g-3 g-md-4 mb-4">
+            <div class="col-sm-6">
+              <div class="app-card mb-0 h-100 d-flex flex-column justify-content-between">
+                <div>
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-semibold text-uppercase">Talk Time Balance</span>
+                    <span class="badge bg-primary-subtle text-primary rounded-pill px-2.5 py-1 small">Instant Call</span>
+                  </div>
+                  <div class="d-flex align-items-baseline gap-2">
+                    <h2 class="display-6 fw-extrabold text-primary mb-0"><span class="simulated-balance"><%= user.credits %></span></h2>
+                    <span class="text-muted fw-semibold">Credits</span>
+                  </div>
+                  <p class="text-muted small mt-2 mb-0">
+                    Allows approximately <strong><span class="simulated-balance"><%= user.credits %></span> minutes</strong> of live voice conversation with your Life Advisor.
+                  </p>
+                </div>
+                <div class="mt-3 pt-3 border-top">
+                  <a href="/user/buy-credits" class="btn btn-outline-brand btn-sm rounded-pill w-100 py-2.5 fw-semibold app-tap-active">
+                    <i class="bi bi-plus-circle-fill me-1"></i> Quick Recharge Balance
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-sm-6">
+              <div class="app-card mb-0 h-100 d-flex flex-column justify-content-between">
+                <div>
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-semibold text-uppercase">Your Consultation History</span>
+                    <i class="bi bi-clock-history text-purple fs-5"></i>
+                  </div>
+                  <div class="d-flex align-items-baseline gap-2">
+                    <h2 class="display-6 fw-extrabold text-purple mb-0"><%= totalMins %></h2>
+                    <span class="text-muted fw-semibold">Minutes Talked</span>
+                  </div>
+                  <div class="d-flex align-items-center gap-3 mt-2 text-muted small">
+                    <span><i class="bi bi-telephone-outbound me-1 text-primary"></i> <%= totalCalls %> Consultations</span>
+                    <span><i class="bi bi-shield-check me-1 text-success"></i> Private</span>
+                  </div>
+                </div>
+                <div class="mt-3 pt-3 border-top">
+                  <a href="/user/call-history" class="btn btn-light btn-sm rounded-pill w-100 py-2.5 text-dark fw-semibold app-tap-active border">
+                    View Call History Log
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. Recent Consultations Log Feed -->
+          <div class="app-card p-0 overflow-hidden mb-4">
+            <div class="p-3.5 px-4 d-flex align-items-center justify-content-between border-bottom bg-white">
+              <div>
+                <h5 class="fw-bold mb-0 text-dark">Recent Consultations</h5>
+                <small class="text-muted">Previous talks with your Life Advisor</small>
+              </div>
+              <a href="/user/call-history" class="small fw-semibold text-primary text-decoration-none">View All</a>
+            </div>
+
+            <% if (calls.length === 0) { %>
+              <div class="text-center py-5 px-3">
+                <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mb-3" style="width: 56px; height: 56px;">
+                  <i class="bi bi-telephone-heart text-muted fs-4"></i>
+                </div>
+                <h6 class="fw-bold text-dark mb-1">No Consultations Yet</h6>
+                <p class="text-muted small mb-0">Whenever you're ready, tap "Call Life Advisor" to begin.</p>
+              </div>
+            <% } else { %>
+              <div class="app-list-group border-0 rounded-0">
+                <% calls.slice(0, 5).forEach(call => { %>
+                  <% 
+                    let badgeClass = "bg-success-subtle text-success";
+                    let iconClass = "bi-telephone-inbound-fill text-success";
+                    if (call.status === "Cancelled" || call.status === "Missed" || call.status === "Rejected") {
+                      badgeClass = "bg-warning-subtle text-warning";
+                      iconClass = "bi-telephone-x-fill text-warning";
+                    }
+                    if (call.status === "Failed" || (call.status && call.status.includes("No Credits"))) {
+                      badgeClass = "bg-danger-subtle text-danger";
+                      iconClass = "bi-exclamation-circle-fill text-danger";
+                    }
+                  %>
+                  <div class="app-list-item">
+                    <div class="d-flex align-items-center">
+                      <div class="app-list-icon <%= badgeClass %>">
+                        <i class="bi <%= iconClass %>"></i>
+                      </div>
+                      <div>
+                        <strong class="d-block text-dark small"><%= call.receiverName || 'Life Advisor' %></strong>
+                        <small class="text-muted">
+                          <%= call.date ? call.date.toISOString().split('T')[0] : '' %> • <%= call.time %>
+                        </small>
+                      </div>
+                    </div>
+                    <div class="text-end">
+                      <span class="badge <%= badgeClass %> rounded-pill px-2.5 py-1 small mb-1 d-inline-block"><%= call.status %></span>
+                      <small class="d-block text-muted font-monospace"><%= call.duration %> (<%= call.credits %> cr)</small>
+                    </div>
+                  </div>
+                <% }) %>
+              </div>
+            <% } %>
+          </div>
+
         </div>
-        <div class="d-flex gap-2 justify-content-center">
-          <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Wait Here</button>
-          <a href="/user/call" class="btn btn-outline-brand rounded-pill px-4">Call Anyway</a>
-        </div>
-      </div>
+      </main>
     </div>
   </div>
 
+  <!-- Mobile Bottom Navigation Bar -->
+  <%- include('../partials/app-bottom-nav') %>
+
+  <!-- Shared JavaScript Scripts -->
   <%- include('../partials/scripts') %>
 </body>
 </html>

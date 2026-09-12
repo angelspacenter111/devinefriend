@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Call = require('../models/Call');
 const Transaction = require('../models/Transaction');
+const PricingPlan = require('../models/PricingPlan');
 const bcrypt = require('bcryptjs');
 
 // Helper to convert mm:ss to numerical minutes
@@ -79,18 +80,41 @@ exports.getWallet = async (req, res) => {
   }
 };
 
-exports.getBuyCredits = (req, res) => {
-  res.render('user/buy-credits', {
-    title: 'Buy Credits - Friend',
-    activeTab: 'buy-credits',
-    user: req.user
-  });
+exports.getBuyCredits = async (req, res) => {
+  try {
+    let plans = await PricingPlan.find({ isActive: true }).sort({ order: 1, credits: 1 });
+    if (!plans || plans.length === 0) {
+      const defaultPlans = [
+        { planId: 'PLAN-5501', name: 'Starter Pack', badge: 'Starter', credits: 5, price: 149, description: 'Quick initial check-in or brief conversation.', isPopular: false, isActive: true, order: 1 },
+        { planId: 'PLAN-5502', name: 'Bridge Pack', badge: 'Bridge', credits: 10, price: 299, description: 'Talk through an immediate worry or stressor.', isPopular: false, isActive: true, order: 2 },
+        { planId: 'PLAN-5503', name: 'Comfort Pack', badge: 'Comfort', credits: 25, price: 599, description: 'Ample time to speak calmly, reflect and breathe.', isPopular: true, isActive: true, order: 3 },
+        { planId: 'PLAN-5504', name: 'Deep Listen Pack', badge: 'Deep Listen', credits: 50, price: 1199, description: 'Ideal for multiple in-depth conversation sessions.', isPopular: false, isActive: true, order: 4 },
+        { planId: 'PLAN-5505', name: 'Best Value Pack', badge: 'Best Value', credits: 100, price: 2199, description: 'Maximum savings for regular check-in support.', isPopular: false, isActive: true, order: 5 }
+      ];
+      try {
+        await PricingPlan.insertMany(defaultPlans);
+        plans = await PricingPlan.find({ isActive: true }).sort({ order: 1, credits: 1 });
+      } catch (err) {
+        plans = defaultPlans;
+      }
+    }
+
+    res.render('user/buy-credits', {
+      title: 'Buy Credits - Friend',
+      activeTab: 'buy-credits',
+      user: req.user,
+      plans
+    });
+  } catch (error) {
+    console.error('[User Buy Credits Error]', error);
+    res.status(500).send('Server Error');
+  }
 };
 
 // AJAX endpoint to purchase credits
 exports.postBuyCredits = async (req, res) => {
   try {
-    const { credits, price } = req.body;
+    const { credits, price, planId } = req.body;
     const user = req.user;
 
     if (!credits || isNaN(credits)) {
@@ -98,6 +122,20 @@ exports.postBuyCredits = async (req, res) => {
     }
 
     const creditVal = parseInt(credits, 10);
+    let chargedPrice = price || "₹0";
+
+    // Validate price with configured active pricing plan
+    if (planId) {
+      const plan = await PricingPlan.findById(planId);
+      if (plan) {
+        chargedPrice = `₹${plan.price.toLocaleString('en-IN')}`;
+      }
+    } else {
+      const plan = await PricingPlan.findOne({ credits: creditVal, isActive: true });
+      if (plan) {
+        chargedPrice = `₹${plan.price.toLocaleString('en-IN')}`;
+      }
+    }
 
     // Increment user credits in DB
     user.credits += creditVal;
@@ -110,7 +148,7 @@ exports.postBuyCredits = async (req, res) => {
       desc: `Credit Purchase (${creditVal} Credits)`,
       type: 'credit',
       credits: creditVal,
-      amount: price || "₹0",
+      amount: chargedPrice,
       status: 'Successful'
     });
     await newTxn.save();
@@ -233,20 +271,8 @@ exports.getCallHistory = async (req, res) => {
 };
 
 exports.getTransactions = async (req, res) => {
-  try {
-    const user = req.user;
-    const transactions = await Transaction.find({ user: user._id }).sort({ date: -1 });
-
-    res.render('user/transactions', {
-      title: 'Transaction History - Friend',
-      activeTab: 'transactions',
-      user,
-      transactions
-    });
-  } catch (error) {
-    console.error('[Transactions Error]', error);
-    res.status(500).send('Server Error');
-  }
+  // Transactions are hidden from user as per design specifications
+  res.redirect('/user/wallet');
 };
 
 exports.getProfile = (req, res) => {

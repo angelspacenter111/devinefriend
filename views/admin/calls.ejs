@@ -1,7 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <%- include('../partials/head') %>
-<body>
+<body class="app-mode">
+
+  <!-- Admin Mobile Top App Bar -->
+  <%- include('../partials/admin-header') %>
 
   <div class="panel-wrapper">
     <!-- Admin Sidebar Partial -->
@@ -9,42 +12,27 @@
 
     <!-- Main Content Panel -->
     <div class="content-panel">
-      <!-- Top Header -->
-      <header class="header-panel shadow-sm">
+      <!-- Top Header (Desktop) -->
+      <header class="header-panel shadow-sm d-none d-lg-flex">
         <div class="d-flex align-items-center gap-3">
-          <button class="btn btn-light d-lg-none sidebar-toggle-btn" type="button">
-            <i class="bi bi-list fs-4"></i>
-          </button>
           <h4 class="mb-0 fw-bold">Call History Database</h4>
         </div>
         
         <div class="d-flex align-items-center gap-3">
-          <div class="dropdown">
-            <button class="btn btn-light d-flex align-items-center gap-2 border rounded-pill py-1 px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <div class="rounded-circle bg-light-lavender d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
-                <i class="bi bi-shield-lock text-purple"></i>
-              </div>
-              <span class="fw-semibold text-dark d-none d-md-block small">System Admin</span>
-              <i class="bi bi-chevron-down text-muted small ms-1"></i>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 rounded-3">
-              <li><h6 class="dropdown-header">Admin Control</h6></li>
-              <li><a class="dropdown-item" href="/admin/settings"><i class="bi bi-gear me-2 text-muted"></i>Settings</a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item text-danger fw-semibold" href="/admin/logout"><i class="bi bi-box-arrow-right me-2 text-danger"></i>Logout</a></li>
-            </ul>
-          </div>
-
+          <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill fw-semibold">
+            <span class="status-indicator-dot online me-1"></span> Live Console Active
+          </span>
           <a href="/admin/logout" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 d-flex align-items-center gap-1.5 fw-semibold" title="Logout from Admin Panel">
             <i class="bi bi-box-arrow-right"></i>
-            <span class="d-none d-sm-inline">Logout</span>
+            <span>Logout</span>
           </a>
         </div>
       </header>
 
       <!-- Main Contents Canvas -->
       <main class="main-content-inner">
-        <!-- Calls Directory Card -->
+        <div class="app-container">
+          <!-- Calls Directory Card -->
         <div class="card-premium border-0 bg-white shadow-sm p-4">
           <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
             <div>
@@ -52,30 +40,100 @@
               <small class="text-muted">Total records: <span class="fw-semibold"><%= typeof totalCalls !== 'undefined' ? totalCalls : calls.length %></span></small>
             </div>
             
-            <!-- Filters Form -->
-            <form method="GET" action="/admin/calls" class="d-flex flex-wrap gap-2 align-items-center">
-              <div class="input-group input-group-sm" style="width: 220px;">
-                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
-                <input type="text" name="q" class="form-control form-control-custom border-start-0" placeholder="Search user, mobile, ID..." value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>">
+            <!-- Filters Form: Date, User Name, Status -->
+            <form method="GET" action="/admin/calls" class="row g-2 align-items-center w-100 mt-2 mt-md-0" style="max-width: 680px;">
+              <div class="col-12 col-md-4">
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text bg-light border-end-0"><i class="bi bi-person text-muted"></i></span>
+                  <input type="text" name="userName" class="form-control form-control-custom border-start-0" placeholder="User name or phone..." value="<%= typeof userNameQuery !== 'undefined' ? userNameQuery : (typeof searchQuery !== 'undefined' ? searchQuery : '') %>">
+                </div>
               </div>
 
-              <select name="status" class="form-select form-control-custom form-select-sm" style="width: 160px;" onchange="this.form.submit()">
-                <% const statuses = ['All', 'Completed', 'Cancelled', 'Missed', 'Rejected', 'Failed', 'Auto-Disconnected (No Credits)']; %>
-                <% statuses.forEach(st => { %>
-                  <option value="<%= st %>" <%= (typeof selectedStatus !== 'undefined' && selectedStatus === st) ? 'selected' : '' %>>
-                    <%= st === 'All' ? 'All Statuses' : st %>
-                  </option>
-                <% }) %>
-              </select>
+              <div class="col-6 col-md-3">
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text bg-light border-end-0"><i class="bi bi-calendar3 text-muted"></i></span>
+                  <input type="date" name="date" class="form-control form-control-custom border-start-0" title="Filter by date" value="<%= typeof selectedDate !== 'undefined' ? selectedDate : '' %>">
+                </div>
+              </div>
 
-              <button type="submit" class="btn btn-sm btn-brand px-3">Filter</button>
-              <% if ((typeof searchQuery !== 'undefined' && searchQuery) || (typeof selectedStatus !== 'undefined' && selectedStatus !== 'All')) { %>
-                <a href="/admin/calls" class="btn btn-sm btn-outline-secondary">Reset</a>
-              <% } %>
+              <div class="col-6 col-md-3">
+                <select name="status" class="form-select form-control-custom form-select-sm" onchange="this.form.submit()">
+                  <% const statuses = ['All', 'Completed', 'Cancelled', 'Missed', 'Rejected', 'Failed', 'Auto-Disconnected (No Credits)']; %>
+                  <% statuses.forEach(st => { %>
+                    <option value="<%= st %>" <%= (typeof selectedStatus !== 'undefined' && selectedStatus === st) ? 'selected' : '' %>>
+                      <%= st === 'All' ? 'All Statuses' : st %>
+                    </option>
+                  <% }) %>
+                </select>
+              </div>
+
+              <div class="col-12 col-md-2 d-flex gap-1.5">
+                <button type="submit" class="btn btn-sm btn-brand px-3 flex-grow-1"><i class="bi bi-funnel-fill me-1"></i> Filter</button>
+                <% if ((typeof userNameQuery !== 'undefined' && userNameQuery) || (typeof selectedDate !== 'undefined' && selectedDate) || (typeof selectedStatus !== 'undefined' && selectedStatus !== 'All')) { %>
+                  <a href="/admin/calls" class="btn btn-sm btn-outline-secondary px-2" title="Reset Filters"><i class="bi bi-arrow-clockwise"></i></a>
+                <% } %>
+              </div>
             </form>
           </div>
 
-          <div class="table-responsive-custom">
+          <!-- Mobile Feed View (Native App Style for Phones) -->
+          <div class="mobile-card-feed d-md-none mb-3">
+            <% if (calls.length === 0) { %>
+              <div class="text-center py-5 px-3 bg-light rounded-4 border border-dashed my-3">
+                <div class="rounded-circle bg-white shadow-xs d-inline-flex align-items-center justify-content-center p-3 mb-2 text-muted">
+                  <i class="bi bi-telephone-x fs-2 text-muted"></i>
+                </div>
+                <h6 class="fw-bold text-dark mb-1">No Call Records Found</h6>
+                <p class="text-muted small mb-3">No voice connection records match the selected filters.</p>
+                <a href="/admin/calls" class="btn btn-sm btn-outline-brand rounded-pill px-3">
+                  <i class="bi bi-arrow-clockwise me-1"></i> Clear Filters
+                </a>
+              </div>
+            <% } else { %>
+              <% calls.forEach(call => { %>
+                <% 
+                  let badgeClass = "bg-success-subtle text-success";
+                  if (call.status === "Cancelled" || call.status === "Missed" || call.status === "Rejected") badgeClass = "bg-warning-subtle text-warning";
+                  if (call.status === "Failed") badgeClass = "bg-danger-subtle text-danger";
+                  if (call.status && call.status.includes("No Credits")) badgeClass = "bg-danger text-white";
+
+                  let creditBadgeClass = "bg-secondary-subtle text-secondary";
+                  if (call.creditStatus === "deducted") creditBadgeClass = "bg-success-subtle text-success";
+                  if (call.creditStatus === "waived") creditBadgeClass = "bg-info-subtle text-info";
+                  if (call.creditStatus === "failed") creditBadgeClass = "bg-danger-subtle text-danger";
+
+                  const advisorName = (call.admin && call.admin.name) ? call.admin.name : (call.receiverName || 'System Admin');
+                  const userName = call.user ? call.user.name : (call.callerName || 'Deleted User');
+                  const userMobile = call.user ? call.user.mobile : '';
+                %>
+                <div class="mobile-data-card">
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="badge <%= badgeClass %> rounded-pill px-2.5 py-1"><%= call.status %></span>
+                    <span class="text-muted small font-monospace"><%= call.callId %></span>
+                  </div>
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div>
+                      <strong class="d-block text-dark small"><%= userName %></strong>
+                      <small class="text-muted"><%= userMobile ? userMobile + ' • ' : '' %><%= call.date ? new Date(call.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '' %> <%= call.time %></small>
+                    </div>
+                    <div class="text-end">
+                      <strong class="text-dark d-block small"><%= call.duration %></strong>
+                      <small class="text-purple fw-bold"><%= call.credits %> cr</small>
+                    </div>
+                  </div>
+                  <div class="d-flex align-items-center justify-content-between pt-2 border-top">
+                    <small class="text-muted"><i class="bi bi-person-check me-1"></i><%= advisorName %></small>
+                    <button type="button" class="btn btn-sm btn-outline-primary py-1 px-3 rounded-pill" onclick="openCallDetailsModal('<%= call.callId %>')">
+                      <i class="bi bi-info-circle me-1"></i> Details
+                    </button>
+                  </div>
+                </div>
+              <% }) %>
+            <% } %>
+          </div>
+
+          <!-- Desktop Table View -->
+          <div class="table-responsive-custom d-none d-md-block">
             <table class="table table-premium mb-0 align-middle">
               <thead>
                 <tr>
@@ -94,7 +152,18 @@
               <tbody>
                 <% if (calls.length === 0) { %>
                   <tr>
-                    <td colspan="10" class="text-center text-muted py-4">No calls match the search criteria.</td>
+                    <td colspan="10" class="text-center py-5">
+                      <div class="py-4">
+                        <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center p-3 mb-2 text-muted">
+                          <i class="bi bi-telephone-x fs-2 text-muted"></i>
+                        </div>
+                        <h6 class="fw-bold text-dark mb-1">No Call Records Found</h6>
+                        <p class="text-muted small mb-3">No voice connection records match the selected filters.</p>
+                        <a href="/admin/calls" class="btn btn-sm btn-outline-brand rounded-pill px-3">
+                          <i class="bi bi-arrow-clockwise me-1"></i> Clear Filters
+                        </a>
+                      </div>
+                    </td>
                   </tr>
                 <% } else { %>
                   <% calls.forEach(call => { %>
@@ -149,7 +218,8 @@
               <span class="text-muted small">Showing page <%= currentPage %> of <%= totalPages %> (<%= totalCalls %> total records)</span>
               <ul class="pagination pagination-sm mb-0">
                 <% 
-                  const queryParams = (typeof searchQuery !== 'undefined' && searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : '') + 
+                  const queryParams = (typeof userNameQuery !== 'undefined' && userNameQuery ? `&userName=${encodeURIComponent(userNameQuery)}` : '') + 
+                                      (typeof selectedDate !== 'undefined' && selectedDate ? `&date=${encodeURIComponent(selectedDate)}` : '') + 
                                       (typeof selectedStatus !== 'undefined' && selectedStatus !== 'All' ? `&status=${encodeURIComponent(selectedStatus)}` : '');
                 %>
                 <li class="page-item <%= currentPage <= 1 ? 'disabled' : '' %>">
@@ -170,10 +240,17 @@
               </ul>
             </nav>
           <% } %>
+          </div>
         </div>
       </main>
     </div>
   </div>
+
+  <!-- Admin Mobile Bottom Navigation -->
+  <%- include('../partials/admin-bottom-nav') %>
+
+  <!-- Admin Incoming Call Notification Modal -->
+  <%- include('../partials/admin-incoming-call') %>
 
   <!-- Interactive Call Details Modal -->
   <div class="modal fade" id="callDetailsModal" tabindex="-1" aria-labelledby="callDetailsModalLabel" aria-hidden="true">

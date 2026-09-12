@@ -1,20 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <%- include('../partials/head') %>
-<body>
+<body class="app-mode">
+
+  <!-- Mobile-First App Top Bar -->
+  <%- include('../partials/app-header', { pageTitle: 'Call History', showBack: true, backUrl: '/user/dashboard' }) %>
 
   <div class="panel-wrapper">
-    <!-- User Sidebar Partial -->
+    <!-- Desktop Left Sidebar -->
     <%- include('../partials/user-sidebar') %>
 
     <!-- Main Content Panel -->
     <div class="content-panel">
-      <!-- Top Header -->
-      <header class="header-panel shadow-sm">
+      <!-- Desktop Header Panel -->
+      <header class="header-panel shadow-sm d-none d-lg-flex">
         <div class="d-flex align-items-center gap-3">
-          <button class="btn btn-light d-lg-none sidebar-toggle-btn" type="button">
-            <i class="bi bi-list fs-4"></i>
-          </button>
           <h4 class="mb-0 fw-bold">Call History</h4>
         </div>
         
@@ -23,187 +23,205 @@
             <i class="bi bi-coin me-1"></i>
             <span class="fw-bold"><span class="simulated-balance"><%= user.credits %></span> Credits</span>
           </div>
-          <div class="dropdown">
-            <button class="btn btn-light d-flex align-items-center gap-2 border rounded-pill py-1 px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <div class="rounded-circle bg-light-lavender d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
-                <i class="bi bi-person text-purple"></i>
-              </div>
-              <span class="simulated-name fw-semibold text-dark d-none d-md-block small"><%= user.name %></span>
-              <i class="bi bi-chevron-down text-muted small ms-1"></i>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 rounded-3">
-              <li><h6 class="dropdown-header">Signed in as <br><strong class="text-dark"><%= user.name %></strong></h6></li>
-              <li><a class="dropdown-item" href="/user/profile"><i class="bi bi-person-gear me-2 text-muted"></i>Profile Settings</a></li>
-              <li><a class="dropdown-item" href="/user/wallet"><i class="bi bi-wallet2 me-2 text-muted"></i>My Wallet</a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item text-danger fw-semibold" href="/logout"><i class="bi bi-box-arrow-right me-2 text-danger"></i>Logout</a></li>
-            </ul>
-          </div>
-
-          <a href="/logout" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 d-flex align-items-center gap-1.5 fw-semibold" title="Logout from account">
+          <a href="/user/profile" class="btn btn-light d-flex align-items-center gap-2 border rounded-pill py-1 px-3">
+            <div class="rounded-circle bg-light-lavender d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+              <i class="bi bi-person text-purple"></i>
+            </div>
+            <span class="simulated-name fw-semibold text-dark small"><%= user.name %></span>
+          </a>
+          <a href="/logout" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 d-flex align-items-center gap-1.5 fw-semibold" title="Logout">
             <i class="bi bi-box-arrow-right"></i>
-            <span class="d-none d-sm-inline">Logout</span>
+            <span>Logout</span>
           </a>
         </div>
       </header>
 
       <!-- Main Contents Canvas -->
       <main class="main-content-inner">
+        <div class="app-container">
 
-        <!-- 1. LAST CALL SUMMARY AT THE TOP -->
-        <% if (typeof latestCall !== 'undefined' && latestCall) { %>
-          <%
-            let lastBadgeClass = "bg-success text-white";
-            let lastStatusIcon = "bi-check-circle-fill";
-            if (latestCall.status === "Cancelled" || latestCall.status === "Missed" || latestCall.status === "Rejected") {
-              lastBadgeClass = "bg-warning text-dark";
-              lastStatusIcon = "bi-exclamation-circle-fill";
-            } else if (latestCall.status === "Failed" || (latestCall.status && latestCall.status.includes("No Credits"))) {
-              lastBadgeClass = "bg-danger text-white";
-              lastStatusIcon = "bi-x-circle-fill";
-            }
-            const advisorName = (latestCall.admin && latestCall.admin.name) ? latestCall.admin.name : (latestCall.receiverName || 'Support Partner');
-            const callDateFormatted = latestCall.date ? new Date(latestCall.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
-          %>
-          <div class="card-premium border-0 bg-white shadow-sm p-4 mb-4 position-relative overflow-hidden" style="border-left: 5px solid #E91E8F !important;">
-            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 pb-3 border-bottom">
-              <div class="d-flex align-items-center gap-2">
-                <span class="badge text-white rounded-pill px-3 py-1.5 fw-bold text-uppercase" style="background: linear-gradient(135deg, #E91E8F 0%, #1769E0 100%); font-size: 0.75rem; letter-spacing: 0.5px;">
-                  <i class="bi bi-star-fill me-1"></i> LAST CALL
+          <!-- 1. LAST CALL SUMMARY CARD -->
+          <% if (typeof latestCall !== 'undefined' && latestCall) { %>
+            <%
+              let lastBadgeClass = "bg-success text-white";
+              let lastStatusIcon = "bi-check-circle-fill";
+              if (latestCall.status === "Cancelled" || latestCall.status === "Missed" || latestCall.status === "Rejected") {
+                lastBadgeClass = "bg-warning text-dark";
+                lastStatusIcon = "bi-exclamation-circle-fill";
+              } else if (latestCall.status === "Failed" || (latestCall.status && latestCall.status.includes("No Credits"))) {
+                lastBadgeClass = "bg-danger text-white";
+                lastStatusIcon = "bi-x-circle-fill";
+              }
+              const advisorName = (latestCall.admin && latestCall.admin.name) ? latestCall.admin.name : (latestCall.receiverName || 'Life Advisor');
+              const callDateFormatted = latestCall.date ? new Date(latestCall.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+            %>
+            <div class="app-card border-0 shadow-sm p-4 mb-4 position-relative overflow-hidden" style="border-left: 5px solid #E91E8F !important;">
+              <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                <span class="badge text-white rounded-pill px-3 py-1 fw-bold text-uppercase" style="background: linear-gradient(135deg, #E91E8F 0%, #1769E0 100%); font-size: 0.72rem;">
+                  <i class="bi bi-star-fill me-1"></i> MOST RECENT CALL
                 </span>
-                <span class="text-muted small">ID: <strong class="text-dark"><%= latestCall.callId %></strong></span>
-              </div>
-              <div>
-                <span class="badge <%= lastBadgeClass %> rounded-pill px-3 py-1.5 fw-semibold">
+                <span class="badge <%= lastBadgeClass %> rounded-pill px-2.5 py-1 small">
                   <i class="bi <%= lastStatusIcon %> me-1"></i> <%= latestCall.status %>
                 </span>
               </div>
-            </div>
 
-            <div class="row g-4 align-items-center">
-              <div class="col-md-4">
+              <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
                 <div class="d-flex align-items-center gap-3">
-                  <div class="rounded-circle d-flex align-items-center justify-content-center text-white flex-shrink-0 shadow-sm" style="width: 56px; height: 56px; font-size: 1.6rem; background: linear-gradient(135deg, #1769E0 0%, #E91E8F 100%);">
+                  <div class="rounded-circle d-flex align-items-center justify-content-center text-white flex-shrink-0" style="width: 50px; height: 50px; font-size: 1.4rem; background: linear-gradient(135deg, #1769E0 0%, #E91E8F 100%);">
                     <i class="bi bi-person-fill"></i>
                   </div>
                   <div>
-                    <span class="text-muted small d-block">Call With</span>
                     <h5 class="fw-bold text-dark mb-0"><%= advisorName %></h5>
-                    <span class="badge bg-light text-secondary border rounded-pill px-2 py-0.5 mt-1 small">
-                      <i class="bi bi-telephone-fill text-primary-pink me-1"></i> <%= latestCall.callType || 'Voice Call' %>
-                    </span>
+                    <small class="text-muted"><%= callDateFormatted %> • <%= latestCall.time %></small>
+                  </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-3">
+                  <div class="text-end">
+                    <span class="text-muted small d-block">Duration</span>
+                    <strong class="text-dark fs-5"><%= latestCall.duration %></strong>
+                  </div>
+                  <div class="text-end ps-3 border-start">
+                    <span class="text-muted small d-block">Credits</span>
+                    <strong class="text-purple fs-5"><%= latestCall.credits %> cr</strong>
                   </div>
                 </div>
               </div>
-
-              <div class="col-6 col-md-3 text-start text-md-center">
-                <span class="text-muted small d-block mb-1"><i class="bi bi-clock-history me-1 text-primary-blue"></i> Duration</span>
-                <h4 class="fw-extrabold text-dark mb-0"><%= latestCall.duration %></h4>
-                <small class="text-muted"><%= latestCall.durationSeconds ? latestCall.durationSeconds + ' sec' : (latestCall.duration || '00:00') %></small>
-              </div>
-
-              <div class="col-6 col-md-2 text-start text-md-center">
-                <span class="text-muted small d-block mb-1"><i class="bi bi-coin me-1 text-warning"></i> Credits Used</span>
-                <h4 class="fw-extrabold text-purple mb-0"><%= latestCall.credits %></h4>
-                <small class="text-muted"><%= latestCall.creditStatus === 'deducted' ? 'Deducted' : (latestCall.creditStatus || '0 credits') %></small>
-              </div>
-
-              <div class="col-md-3 text-start text-md-end">
-                <span class="text-muted small d-block mb-1"><i class="bi bi-calendar3 me-1 text-primary-pink"></i> Date & Time</span>
-                <div class="fw-semibold text-dark"><%= callDateFormatted %></div>
-                <div class="text-muted small"><%= latestCall.time %></div>
-              </div>
             </div>
-          </div>
-        <% } %>
-
-        <!-- 2. COMPLETE CALL HISTORY -->
-        <div class="card-premium border-0 bg-white shadow-sm p-4">
-          <div class="d-flex align-items-center justify-content-between mb-4">
-            <div>
-              <h5 class="fw-bold mb-0">Call History</h5>
-              <small class="text-muted">Complete log of all previous conversations</small>
-            </div>
-            <span class="text-muted small">Total calls: <span class="fw-semibold"><%= typeof totalCalls !== 'undefined' ? totalCalls : calls.length %></span></span>
-          </div>
-
-          <div class="table-responsive-custom">
-            <table class="table table-premium mb-0 align-middle">
-              <thead>
-                <tr>
-                  <th>Call ID</th>
-                  <th>Companion</th>
-                  <th>Type</th>
-                  <th>Date</th>
-                  <th>Time</th>
-                  <th>Duration</th>
-                  <th>Credits</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% if (calls.length === 0) { %>
-                  <tr>
-                    <td colspan="8" class="text-center text-muted py-4">No calls logged yet.</td>
-                  </tr>
-                <% } else { %>
-                  <% calls.forEach(call => { %>
-                    <% 
-                      let badgeClass = "bg-success-subtle text-success";
-                      if (call.status === "Cancelled" || call.status === "Missed" || call.status === "Rejected") badgeClass = "bg-warning-subtle text-warning";
-                      if (call.status === "Failed") badgeClass = "bg-danger-subtle text-danger";
-                      if (call.status && call.status.includes("No Credits")) badgeClass = "bg-danger text-white";
-                      const companion = (call.admin && call.admin.name) ? call.admin.name : (call.receiverName || 'Support Partner');
-                    %>
-                    <tr>
-                      <td><span class="fw-semibold text-dark"><%= call.callId %></span></td>
-                      <td>
-                        <span class="d-inline-flex align-items-center gap-1.5">
-                          <i class="bi bi-person-circle text-muted"></i>
-                          <span><%= companion %></span>
-                        </span>
-                      </td>
-                      <td><span class="badge bg-light text-secondary border rounded-pill px-2 py-0.5 small"><%= call.callType || 'Voice' %></span></td>
-                      <td><%= call.date ? new Date(call.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '' %></td>
-                      <td><%= call.time %></td>
-                      <td><span class="fw-semibold"><%= call.duration %></span></td>
-                      <td><span class="fw-bold text-purple"><%= call.credits %> Credits</span></td>
-                      <td><span class="badge <%= badgeClass %> rounded-pill px-2.5 py-1.5"><%= call.status %></span></td>
-                    </tr>
-                  <% }) %>
-                <% } %>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Pagination Controls -->
-          <% if (typeof totalPages !== 'undefined' && totalPages > 1) { %>
-            <nav class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 mt-4 pt-3 border-top">
-              <span class="text-muted small">Showing page <%= currentPage %> of <%= totalPages %> (<%= totalCalls %> records)</span>
-              <ul class="pagination pagination-sm mb-0">
-                <li class="page-item <%= currentPage <= 1 ? 'disabled' : '' %>">
-                  <a class="page-link" href="/user/call-history?page=<%= currentPage - 1 %>">Previous</a>
-                </li>
-                <% for (let p = 1; p <= totalPages; p++) { %>
-                  <% if (p === 1 || p === totalPages || (p >= currentPage - 2 && p <= currentPage + 2)) { %>
-                    <li class="page-item <%= p === currentPage ? 'active' : '' %>">
-                      <a class="page-link" href="/user/call-history?page=<%= p %>"><%= p %></a>
-                    </li>
-                  <% } else if (p === currentPage - 3 || p === currentPage + 3) { %>
-                    <li class="page-item disabled"><span class="page-link">...</span></li>
-                  <% } %>
-                <% } %>
-                <li class="page-item <%= currentPage >= totalPages ? 'disabled' : '' %>">
-                  <a class="page-link" href="/user/call-history?page=<%= currentPage + 1 %>">Next</a>
-                </li>
-              </ul>
-            </nav>
           <% } %>
+
+          <!-- 2. CALL HISTORY FEED -->
+          <div class="app-card p-0 overflow-hidden mb-4">
+            <div class="p-3.5 px-4 d-flex align-items-center justify-content-between border-bottom bg-white">
+              <div>
+                <h5 class="fw-bold mb-0 text-dark">Call History Log</h5>
+                <small class="text-muted">Total <%= typeof totalCalls !== 'undefined' ? totalCalls : calls.length %> conversations</small>
+              </div>
+            </div>
+
+            <% if (calls.length === 0) { %>
+              <div class="text-center py-5 px-3">
+                <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mb-3" style="width: 56px; height: 56px;">
+                  <i class="bi bi-telephone-x text-muted fs-4"></i>
+                </div>
+                <h6 class="fw-bold text-dark mb-1">No Call Records Found</h6>
+                <p class="text-muted small mb-0">Previous conversations will show up here once logged.</p>
+              </div>
+            <% } else { %>
+              
+              <!-- Mobile Feed List View -->
+              <div class="app-list-group border-0 rounded-0 d-md-none">
+                <% calls.forEach(call => { %>
+                  <% 
+                    let badgeClass = "bg-success-subtle text-success";
+                    let iconClass = "bi-telephone-inbound-fill text-success";
+                    if (call.status === "Cancelled" || call.status === "Missed" || call.status === "Rejected") {
+                      badgeClass = "bg-warning-subtle text-warning";
+                      iconClass = "bi-telephone-x-fill text-warning";
+                    }
+                    if (call.status === "Failed" || (call.status && call.status.includes("No Credits"))) {
+                      badgeClass = "bg-danger-subtle text-danger";
+                      iconClass = "bi-exclamation-circle-fill text-danger";
+                    }
+                    const companion = (call.admin && call.admin.name) ? call.admin.name : (call.receiverName || 'Life Advisor');
+                  %>
+                  <div class="app-list-item">
+                    <div class="d-flex align-items-center">
+                      <div class="app-list-icon <%= badgeClass %>">
+                        <i class="bi <%= iconClass %>"></i>
+                      </div>
+                      <div>
+                        <strong class="d-block text-dark small"><%= companion %></strong>
+                        <small class="text-muted">
+                          <%= call.date ? new Date(call.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '' %> • <%= call.time %>
+                        </small>
+                      </div>
+                    </div>
+                    <div class="text-end">
+                      <span class="badge <%= badgeClass %> rounded-pill px-2.5 py-1 small mb-1 d-inline-block"><%= call.status %></span>
+                      <small class="d-block text-muted font-monospace"><%= call.duration %> (<%= call.credits %> cr)</small>
+                    </div>
+                  </div>
+                <% }) %>
+              </div>
+
+              <!-- Desktop Table View -->
+              <div class="table-responsive-custom d-none d-md-block">
+                <table class="table table-premium mb-0 align-middle">
+                  <thead>
+                    <tr>
+                      <th>Call ID</th>
+                      <th>Life Advisor</th>
+                      <th>Type</th>
+                      <th>Date</th>
+                      <th>Time</th>
+                      <th>Duration</th>
+                      <th>Credits</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% calls.forEach(call => { %>
+                      <% 
+                        let badgeClass = "bg-success-subtle text-success";
+                        if (call.status === "Cancelled" || call.status === "Missed" || call.status === "Rejected") badgeClass = "bg-warning-subtle text-warning";
+                        if (call.status === "Failed") badgeClass = "bg-danger-subtle text-danger";
+                        if (call.status && call.status.includes("No Credits")) badgeClass = "bg-danger text-white";
+                        const companion = (call.admin && call.admin.name) ? call.admin.name : (call.receiverName || 'Life Advisor');
+                      %>
+                      <tr>
+                        <td><span class="fw-semibold text-dark"><%= call.callId %></span></td>
+                        <td>
+                          <span class="d-inline-flex align-items-center gap-1.5">
+                            <i class="bi bi-person-circle text-muted"></i>
+                            <span><%= companion %></span>
+                          </span>
+                        </td>
+                        <td><span class="badge bg-light text-secondary border rounded-pill px-2 py-0.5 small"><%= call.callType || 'Voice' %></span></td>
+                        <td><%= call.date ? new Date(call.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '' %></td>
+                        <td><%= call.time %></td>
+                        <td><span class="fw-semibold"><%= call.duration %></span></td>
+                        <td><span class="fw-bold text-purple"><%= call.credits %> Credits</span></td>
+                        <td><span class="badge <%= badgeClass %> rounded-pill px-2.5 py-1.5"><%= call.status %></span></td>
+                      </tr>
+                    <% }) %>
+                  </tbody>
+                </table>
+              </div>
+            <% } %>
+
+            <!-- Pagination Controls -->
+            <% if (typeof totalPages !== 'undefined' && totalPages > 1) { %>
+              <nav class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 p-3 border-top bg-white">
+                <span class="text-muted small">Page <%= currentPage %> of <%= totalPages %></span>
+                <ul class="pagination pagination-sm mb-0">
+                  <li class="page-item <%= currentPage <= 1 ? 'disabled' : '' %>">
+                    <a class="page-link" href="/user/call-history?page=<%= currentPage - 1 %>">Prev</a>
+                  </li>
+                  <% for (let p = 1; p <= totalPages; p++) { %>
+                    <% if (p === 1 || p === totalPages || (p >= currentPage - 2 && p <= currentPage + 2)) { %>
+                      <li class="page-item <%= p === currentPage ? 'active' : '' %>">
+                        <a class="page-link" href="/user/call-history?page=<%= p %>"><%= p %></a>
+                      </li>
+                    <% } %>
+                  <% } %>
+                  <li class="page-item <%= currentPage >= totalPages ? 'disabled' : '' %>">
+                    <a class="page-link" href="/user/call-history?page=<%= currentPage + 1 %>">Next</a>
+                  </li>
+                </ul>
+              </nav>
+            <% } %>
+          </div>
+
         </div>
       </main>
     </div>
   </div>
 
+  <!-- Mobile Bottom Navigation Bar -->
+  <%- include('../partials/app-bottom-nav') %>
+
+  <!-- Shared JavaScript Scripts -->
   <%- include('../partials/scripts') %>
 </body>
 </html>

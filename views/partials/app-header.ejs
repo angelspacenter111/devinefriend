@@ -1,0 +1,70 @@
+<!-- Mobile-First App Top Bar -->
+<header class="app-top-bar shadow-sm">
+  <div class="container-fluid px-3">
+    <!-- Left: Brand / Avatar / Back Button -->
+    <div class="app-title-group">
+      <% if (typeof showBack !== 'undefined' && showBack) { %>
+        <a href="<%= typeof backUrl !== 'undefined' ? backUrl : '/user/dashboard' %>" class="app-back-btn app-tap-active" title="Go Back">
+          <i class="bi bi-chevron-left"></i>
+        </a>
+      <% } else { %>
+        <a href="/user/profile" class="app-avatar-pill app-tap-active" title="View Profile">
+          <span><%= (typeof user !== 'undefined' && user && user.name) ? user.name.charAt(0).toUpperCase() : 'U' %></span>
+        </a>
+      <% } %>
+      
+      <div>
+        <h1 class="app-brand-name"><%= typeof pageTitle !== 'undefined' ? pageTitle : 'Friend' %></h1>
+        <div class="d-flex align-items-center gap-1">
+          <span class="app-status-chip <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'online' : 'offline' %> advisor-status-badge">
+            <span class="status-indicator-dot <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'online' : 'offline' %>"></span>
+            <span class="advisor-status-text"><%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'Life Advisor Online' : 'Life Advisor Offline' %></span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Wallet Credit Pill & Profile Dropdown -->
+    <div class="d-flex align-items-center gap-2">
+      <a href="/user/buy-credits" class="app-credits-pill app-tap-active" title="Recharge Credits">
+        <i class="bi bi-coin text-warning"></i>
+        <span><strong class="simulated-balance"><%= (typeof user !== 'undefined' && user) ? user.credits : 0 %></strong></span>
+        <span class="credit-add-icon"><i class="bi bi-plus"></i></span>
+      </a>
+
+      <!-- Quick Menu Dropdown -->
+      <div class="dropdown">
+        <button class="btn btn-light rounded-circle p-2 app-tap-active position-relative" style="width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.04); border: none;" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-three-dots-vertical text-dark"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2 rounded-4 p-2" style="min-width: 220px;">
+          <li class="px-3 py-2 border-bottom mb-1">
+            <small class="text-muted d-block">Signed in as</small>
+            <strong class="text-dark d-block text-truncate"><%= (typeof user !== 'undefined' && user) ? user.name : 'User' %></strong>
+          </li>
+          <li>
+            <a class="dropdown-item rounded-3 py-2 d-flex align-items-center gap-2" href="/user/profile">
+              <i class="bi bi-person-gear text-primary"></i> Profile Settings
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item rounded-3 py-2 d-flex align-items-center gap-2" href="/user/wallet">
+              <i class="bi bi-wallet2 text-success"></i> My Wallet
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item rounded-3 py-2 d-flex align-items-center gap-2" href="/faq">
+              <i class="bi bi-question-circle text-info"></i> Help & FAQs
+            </a>
+          </li>
+          <li><hr class="dropdown-divider my-1"></li>
+          <li>
+            <a class="dropdown-item rounded-3 py-2 text-danger fw-semibold d-flex align-items-center gap-2" href="/logout">
+              <i class="bi bi-box-arrow-right text-danger"></i> Logout
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</header>

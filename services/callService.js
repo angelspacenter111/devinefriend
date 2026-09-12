@@ -78,7 +78,7 @@ async function initiateCall({ user, callType = 'Voice' }) {
     callId,
     user: freshUser._id,
     callerName: freshUser.name || 'Caller',
-    receiverName: 'Support Partner',
+    receiverName: 'Life Advisor',
     callType: callType || 'Voice',
     date: now,
     time: timeStr,

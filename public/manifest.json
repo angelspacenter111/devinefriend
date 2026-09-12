@@ -1,0 +1,17 @@
+{
+  "name": "Friend - Emotional Support & Companion",
+  "short_name": "Friend",
+  "description": "Private, warm, and supportive emotional conversations and voice companion platform.",
+  "start_url": "/user/dashboard",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#1769E0",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}

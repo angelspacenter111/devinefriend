@@ -10,8 +10,8 @@
             <i class="bi bi-telephone-inbound-fill"></i>
           </div>
         </div>
-        <h4 class="fw-bold mb-2">Incoming Voice Call</h4>
-        <p class="text-muted small">User <strong id="modal-caller-name">Companion User</strong> is requesting a supportive conversation.</p>
+        <h4 class="fw-bold mb-2">Incoming Consultation Call</h4>
+        <p class="text-muted small">Client <strong id="modal-caller-name">User</strong> is requesting a 1-on-1 Life Guidance consultation.</p>
       </div>
       <div class="d-flex gap-2 justify-content-center mt-3">
         <button type="button" class="btn btn-outline-danger px-4 py-2.5 rounded-pill" id="btn-incoming-decline">Decline</button>
@@ -37,10 +37,16 @@
       activeCallId = null;
       activeCallerId = null;
       isProcessingAction = false;
-      const $declineBtn = $("#btn-incoming-decline");
-      const $acceptBtn = $("#btn-incoming-accept");
-      if ($declineBtn.length) $declineBtn.prop('disabled', false).text('Decline');
-      if ($acceptBtn.length) $acceptBtn.prop('disabled', false).text('Accept Call');
+      const declineBtn = document.getElementById('btn-incoming-decline');
+      const acceptBtn = document.getElementById('btn-incoming-accept');
+      if (declineBtn) {
+        declineBtn.disabled = false;
+        declineBtn.innerText = 'Decline';
+      }
+      if (acceptBtn) {
+        acceptBtn.disabled = false;
+        acceptBtn.innerText = 'Accept Call';
+      }
     }
 
     function sendAdminJoin() {
@@ -48,14 +54,17 @@
         console.log(`[Admin Signaling] Emitting admin-join. Socket ID: ${adminSocket.id}`);
         adminSocket.emit('admin-join', {
           adminId: (window.sessionUser && window.sessionUser.id) || null,
-          name: (window.sessionUser && window.sessionUser.name) || 'Support Advisor'
+          name: (window.sessionUser && window.sessionUser.name) || 'Life Advisor'
         });
       }
     }
 
-    $(document).ready(function() {
-      // Avoid initializing on active call console (/admin/call)
+    function initAdminIncomingCall() {
       if (window.location.pathname.startsWith('/admin/call')) {
+        return;
+      }
+      if (typeof io === 'undefined') {
+        setTimeout(initAdminIncomingCall, 150);
         return;
       }
 
@@ -84,7 +93,10 @@
         activeCallerId = data.callerId || '';
         isProcessingAction = false;
 
-        $("#modal-caller-name").text(data.callerName || 'Companion User');
+        const callerNameEl = document.getElementById('modal-caller-name');
+        if (callerNameEl) {
+          callerNameEl.innerText = data.callerName || 'Companion User';
+        }
 
         // Persist in localStorage for /admin/call
         localStorage.setItem("active_call_id", data.callId);
@@ -117,7 +129,6 @@
         }
       });
 
-      // Modal close listener
       const modalEl = document.getElementById('incomingCallModal');
       if (modalEl) {
         modalEl.addEventListener('hidden.bs.modal', function() {
@@ -126,39 +137,55 @@
       }
 
       // Accept Call Action
-      $(document).off('click', '#btn-incoming-accept').on('click', '#btn-incoming-accept', function() {
-        if (isProcessingAction) return;
-        if (!activeCallId) {
-          console.warn("[Admin UI] Cannot accept: activeCallId is missing.");
-          return;
-        }
-        isProcessingAction = true;
+      const acceptBtn = document.getElementById('btn-incoming-accept');
+      if (acceptBtn) {
+        acceptBtn.addEventListener('click', function() {
+          if (isProcessingAction) return;
+          if (!activeCallId) {
+            console.warn("[Admin UI] Cannot accept: activeCallId is missing.");
+            return;
+          }
+          isProcessingAction = true;
 
-        console.log(`[Admin UI] Accepting call ID: ${activeCallId}. Redirecting to /admin/call...`);
-        $("#btn-incoming-accept").prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Connecting...');
-        $("#btn-incoming-decline").prop('disabled', true);
+          console.log(`[Admin UI] Accepting call ID: ${activeCallId}. Redirecting to /admin/call...`);
+          acceptBtn.disabled = true;
+          acceptBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Connecting...';
+          const declineBtn = document.getElementById('btn-incoming-decline');
+          if (declineBtn) declineBtn.disabled = true;
 
-        const targetCallId = activeCallId;
-        const targetCallerId = activeCallerId || '';
-        window.location.href = `/admin/call?callId=${encodeURIComponent(targetCallId)}&callerId=${encodeURIComponent(targetCallerId)}`;
-      });
+          const targetCallId = activeCallId;
+          const targetCallerId = activeCallerId || '';
+          window.location.href = `/admin/call?callId=${encodeURIComponent(targetCallId)}&callerId=${encodeURIComponent(targetCallerId)}`;
+        });
+      }
 
       // Decline Call Action
-      $(document).off('click', '#btn-incoming-decline').on('click', '#btn-incoming-decline', function() {
-        if (isProcessingAction) return;
-        isProcessingAction = true;
+      const declineBtn = document.getElementById('btn-incoming-decline');
+      if (declineBtn) {
+        declineBtn.addEventListener('click', function() {
+          if (isProcessingAction) return;
+          isProcessingAction = true;
 
-        console.log(`[Admin UI] Declining call ID: ${activeCallId}...`);
-        $("#btn-incoming-decline").prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Declining...');
-        $("#btn-incoming-accept").prop('disabled', true);
+          console.log(`[Admin UI] Declining call ID: ${activeCallId}...`);
+          declineBtn.disabled = true;
+          declineBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Declining...';
+          const acceptBtn = document.getElementById('btn-incoming-accept');
+          if (acceptBtn) acceptBtn.disabled = true;
 
-        if (adminSocket && activeCallId) {
-          adminSocket.emit('admin-reject-call', { callId: activeCallId, callerId: activeCallerId });
-        }
-        const modal = getIncomingModalInstance();
-        if (modal) modal.hide();
-        resetIncomingCallState();
-      });
-    });
+          if (adminSocket && activeCallId) {
+            adminSocket.emit('admin-reject-call', { callId: activeCallId, callerId: activeCallerId });
+          }
+          const modal = getIncomingModalInstance();
+          if (modal) modal.hide();
+          resetIncomingCallState();
+        });
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initAdminIncomingCall);
+    } else {
+      initAdminIncomingCall();
+    }
   })();
 </script>

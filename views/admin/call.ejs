@@ -1,61 +1,121 @@
 <!DOCTYPE html>
 <html lang="en">
 <%- include('../partials/head') %>
-<body class="call-wrapper">
+<body class="call-wrapper" style="overflow: hidden; background: #0F172A;">
   <!-- WebRTC script mount elements -->
   <div id="webrtc-admin-trigger"></div>
 
-  <!-- Top bar (Connection & Metadata) -->
-  <div class="container text-center pt-2 position-relative z-3">
-    <div class="d-flex align-items-center justify-content-between">
-      <div class="text-start">
-        <span class="text-white-50 d-block small">Calling Client • <strong class="text-white"><%= typeof callId !== 'undefined' && callId ? callId : '' %></strong></span>
-        <h5 class="fw-bold text-white mb-0" id="caller-name-display"><%= typeof callerName !== 'undefined' && callerName ? callerName : 'Calling Client' %></h5>
+  <!-- CALL WAITING FLOATING BANNER (Requirement 7) -->
+  <div id="call-waiting-overlay" class="call-waiting-overlay d-none">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+      <div class="d-flex align-items-center gap-3">
+        <div class="call-waiting-icon-pulse">
+          <i class="bi bi-telephone-inbound-fill"></i>
+        </div>
+        <div>
+          <div class="badge bg-warning text-dark px-2.5 py-0.5 rounded-pill small fw-bold mb-1">
+            <i class="bi bi-bell-fill me-1"></i> CALL WAITING (2nd Caller)
+          </div>
+          <h6 class="text-white fw-bold mb-0" id="waiting-caller-title">Another user is calling...</h6>
+          <small class="text-white-50" id="waiting-call-meta">Call ID: CALL-XXXX</small>
+        </div>
       </div>
-      
-      <div>
-        <span class="call-status-badge connecting">Connecting...</span>
+
+      <div class="d-flex align-items-center gap-2">
+        <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3 app-tap-active" id="btn-waiting-busy">
+          <i class="bi bi-x-circle me-1"></i> Send Busy
+        </button>
+        <button type="button" class="btn btn-sm btn-warning rounded-pill px-3.5 fw-bold app-tap-active" id="btn-waiting-switch">
+          <i class="bi bi-telephone-forward-fill me-1"></i> Switch to Call
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Center (Avatar & Timer) -->
-  <div class="container text-center my-auto position-relative z-3">
-    <div class="call-circle-avatar mb-4">
-      <div class="call-pulse-animation"></div>
-      <div class="call-pulse-animation-2"></div>
-      <div class="rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 100%; height: 100%; font-size: 4rem; background: linear-gradient(135deg, #7B4DCE 0%, #1769E0 100%);">
-        <i class="bi bi-person-fill"></i>
-      </div>
-    </div>
-
-    <div class="call-timer mb-2">00:00</div>
+  <!-- Native Mobile Full-Screen Audio Call Interface (Admin Console) -->
+  <div class="native-call-screen">
     
-    <div class="d-flex align-items-center justify-content-center gap-4 text-white-50 small">
+    <!-- Top Header Bar -->
+    <div class="call-header-bar">
+      <div class="d-flex align-items-center gap-2">
+        <a href="/admin/dashboard" class="btn btn-outline-light btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.15);" title="Dashboard">
+          <i class="bi bi-chevron-down fs-6"></i>
+        </a>
+        <span class="badge rounded-pill px-3 py-1.5 text-white-50 small font-monospace" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.1);">
+          SESSION: <%= typeof callId !== 'undefined' && callId ? callId : '' %>
+        </span>
+      </div>
+
       <div>
-        <i class="bi bi-broadcast me-1 text-success"></i> Stream Quality: <span class="text-white fw-bold">Excellent</span>
+        <span class="call-status-badge connecting call-status-pill connecting">
+          <span class="status-indicator-dot online me-1"></span> Active Session
+        </span>
       </div>
     </div>
-  </div>
 
-  <!-- Bottom Panel (Controls & Privacy Message) -->
-  <div class="container text-center pb-4 position-relative z-3" id="call-screen-footer-container">
-    <div class="d-flex align-items-center justify-content-center gap-3 mb-5" id="call-active-controls">
-      <button class="call-btn-circle" id="mute-toggle-btn" onclick="toggleLocalMute()">
-        <i class="bi bi-mic-fill"></i>
-      </button>
-      <button class="call-btn-circle end-call" id="call-end-btn" title="End Call">
-        <i class="bi bi-telephone-x-fill"></i>
-      </button>
-      <button class="call-btn-circle" id="speaker-toggle-btn" onclick="toggleRemoteSpeaker()">
-        <i class="bi bi-volume-up-fill"></i>
-      </button>
+    <!-- Center Stage: Caller Avatar, Timer & Quality -->
+    <div class="call-center-stage">
+      <div class="call-meta-info mb-4">
+        <div class="badge rounded-pill px-3 py-1 small text-white-50 mb-2" style="background: rgba(255, 255, 255, 0.08);">
+          <i class="bi bi-person-fill text-primary me-1"></i> Client Connected
+        </div>
+        <h2 id="caller-name-display"><%= typeof callerName !== 'undefined' && callerName ? callerName : 'Client' %></h2>
+        <p>Life Advisor Live Consultation Session</p>
+      </div>
+
+      <!-- Pulsing Radial Sound Wave Rings -->
+      <div class="call-avatar-container">
+        <div class="call-avatar-ring-pulse"></div>
+        <div class="call-avatar-ring-pulse"></div>
+        <div class="call-avatar-ring-pulse"></div>
+        <div class="call-avatar-inner" style="background: linear-gradient(135deg, #10B981 0%, #1769E0 100%); box-shadow: 0 0 40px rgba(16, 185, 129, 0.4);">
+          <i class="bi bi-headset"></i>
+        </div>
+      </div>
+
+      <!-- Live Call Duration Timer -->
+      <div class="call-live-timer call-timer mb-2">00:00</div>
+
+      <!-- Soundwave Visualizer Bars -->
+      <div class="soundwave-visualizer mb-3" style="height: 28px; gap: 4px;">
+        <span class="soundwave-bar" style="background: #10B981;"></span>
+        <span class="soundwave-bar" style="background: #1769E0;"></span>
+        <span class="soundwave-bar" style="background: #10B981;"></span>
+        <span class="soundwave-bar" style="background: #7B4DCE;"></span>
+        <span class="soundwave-bar" style="background: #10B981;"></span>
+        <span class="soundwave-bar" style="background: #1769E0;"></span>
+      </div>
+
+      <div class="d-flex align-items-center gap-2 text-white-50 small">
+        <i class="bi bi-broadcast text-success"></i>
+        <span>Audio Stream Quality: <strong class="text-white">HD Ultra Low Latency</strong></span>
+      </div>
     </div>
 
-    <div class="max-width-600 mx-auto bg-white-10 rounded-pill p-2 px-4 d-inline-flex align-items-center gap-2 small text-white-50" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08);">
-      <i class="bi bi-shield-check text-success"></i> 
-      <span>End-to-peer secure audio streaming is active.</span>
+    <!-- Bottom Dialpad Controls Area -->
+    <div class="text-center" id="call-screen-footer-container">
+      <div class="call-actions-bar" id="call-active-controls">
+        <button class="call-ctrl-btn app-tap-active" id="mute-toggle-btn" onclick="toggleLocalMute()" title="Mute / Unmute Microphone">
+          <i class="bi bi-mic-fill"></i>
+          <small class="d-block" style="font-size: 0.65rem; margin-top: 2px;">Mute</small>
+        </button>
+
+        <button class="call-ctrl-btn end-btn end-call app-tap-active" id="call-end-btn" title="End Call Session">
+          <i class="bi bi-telephone-x-fill"></i>
+        </button>
+
+        <button class="call-ctrl-btn app-tap-active" id="speaker-toggle-btn" onclick="toggleRemoteSpeaker()" title="Speaker On / Off">
+          <i class="bi bi-volume-up-fill"></i>
+          <small class="d-block" style="font-size: 0.65rem; margin-top: 2px;">Speaker</small>
+        </button>
+      </div>
+
+      <div class="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill text-white-50 small" style="background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.1);">
+        <i class="bi bi-shield-check text-success"></i>
+        <span>Live WebRTC audio tunnel • End-to-end direct stream</span>
+      </div>
     </div>
+
   </div>
 
   <!-- Hidden Remote Audio Player for WebRTC track output -->
@@ -77,5 +137,109 @@
   </script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/webrtc.js"></script>
+
+  <!-- In-Call "Call Waiting" Real-Time Handler -->
+  <script>
+    (function() {
+      let waitingCallData = null;
+      let audioCtx = null;
+
+      // Soft non-disruptive audio beep for call waiting
+      function playWaitingBeep() {
+        try {
+          if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          }
+          if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+          }
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(520, audioCtx.currentTime); // 520Hz soft tone
+          gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.35);
+        } catch (e) {
+          console.warn("[Audio] Could not play waiting tone:", e);
+        }
+      }
+
+      function showCallWaiting(data) {
+        waitingCallData = data;
+        $("#waiting-caller-title").text(`${data.callerName || 'Another Client'} is calling...`);
+        $("#waiting-call-meta").text(`Call ID: ${data.callId}`);
+        $("#call-waiting-overlay").removeClass("d-none");
+        playWaitingBeep();
+      }
+
+      function hideCallWaiting() {
+        waitingCallData = null;
+        $("#call-waiting-overlay").addClass("d-none");
+      }
+
+      // When another user initiates a call while admin is in this call
+      socket.on('incoming-call-alert', function(data) {
+        console.log("[Call Waiting] Received alert during active session:", data);
+        if (data && data.callId && data.callId !== window.activeCallId) {
+          showCallWaiting(data);
+        }
+      });
+
+      // If waiting caller cancels or disconnects
+      socket.on('call-cancelled', function(data) {
+        if (waitingCallData && data && data.callId === waitingCallData.callId) {
+          $("#waiting-caller-title").text(`${waitingCallData.callerName || 'Client'} cancelled call.`);
+          setTimeout(hideCallWaiting, 2500);
+        }
+      });
+
+      socket.on('call-dismissed', function(data) {
+        if (waitingCallData && data && data.callId === waitingCallData.callId) {
+          hideCallWaiting();
+        }
+      });
+
+      // Button: Send Busy to waiting caller
+      $("#btn-waiting-busy").on('click', function() {
+        if (waitingCallData) {
+          console.log("[Call Waiting] Rejecting waiting call as busy:", waitingCallData.callId);
+          socket.emit('admin-reject-call', {
+            callId: waitingCallData.callId,
+            callerId: waitingCallData.callerId,
+            reason: 'Life Advisor is currently on another call'
+          });
+          hideCallWaiting();
+        }
+      });
+
+      // Button: End current call and switch immediately to waiting caller
+      $("#btn-waiting-switch").on('click', function() {
+        if (waitingCallData) {
+          const targetCallId = waitingCallData.callId;
+          const targetCallerId = waitingCallData.callerId || '';
+          const targetCallerName = waitingCallData.callerName || 'Client';
+
+          localStorage.setItem("active_call_id", targetCallId);
+          localStorage.setItem("webrtc_caller_id", targetCallerId);
+          localStorage.setItem("webrtc_caller_name", targetCallerName);
+
+          console.log("[Call Waiting] Switching to waiting call:", targetCallId);
+
+          // Hangup current call
+          if (typeof terminateCallSession === 'function') {
+            terminateCallSession('Completed');
+          }
+
+          setTimeout(() => {
+            window.location.href = `/admin/call?callId=${encodeURIComponent(targetCallId)}&callerId=${encodeURIComponent(targetCallerId)}`;
+          }, 600);
+        }
+      });
+    })();
+  </script>
 </body>
 </html>

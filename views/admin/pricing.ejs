@@ -1,7 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <%- include('../partials/head') %>
-<body>
+<body class="app-mode">
+
+  <!-- Admin Mobile Top App Bar -->
+  <%- include('../partials/admin-header') %>
 
   <div class="panel-wrapper">
     <!-- Admin Sidebar Partial -->
@@ -9,98 +12,166 @@
 
     <!-- Main Content Panel -->
     <div class="content-panel">
-      <!-- Top Header -->
-      <header class="header-panel shadow-sm">
+      <!-- Top Header (Desktop) -->
+      <header class="header-panel shadow-sm d-none d-lg-flex">
         <div class="d-flex align-items-center gap-3">
-          <button class="btn btn-light d-lg-none sidebar-toggle-btn" type="button">
-            <i class="bi bi-list fs-4"></i>
-          </button>
           <h4 class="mb-0 fw-bold">Manage Pricing & Credits</h4>
         </div>
         
         <div class="d-flex align-items-center gap-3">
-          <div class="dropdown">
-            <button class="btn btn-light d-flex align-items-center gap-2 border rounded-pill py-1 px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <div class="rounded-circle bg-light-lavender d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
-                <i class="bi bi-shield-lock text-purple"></i>
-              </div>
-              <span class="fw-semibold text-dark d-none d-md-block small">System Admin</span>
-              <i class="bi bi-chevron-down text-muted small ms-1"></i>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 rounded-3">
-              <li><h6 class="dropdown-header">Admin Control</h6></li>
-              <li><a class="dropdown-item" href="/admin/settings"><i class="bi bi-gear me-2 text-muted"></i>Settings</a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item text-danger fw-semibold" href="/admin/logout"><i class="bi bi-box-arrow-right me-2 text-danger"></i>Logout</a></li>
-            </ul>
-          </div>
-
+          <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill fw-semibold">
+            <span class="status-indicator-dot online me-1"></span> Dynamic Pricing Active
+          </span>
           <a href="/admin/logout" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 d-flex align-items-center gap-1.5 fw-semibold" title="Logout from Admin Panel">
             <i class="bi bi-box-arrow-right"></i>
-            <span class="d-none d-sm-inline">Logout</span>
+            <span>Logout</span>
           </a>
         </div>
       </header>
 
       <!-- Main Contents Canvas -->
       <main class="main-content-inner">
-        <!-- Pricing Config Panel -->
-        <div class="card-premium border-0 bg-white shadow-sm p-4">
-          <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
-            <h5 class="fw-bold mb-0">Active Packages Config</h5>
-            <button class="btn btn-brand btn-sm px-3" data-bs-toggle="modal" data-bs-target="#addPlanModal"><i class="bi bi-plus-lg me-1"></i> Add Pricing Plan</button>
+        <div class="app-container">
+          
+          <!-- Pricing Config Panel -->
+          <div class="card-premium border-0 bg-white shadow-sm p-4 mb-4">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
+              <div>
+                <h5 class="fw-bold mb-1">Credit Packages & Pricing</h5>
+                <p class="text-muted small mb-0">Changes saved here will reflect immediately on user recharge screens.</p>
+              </div>
+              <button class="btn btn-brand btn-sm px-3" data-bs-toggle="modal" data-bs-target="#addPlanModal">
+                <i class="bi bi-plus-lg me-1"></i> Add Pricing Plan
+              </button>
+            </div>
+
+            <!-- Mobile View: Modern Cards (visible on phones) -->
+            <div class="d-block d-lg-none">
+              <div class="row g-3">
+                <% if (typeof plans !== 'undefined' && plans && plans.length > 0) { %>
+                  <% plans.forEach(plan => { %>
+                    <div class="col-12">
+                      <div class="p-3.5 border rounded-4 bg-white shadow-xs position-relative">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                          <div class="d-flex align-items-center gap-2">
+                            <span class="badge <%= plan.isPopular ? 'bg-primary text-white' : 'bg-light text-dark border' %> rounded-pill px-2.5 py-1 small">
+                              <%= plan.badge || plan.name %>
+                            </span>
+                            <span class="text-muted font-monospace" style="font-size: 0.75rem;"><%= plan.planId %></span>
+                          </div>
+                          <span class="badge <%= plan.isActive ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary' %> rounded-pill px-2.5 py-1.5 btn-admin-toggle-plan" data-id="<%= plan._id %>" style="cursor: pointer;" title="Click to toggle status">
+                            <i class="bi <%= plan.isActive ? 'bi-check-circle-fill' : 'bi-dash-circle-fill' %> me-1"></i><%= plan.isActive ? 'Active' : 'Disabled' %>
+                          </span>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-baseline mb-2">
+                          <div>
+                            <h6 class="fw-bold mb-0 text-dark"><%= plan.name %></h6>
+                            <span class="text-muted small"><%= plan.credits %> Credits (<%= plan.credits %> Mins)</span>
+                          </div>
+                          <div class="fs-4 fw-extrabold text-primary">₹<%= plan.price.toLocaleString('en-IN') %></div>
+                        </div>
+
+                        <% if (plan.description) { %>
+                          <p class="text-muted small mb-3"><%= plan.description %></p>
+                        <% } %>
+
+                        <div class="d-flex gap-2">
+                          <button class="btn btn-sm btn-light border w-100 py-2 btn-edit-plan" 
+                                  data-id="<%= plan._id %>" 
+                                  data-name="<%= plan.name %>" 
+                                  data-credits="<%= plan.credits %>" 
+                                  data-price="<%= plan.price %>" 
+                                  data-desc="<%= plan.description || '' %>" 
+                                  data-badge="<%= plan.badge || '' %>" 
+                                  data-popular="<%= plan.isPopular ? 'true' : 'false' %>">
+                            <i class="bi bi-pencil-square me-1"></i> Edit Plan
+                          </button>
+                          <button class="btn btn-sm btn-outline-danger px-3 py-2 btn-delete-plan" 
+                                  data-id="<%= plan._id %>" 
+                                  data-name="<%= plan.name %>" 
+                                  title="Delete Recharge Pack">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  <% }) %>
+                <% } else { %>
+                  <div class="col-12 text-center py-4 text-muted">No pricing plans found. Click Add Plan to seed.</div>
+                <% } %>
+              </div>
+            </div>
+
+            <!-- Desktop View: High Density Table (visible on desktop) -->
+            <div class="table-responsive-custom d-none d-lg-block">
+              <table class="table table-premium mb-0 align-middle">
+                <thead>
+                  <tr>
+                    <th>Plan ID</th>
+                    <th>Name / Tag</th>
+                    <th>Credits Value</th>
+                    <th>Call Duration</th>
+                    <th>Price Pack (₹)</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% if (typeof plans !== 'undefined' && plans && plans.length > 0) { %>
+                    <% plans.forEach(plan => { %>
+                      <tr>
+                        <td><span class="fw-semibold font-monospace"><%= plan.planId %></span></td>
+                        <td>
+                          <strong class="d-block text-dark"><%= plan.name %></strong>
+                          <% if (plan.badge) { %>
+                            <span class="badge bg-light text-muted border rounded-pill px-2 py-0.5" style="font-size: 0.72rem;"><%= plan.badge %></span>
+                          <% } %>
+                          <% if (plan.isPopular) { %>
+                            <span class="badge bg-primary-subtle text-primary rounded-pill px-2 py-0.5" style="font-size: 0.72rem;">Popular</span>
+                          <% } %>
+                        </td>
+                        <td><span class="fw-bold text-dark"><%= plan.credits %> Credits</span></td>
+                        <td><span class="text-muted"><%= plan.credits %> Minutes</span></td>
+                        <td><strong class="fs-6 text-dark">₹<%= plan.price.toLocaleString('en-IN') %></strong></td>
+                        <td>
+                          <span class="badge <%= plan.isActive ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary' %> rounded-pill px-2.5 py-1.5 btn-admin-toggle-plan" data-id="<%= plan._id %>" style="cursor: pointer;" title="Click to toggle status">
+                            <i class="bi <%= plan.isActive ? 'bi-check-circle-fill' : 'bi-dash-circle-fill' %> me-1"></i><%= plan.isActive ? 'Active' : 'Disabled' %>
+                          </span>
+                        </td>
+                        <td>
+                          <div class="d-flex gap-1.5">
+                            <button class="btn btn-sm btn-light border btn-edit-plan px-3" 
+                                    data-id="<%= plan._id %>" 
+                                    data-name="<%= plan.name %>" 
+                                    data-credits="<%= plan.credits %>" 
+                                    data-price="<%= plan.price %>" 
+                                    data-desc="<%= plan.description || '' %>" 
+                                    data-badge="<%= plan.badge || '' %>" 
+                                    data-popular="<%= plan.isPopular ? 'true' : 'false' %>">
+                              <i class="bi bi-pencil-square me-1"></i> Edit
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger btn-delete-plan px-2.5" 
+                                    data-id="<%= plan._id %>" 
+                                    data-name="<%= plan.name %>" 
+                                    title="Delete Package">
+                              <i class="bi bi-trash"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    <% }) %>
+                  <% } else { %>
+                    <tr>
+                      <td colspan="7" class="text-center text-muted py-4">No pricing plans found.</td>
+                    </tr>
+                  <% } %>
+                </tbody>
+              </table>
+            </div>
+
           </div>
 
-          <div class="table-responsive-custom">
-            <table class="table table-premium mb-0 align-middle">
-              <thead>
-                <tr>
-                  <th>Plan ID</th>
-                  <th>Name</th>
-                  <th>Credits Value</th>
-                  <th>Call Duration</th>
-                  <th>Price Pack</th>
-                  <th>Status Toggle</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><span class="fw-semibold">PLAN-5501</span></td>
-                  <td>Starter Pack</td>
-                  <td><span class="fw-bold text-dark">5 Credits</span></td>
-                  <td>5 Minutes</td>
-                  <td>₹149</td>
-                  <td><span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1.5 btn-admin-toggle-plan cursor-pointer" style="cursor: pointer;">Active</span></td>
-                  <td>
-                    <button class="btn btn-sm btn-light border" data-bs-toggle="modal" data-bs-target="#editPlanModal"><i class="bi bi-pencil-square"></i> Edit</button>
-                  </td>
-                </tr>
-                <tr>
-                  <td><span class="fw-semibold">PLAN-5502</span></td>
-                  <td>Comfort Pack</td>
-                  <td><span class="fw-bold text-dark">25 Credits</span></td>
-                  <td>25 Minutes</td>
-                  <td>₹599</td>
-                  <td><span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1.5 btn-admin-toggle-plan cursor-pointer" style="cursor: pointer;">Active</span></td>
-                  <td>
-                    <button class="btn btn-sm btn-light border" data-bs-toggle="modal" data-bs-target="#editPlanModal"><i class="bi bi-pencil-square"></i> Edit</button>
-                  </td>
-                </tr>
-                <tr>
-                  <td><span class="fw-semibold">PLAN-5503</span></td>
-                  <td>Listen Deep</td>
-                  <td><span class="fw-bold text-dark">50 Credits</span></td>
-                  <td>50 Minutes</td>
-                  <td>₹1,199</td>
-                  <td><span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1.5 btn-admin-toggle-plan cursor-pointer" style="cursor: pointer;">Active</span></td>
-                  <td>
-                    <button class="btn btn-sm btn-light border" data-bs-toggle="modal" data-bs-target="#editPlanModal"><i class="bi bi-pencil-square"></i> Edit</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
         </div>
       </main>
     </div>
@@ -108,72 +179,276 @@
 
   <!-- Add Plan Bootstrap Modal -->
   <div class="modal fade" id="addPlanModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
       <div class="modal-content rounded-4 border-0 shadow-lg">
-        <div class="modal-header border-bottom-0 pb-0">
-          <h5 class="fw-bold mb-0">Create New pricing Plan</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body py-4">
-          <div class="mb-3">
-            <label class="form-label form-label-custom">Plan Name</label>
-            <input type="text" class="form-control form-control-custom" placeholder="e.g. Bulk Pack">
+        <form id="addPlanForm">
+          <div class="modal-header border-bottom-0 pb-0">
+            <h5 class="fw-bold mb-0">Create New Pricing Plan</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
-          <div class="row g-2 mb-3">
-            <div class="col-6">
-              <label class="form-label form-label-custom">Credits Value</label>
-              <input type="number" class="form-control form-control-custom" placeholder="e.g. 100">
+          <div class="modal-body py-3">
+            <div class="mb-3">
+              <label class="form-label form-label-custom">Plan Name <span class="text-danger">*</span></label>
+              <input type="text" id="add_plan_name" class="form-control form-control-custom" placeholder="e.g. Extended Support" required>
             </div>
-            <div class="col-6">
-              <label class="form-label form-label-custom">Price (₹)</label>
-              <input type="number" class="form-control form-control-custom" placeholder="e.g. 1999">
+            <div class="mb-3">
+              <label class="form-label form-label-custom">Badge / Tag</label>
+              <input type="text" id="add_plan_badge" class="form-control form-control-custom" placeholder="e.g. Starter, Popular, Value">
+            </div>
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="form-label form-label-custom">Credits <span class="text-danger">*</span></label>
+                <input type="number" id="add_plan_credits" class="form-control form-control-custom" placeholder="e.g. 30" min="1" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label form-label-custom">Price (₹) <span class="text-danger">*</span></label>
+                <input type="number" id="add_plan_price" class="form-control form-control-custom" placeholder="e.g. 749" min="1" required>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label form-label-custom">Description</label>
+              <textarea id="add_plan_desc" class="form-control form-control-custom" rows="2" placeholder="e.g. Ideal for weekly consultation"></textarea>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="add_plan_popular">
+              <label class="form-check-label small text-dark fw-semibold" for="add_plan_popular">
+                Mark as "Most Popular" Plan
+              </label>
             </div>
           </div>
-          <div class="mb-3">
-            <label class="form-label form-label-custom">Short Description</label>
-            <textarea class="form-control form-control-custom" rows="2" placeholder="e.g. For recurring weekly support conversations"></textarea>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-sm btn-light border" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-sm btn-brand px-3" id="btnAddPlanSubmit">
+              <i class="bi bi-check2-circle me-1"></i> Save Plan
+            </button>
           </div>
-        </div>
-        <div class="modal-footer border-top-0 pt-0">
-          <button type="button" class="btn btn-sm btn-light border" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-sm btn-brand px-3" data-bs-dismiss="modal" onclick="alert('Pricing plan added successfully in simulation mode!')">Add Plan</button>
-        </div>
+        </form>
       </div>
     </div>
   </div>
 
   <!-- Edit Plan Bootstrap Modal -->
   <div class="modal fade" id="editPlanModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
       <div class="modal-content rounded-4 border-0 shadow-lg">
-        <div class="modal-header border-bottom-0 pb-0">
-          <h5 class="fw-bold mb-0">Modify Pricing Plan</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body py-4">
-          <div class="mb-3">
-            <label class="form-label form-label-custom">Plan Name</label>
-            <input type="text" class="form-control form-control-custom" value="Starter Pack">
+        <form id="editPlanForm">
+          <input type="hidden" id="edit_plan_id">
+          <div class="modal-header border-bottom-0 pb-0">
+            <h5 class="fw-bold mb-0">Modify Pricing Plan</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
-          <div class="row g-2 mb-3">
-            <div class="col-6">
-              <label class="form-label form-label-custom">Credits Value</label>
-              <input type="number" class="form-control form-control-custom" value="5">
+          <div class="modal-body py-3">
+            <div class="mb-3">
+              <label class="form-label form-label-custom">Plan Name <span class="text-danger">*</span></label>
+              <input type="text" id="edit_plan_name" class="form-control form-control-custom" required>
             </div>
-            <div class="col-6">
-              <label class="form-label form-label-custom">Price (₹)</label>
-              <input type="number" class="form-control form-control-custom" value="149">
+            <div class="mb-3">
+              <label class="form-label form-label-custom">Badge / Tag</label>
+              <input type="text" id="edit_plan_badge" class="form-control form-control-custom" placeholder="e.g. Starter, Popular">
+            </div>
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="form-label form-label-custom">Credits Value <span class="text-danger">*</span></label>
+                <input type="number" id="edit_plan_credits" class="form-control form-control-custom" min="1" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label form-label-custom">Price (₹) <span class="text-danger">*</span></label>
+                <input type="number" id="edit_plan_price" class="form-control form-control-custom" min="1" required>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label form-label-custom">Description</label>
+              <textarea id="edit_plan_desc" class="form-control form-control-custom" rows="2"></textarea>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="edit_plan_popular">
+              <label class="form-check-label small text-dark fw-semibold" for="edit_plan_popular">
+                Mark as "Most Popular" Plan
+              </label>
             </div>
           </div>
-        </div>
-        <div class="modal-footer border-top-0 pt-0">
-          <button type="button" class="btn btn-sm btn-light border" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-sm btn-brand px-3" data-bs-dismiss="modal" onclick="alert('Pricing plan updated successfully in simulation mode!')">Update Plan</button>
-        </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-sm btn-light border" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-sm btn-brand px-3" id="btnEditPlanSubmit">
+              <i class="bi bi-check2 me-1"></i> Update Plan Charges
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
 
+  <!-- Admin Mobile Bottom Navigation -->
+  <%- include('../partials/admin-bottom-nav') %>
+
+  <!-- Admin Incoming Call Notification Modal -->
+  <%- include('../partials/admin-incoming-call') %>
+
   <%- include('../partials/scripts') %>
+
+  <script>
+    $(document).ready(function() {
+      // 1. Open Edit Modal with populated data
+      $(document).on('click', '.btn-edit-plan', function() {
+        const $btn = $(this);
+        $('#edit_plan_id').val($btn.data('id'));
+        $('#edit_plan_name').val($btn.data('name'));
+        $('#edit_plan_credits').val($btn.data('credits'));
+        $('#edit_plan_price').val($btn.data('price'));
+        $('#edit_plan_desc').val($btn.data('desc') || '');
+        $('#edit_plan_badge').val($btn.data('badge') || '');
+        
+        const isPop = String($btn.data('popular')) === 'true';
+        $('#edit_plan_popular').prop('checked', isPop);
+
+        const modal = new bootstrap.Modal(document.getElementById('editPlanModal'));
+        modal.show();
+      });
+
+      // 2. Submit Edit Plan Form
+      $('#editPlanForm').on('submit', function(e) {
+        e.preventDefault();
+        const id = $('#edit_plan_id').val();
+        if (!id) return;
+
+        const $submitBtn = $('#btnEditPlanSubmit');
+        const origText = $submitBtn.html();
+        $submitBtn.html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...').prop('disabled', true);
+
+        const payload = {
+          name: $('#edit_plan_name').val().trim(),
+          credits: parseInt($('#edit_plan_credits').val(), 10),
+          price: parseInt($('#edit_plan_price').val(), 10),
+          badge: $('#edit_plan_badge').val().trim(),
+          description: $('#edit_plan_desc').val().trim(),
+          isPopular: $('#edit_plan_popular').is(':checked')
+        };
+
+        $.ajax({
+          url: '/admin/pricing/update/' + id,
+          method: 'POST',
+          data: payload,
+          success: function(res) {
+            $submitBtn.html(origText).prop('disabled', false);
+            if (res.success) {
+              if (typeof showToast === 'function') {
+                showToast(res.message || 'Pricing updated successfully!', 'success');
+              } else {
+                alert(res.message || 'Pricing updated successfully!');
+              }
+              setTimeout(function() { location.reload(); }, 600);
+            } else {
+              alert(res.message || 'Failed to update plan.');
+            }
+          },
+          error: function(xhr) {
+            $submitBtn.html(origText).prop('disabled', false);
+            const msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Server error updating plan.';
+            alert(msg);
+          }
+        });
+      });
+
+      // 3. Submit Add Plan Form
+      $('#addPlanForm').on('submit', function(e) {
+        e.preventDefault();
+        const $submitBtn = $('#btnAddPlanSubmit');
+        const origText = $submitBtn.html();
+        $submitBtn.html('<span class="spinner-border spinner-border-sm me-1"></span>Creating...').prop('disabled', true);
+
+        const payload = {
+          name: $('#add_plan_name').val().trim(),
+          credits: parseInt($('#add_plan_credits').val(), 10),
+          price: parseInt($('#add_plan_price').val(), 10),
+          badge: $('#add_plan_badge').val().trim(),
+          description: $('#add_plan_desc').val().trim(),
+          isPopular: $('#add_plan_popular').is(':checked')
+        };
+
+        $.ajax({
+          url: '/admin/pricing/add',
+          method: 'POST',
+          data: payload,
+          success: function(res) {
+            $submitBtn.html(origText).prop('disabled', false);
+            if (typeof res === 'string' && res.indexOf('<!DOCTYPE') !== -1) {
+              window.location.href = '/admin/login';
+              return;
+            }
+            if (res.success) {
+              if (typeof showToast === 'function') {
+                showToast(res.message || 'Plan created successfully!', 'success');
+              } else {
+                alert(res.message || 'Plan created successfully!');
+              }
+              setTimeout(function() { location.reload(); }, 600);
+            } else {
+              alert(res.message || 'Failed to add plan.');
+            }
+          },
+          error: function(xhr) {
+            $submitBtn.html(origText).prop('disabled', false);
+            if (xhr.status === 401) {
+              alert('Admin session expired. Please log in again.');
+              window.location.href = '/admin/login';
+              return;
+            }
+            const msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Server error adding plan.';
+            alert(msg);
+          }
+        });
+      });
+
+      // 4. Toggle Active/Disabled Plan
+      $(document).on('click', '.btn-admin-toggle-plan', function() {
+        const planId = $(this).data('id');
+        if (!planId) return;
+
+        $.ajax({
+          url: '/admin/pricing/toggle/' + planId,
+          method: 'POST',
+          success: function(res) {
+            if (res.success) {
+              location.reload();
+            } else {
+              alert(res.message || 'Error toggling plan status');
+            }
+          },
+          error: function() {
+            alert('Server error toggling plan status');
+          }
+        });
+      });
+
+      // 5. Delete Recharge Pack
+      $(document).on('click', '.btn-delete-plan', function() {
+        const planId = $(this).data('id');
+        const planName = $(this).data('name') || 'this recharge pack';
+        if (!planId) return;
+
+        if (confirm("Are you sure you want to delete '" + planName + "'?\nClients will no longer be able to purchase this pack.")) {
+          $.ajax({
+            url: '/admin/pricing/delete/' + planId,
+            method: 'POST',
+            success: function(res) {
+              if (res.success) {
+                if (typeof showToast === 'function') {
+                  showToast(res.message || 'Recharge pack deleted successfully!', 'success');
+                } else {
+                  alert(res.message || 'Recharge pack deleted successfully!');
+                }
+                setTimeout(function() { location.reload(); }, 600);
+              } else {
+                alert(res.message || 'Failed to delete recharge pack.');
+              }
+            },
+            error: function() {
+              alert('Server error deleting recharge pack.');
+            }
+          });
+        }
+      });
+    });
+  </script>
 </body>
 </html>
