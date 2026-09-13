@@ -51,6 +51,30 @@ const transactionSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Call',
     default: null
+  },
+  balanceBefore: {
+    type: Number,
+    default: null
+  },
+  balanceAfter: {
+    type: Number,
+    default: null
+  },
+  referenceType: {
+    type: String,
+    enum: ['PAYMENT', 'CALL', 'ADMIN_ADJUSTMENT', 'BONUS', 'REFUND', null],
+    default: null,
+    index: true
+  },
+  referenceId: {
+    type: String,
+    default: null,
+    index: true
+  },
+  paymentTransaction: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'PaymentTransaction',
+    default: null
   }
 }, {
   timestamps: true

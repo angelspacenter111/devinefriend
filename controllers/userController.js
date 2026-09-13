@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Call = require('../models/Call');
 const Transaction = require('../models/Transaction');
+const PaymentTransaction = require('../models/PaymentTransaction');
 const PricingPlan = require('../models/PricingPlan');
 const bcrypt = require('bcryptjs');
 
@@ -111,57 +112,12 @@ exports.getBuyCredits = async (req, res) => {
   }
 };
 
-// AJAX endpoint to purchase credits
+// AJAX endpoint - Direct purchase without payment gateway is disabled
 exports.postBuyCredits = async (req, res) => {
-  try {
-    const { credits, price, planId } = req.body;
-    const user = req.user;
-
-    if (!credits || isNaN(credits)) {
-      return res.status(400).json({ success: false, message: 'Invalid credits value.' });
-    }
-
-    const creditVal = parseInt(credits, 10);
-    let chargedPrice = price || "₹0";
-
-    // Validate price with configured active pricing plan
-    if (planId) {
-      const plan = await PricingPlan.findById(planId);
-      if (plan) {
-        chargedPrice = `₹${plan.price.toLocaleString('en-IN')}`;
-      }
-    } else {
-      const plan = await PricingPlan.findOne({ credits: creditVal, isActive: true });
-      if (plan) {
-        chargedPrice = `₹${plan.price.toLocaleString('en-IN')}`;
-      }
-    }
-
-    // Increment user credits in DB
-    user.credits += creditVal;
-    await user.save();
-
-    // Create credit transaction ledger entry
-    const newTxn = new Transaction({
-      txnId: "TXN-" + Math.floor(1000 + Math.random() * 9000) + Math.floor(10 + Math.random() * 90),
-      user: user._id,
-      desc: `Credit Purchase (${creditVal} Credits)`,
-      type: 'credit',
-      credits: creditVal,
-      amount: chargedPrice,
-      status: 'Successful'
-    });
-    await newTxn.save();
-
-    return res.json({
-      success: true,
-      message: `Successfully purchased ${creditVal} credits!`,
-      credits: user.credits
-    });
-  } catch (error) {
-    console.error('[Buy Credits Error]', error);
-    return res.status(500).json({ success: false, message: 'Server error processing transaction.' });
-  }
+  return res.status(400).json({
+    success: false,
+    message: 'Direct credit modification is disabled. All credit purchases must be processed through Razorpay Checkout.'
+  });
 };
 
 const callService = require('../services/callService');
@@ -271,8 +227,22 @@ exports.getCallHistory = async (req, res) => {
 };
 
 exports.getTransactions = async (req, res) => {
-  // Transactions are hidden from user as per design specifications
-  res.redirect('/user/wallet');
+  try {
+    const user = req.user;
+    const transactions = await Transaction.find({ user: user._id }).sort({ date: -1, createdAt: -1 });
+    const payments = await PaymentTransaction.find({ user: user._id }).sort({ createdAt: -1 });
+
+    res.render('user/transactions', {
+      title: 'Transactions & Payment History - Friend',
+      activeTab: 'transactions',
+      user,
+      transactions,
+      payments
+    });
+  } catch (error) {
+    console.error('[User Transactions Error]', error);
+    res.status(500).send('Server Error');
+  }
 };
 
 exports.getProfile = (req, res) => {

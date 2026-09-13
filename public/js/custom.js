@@ -115,45 +115,111 @@ $(document).ready(function () {
     }, 4000);
   }
 
-  // 3. Purchase Credits AJAX handler
+  // 3. Purchase Credits Razorpay Checkout & Verification handler
   $(".btn-buy-credits").on("click", function (e) {
     e.preventDefault();
     const $btn = $(this);
-    const creditsToBuy = parseInt($btn.data("credits"));
-    const price = $btn.data("price");
     const planId = $btn.data("plan-id");
-    
-    if (isNaN(creditsToBuy)) return;
 
-    // Show simulated loader in button
+    if (!planId) {
+      showToast("Invalid package selected. Please refresh and try again.", "danger");
+      return;
+    }
+
+    if (typeof Razorpay === "undefined") {
+      showToast("Payment gateway is initializing. Please refresh the page.", "warning");
+      return;
+    }
+
+    // Show processing loader
     const origText = $btn.html();
-    $btn.html('<span class="spinner-border spinner-border-sm me-2" role="status"></span>Processing...').prop("disabled", true);
+    $btn.html('<span class="spinner-border spinner-border-sm me-2" role="status"></span>Connecting...').prop("disabled", true);
 
+    // Step 1: Call secure backend endpoint to create trusted Razorpay Order
     $.ajax({
-      url: '/user/buy-credits',
+      url: '/api/payments/create-order',
       method: 'POST',
-      data: { credits: creditsToBuy, price: price, planId: planId },
-      success: function(res) {
-        $btn.html(origText).prop("disabled", false);
-        if (res.success) {
-          if (window.sessionUser) {
-            window.sessionUser.credits = res.credits;
-          }
-          $(".simulated-balance").text(res.credits);
-          showToast(`Successfully purchased ${creditsToBuy} credits!`, "success");
-          $("#checkoutModal").modal("hide");
-          
-          // Reload page to reflect updated balance
-          setTimeout(() => {
-            location.reload();
-          }, 1000);
-        } else {
-          showToast(res.message || "Failed to purchase credits.", "danger");
+      contentType: 'application/json',
+      data: JSON.stringify({ packageId: planId }),
+      success: function (res) {
+        if (!res.success || !res.orderId) {
+          $btn.html(origText).prop("disabled", false);
+          showToast(res.message || "Failed to initiate payment.", "danger");
+          return;
         }
+
+        // Step 2: Open Razorpay Checkout Modal
+        const options = {
+          key: res.keyId,
+          amount: res.amount,
+          currency: res.currency || "INR",
+          name: "Friend Emotional Support",
+          description: res.description || "Voice Call Credits",
+          order_id: res.orderId,
+          prefill: {
+            name: (window.sessionUser && window.sessionUser.name) ? window.sessionUser.name : "",
+            contact: (window.sessionUser && window.sessionUser.mobile) ? window.sessionUser.mobile : "",
+            email: (window.sessionUser && window.sessionUser.email) ? window.sessionUser.email : ""
+          },
+          theme: {
+            color: "#7B4DCE"
+          },
+          modal: {
+            ondismiss: function () {
+              $btn.html(origText).prop("disabled", false);
+              showToast("Payment cancelled. Credits were not charged.", "warning");
+            }
+          },
+          handler: function (response) {
+            // Step 3: Frontend receives signature and sends to backend for verification
+            $btn.html('<span class="spinner-border spinner-border-sm me-2" role="status"></span>Verifying payment...').prop("disabled", true);
+
+            $.ajax({
+              url: '/api/payments/verify',
+              method: 'POST',
+              contentType: 'application/json',
+              data: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature
+              }),
+              success: function (verifyRes) {
+                $btn.html(origText).prop("disabled", false);
+                if (verifyRes.success) {
+                  if (window.sessionUser) {
+                    window.sessionUser.credits = verifyRes.credits;
+                  }
+                  $(".simulated-balance").text(verifyRes.credits);
+                  showToast(verifyRes.message || `Payment verified! You now have ${verifyRes.credits} credits.`, "success");
+
+                  setTimeout(() => {
+                    location.reload();
+                  }, 1200);
+                } else {
+                  showToast(verifyRes.message || "Payment verification failed.", "danger");
+                }
+              },
+              error: function (xhr) {
+                $btn.html(origText).prop("disabled", false);
+                const errMsg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : "Error verifying payment with server.";
+                showToast(errMsg, "danger");
+              }
+            });
+          }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.on('payment.failed', function (response) {
+          $btn.html(origText).prop("disabled", false);
+          const reason = (response.error && response.error.description) ? response.error.description : "Payment failed. Please retry.";
+          showToast(reason, "danger");
+        });
+        rzp.open();
       },
-      error: function() {
+      error: function (xhr) {
         $btn.html(origText).prop("disabled", false);
-        showToast("Error processing purchase request.", "danger");
+        const errMsg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : "Unable to initiate payment.";
+        showToast(errMsg, "danger");
       }
     });
   });
