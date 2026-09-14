@@ -300,40 +300,54 @@ async function finalizeCall(callId, { reason = 'Completed', forcedEndTime = null
 
   const formattedDuration = formatDuration(durationSeconds);
 
-  // Deduct credits and log transaction
-  let userDoc = await User.findById(lockedCall.user);
+  // Deduct credits atomically and log transaction
+  let userDoc = null;
   let txnDoc = null;
 
-  if (creditsToDeduct > 0 && userDoc) {
-    // Cap deduction at available user credits
-    const actualDeduction = Math.min(userDoc.credits, creditsToDeduct);
-    userDoc.credits = Math.max(0, userDoc.credits - actualDeduction);
-    await userDoc.save();
+  if (creditsToDeduct > 0) {
+    const beforeUser = await User.findById(lockedCall.user);
+    if (beforeUser) {
+      const balanceBefore = beforeUser.credits;
+      const actualDeduction = Math.min(balanceBefore, creditsToDeduct);
 
-    // Create traceable Transaction record
-    txnDoc = new Transaction({
-      txnId: generateTxnId(),
-      user: userDoc._id,
-      desc: `Call Charges (${lockedCall.callId})`,
-      type: 'debit',
-      credits: actualDeduction,
-      amount: '₹0',
-      status: 'Completed',
-      callId: lockedCall.callId,
-      call: lockedCall._id
-    });
-    await txnDoc.save();
+      // Atomic decrement prevents race condition overspending
+      userDoc = await User.findOneAndUpdate(
+        { _id: lockedCall.user },
+        { $inc: { credits: -actualDeduction } },
+        { returnDocument: 'after' }
+      );
+      const balanceAfter = userDoc ? userDoc.credits : Math.max(0, balanceBefore - actualDeduction);
 
-    lockedCall.credits = actualDeduction;
-    lockedCall.creditStatus = 'deducted';
-    lockedCall.transaction = txnDoc._id;
-    logStructured('CREDIT_DEDUCTED', {
-      callId,
-      userId: userDoc._id,
-      creditsDeducted: actualDeduction,
-      remainingCredits: userDoc.credits,
-      txnId: txnDoc.txnId
-    });
+      // Create traceable Transaction record
+      txnDoc = new Transaction({
+        txnId: generateTxnId(),
+        user: lockedCall.user,
+        desc: `Call Charges (${lockedCall.callId})`,
+        type: 'debit',
+        credits: actualDeduction,
+        amount: '₹0',
+        status: 'Completed',
+        callId: lockedCall.callId,
+        call: lockedCall._id,
+        balanceBefore: balanceBefore,
+        balanceAfter: balanceAfter,
+        referenceType: 'CALL',
+        referenceId: lockedCall.callId
+      });
+      await txnDoc.save();
+
+      lockedCall.credits = actualDeduction;
+      lockedCall.creditStatus = 'deducted';
+      lockedCall.transaction = txnDoc._id;
+      logStructured('CREDIT_DEDUCTED', {
+        callId,
+        userId: lockedCall.user,
+        creditsDeducted: actualDeduction,
+        balanceBefore,
+        remainingCredits: balanceAfter,
+        txnId: txnDoc.txnId
+      });
+    }
   } else {
     lockedCall.credits = 0;
     lockedCall.creditStatus = (finalStatus === 'Completed' ? 'waived' : 'none');
@@ -409,6 +423,51 @@ async function getCallById(callId) {
   return await Call.findOne({ callId }).populate('user').populate('admin').populate('transaction');
 }
 
+/**
+ * Access control check for calls
+ */
+async function checkCallAccess(userId, requiredCredits = 1) {
+  if (!userId) {
+    return {
+      allowed: false,
+      code: 'UNAUTHORIZED',
+      message: 'Authentication required to make a call.'
+    };
+  }
+
+  const user = await User.findById(userId);
+  if (!user) {
+    return {
+      allowed: false,
+      code: 'USER_NOT_FOUND',
+      message: 'User account not found.'
+    };
+  }
+
+  if (user.isBlocked) {
+    return {
+      allowed: false,
+      code: 'USER_BLOCKED',
+      message: 'Account has been suspended. Please contact support.'
+    };
+  }
+
+  if (user.credits < requiredCredits) {
+    return {
+      allowed: false,
+      code: 'INSUFFICIENT_CREDITS',
+      message: 'You do not have enough credits. Please purchase credits to continue.',
+      credits: user.credits,
+      requiredCredits
+    };
+  }
+
+  return {
+    allowed: true,
+    credits: user.credits
+  };
+}
+
 module.exports = {
   formatDuration,
   generateCallId,
@@ -417,6 +476,7 @@ module.exports = {
   connectCall,
   finalizeCall,
   getCallById,
+  checkCallAccess,
   logStructured,
   registerAdminPresence,
   unregisterAdminPresence,

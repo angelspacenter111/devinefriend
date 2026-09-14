@@ -142,28 +142,40 @@
                       <th>Description</th>
                       <th>Type</th>
                       <th>Credits</th>
-                      <th>Amount</th>
+                      <th>Balance</th>
                       <th>Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     <% transactions.forEach(txn => { %>
                       <%
-                        const typeBadge = txn.type === "credit" 
+                        const isCredit = txn.type === "credit" || txn.type === "CREDIT";
+                        const typeBadge = isCredit 
                           ? `<span class="badge bg-success-subtle text-success"><i class="bi bi-arrow-down-left me-1"></i> Recharge</span>`
                           : `<span class="badge bg-danger-subtle text-danger"><i class="bi bi-arrow-up-right me-1"></i> Call Spend</span>`;
                         
-                        const creditFormatted = txn.type === "credit"
+                        const creditFormatted = isCredit
                           ? `<span class="text-success fw-bold">+${txn.credits} Credits</span>`
                           : `<span class="text-danger fw-bold">-${txn.credits} Credits</span>`;
                       %>
                       <tr>
-                        <td><span class="fw-semibold text-dark"><%= txn.txnId %></span></td>
+                        <td><span class="fw-semibold text-dark font-monospace small"><%= txn.txnId %></span></td>
                         <td><%= txn.date ? txn.date.toISOString().split('T')[0] : '' %></td>
-                        <td><%= txn.desc %></td>
+                        <td>
+                          <%= txn.desc %>
+                          <% if (txn.referenceId) { %>
+                            <small class="text-muted d-block font-monospace">Ref: <%= txn.referenceId %></small>
+                          <% } %>
+                        </td>
                         <td><%- typeBadge %></td>
                         <td><%- creditFormatted %></td>
-                        <td><span class="fw-bold"><%= txn.amount %></span></td>
+                        <td>
+                          <% if (txn.balanceAfter != null) { %>
+                            <span class="fw-bold text-dark"><%= txn.balanceAfter %> cr</span>
+                          <% } else { %>
+                            <span class="text-muted small">—</span>
+                          <% } %>
+                        </td>
                         <td><span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1"><%= txn.status %></span></td>
                       </tr>
                     <% }) %>
@@ -182,6 +194,109 @@
                 queryParams: typeof queryParams !== 'undefined' ? queryParams : ''
               }) %>
             </div>
+          </div>
+
+          <!-- Razorpay Payment History Card -->
+          <div class="app-card p-0 overflow-hidden mb-4">
+            <div class="p-3.5 px-4 d-flex align-items-center justify-content-between border-bottom bg-white">
+              <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-credit-card text-primary fs-5"></i>
+                <h5 class="fw-bold mb-0 text-dark">Razorpay Payment History</h5>
+              </div>
+              <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1 small">Test / Live Orders</span>
+            </div>
+
+            <% if (!payments || payments.length === 0) { %>
+              <div class="text-center py-5 px-3">
+                <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mb-3" style="width: 56px; height: 56px;">
+                  <i class="bi bi-wallet-fill text-muted fs-4"></i>
+                </div>
+                <h6 class="fw-bold text-dark mb-1">No Razorpay Payments Yet</h6>
+                <p class="text-muted small mb-0">Completed online payment records will be logged here.</p>
+              </div>
+            <% } else { %>
+              
+              <!-- Mobile Feed List View -->
+              <div class="app-list-group border-0 rounded-0 d-md-none">
+                <% payments.forEach(p => { %>
+                  <%
+                    const isSuccess = p.status === 'CAPTURED';
+                    const statusBadgeClass = isSuccess ? 'bg-success-subtle text-success' : (p.status === 'FAILED' ? 'bg-danger-subtle text-danger' : 'bg-warning-subtle text-warning');
+                  %>
+                  <div class="app-list-item">
+                    <div class="d-flex align-items-center">
+                      <div class="app-list-icon <%= isSuccess ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning' %>">
+                        <i class="bi bi-credit-card-2-front"></i>
+                      </div>
+                      <div>
+                        <strong class="d-block text-dark small"><%= p.packageName %> (<%= p.credits %> Credits)</strong>
+                        <small class="text-muted font-monospace d-block" style="font-size: 0.72rem;">
+                          Order: <%= p.razorpayOrderId %>
+                        </small>
+                        <% if (p.razorpayPaymentId) { %>
+                          <small class="text-muted font-monospace d-block" style="font-size: 0.72rem;">
+                            Pay ID: <%= p.razorpayPaymentId %>
+                          </small>
+                        <% } %>
+                        <small class="text-muted" style="font-size: 0.72rem;">
+                          <%= p.createdAt ? p.createdAt.toISOString().split('T')[0] : '' %>
+                        </small>
+                      </div>
+                    </div>
+                    <div class="text-end">
+                      <span class="d-block fw-bold text-dark">₹<%= p.amount.toLocaleString('en-IN') %></span>
+                      <span class="badge <%= statusBadgeClass %> rounded-pill px-2 py-0.5 small" style="font-size: 0.68rem;">
+                        <%= p.status %>
+                      </span>
+                    </div>
+                  </div>
+                <% }) %>
+              </div>
+
+              <!-- Desktop Table View -->
+              <div class="table-responsive-custom d-none d-md-block">
+                <table class="table table-premium mb-0 align-middle">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Package</th>
+                      <th>Credits</th>
+                      <th>Amount</th>
+                      <th>Razorpay Order ID</th>
+                      <th>Razorpay Payment ID</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% payments.forEach(p => { %>
+                      <%
+                        const isSuccess = p.status === 'CAPTURED';
+                        const statusBadgeClass = isSuccess ? 'bg-success-subtle text-success' : (p.status === 'FAILED' ? 'bg-danger-subtle text-danger' : 'bg-warning-subtle text-warning');
+                      %>
+                      <tr>
+                        <td><%= p.createdAt ? p.createdAt.toISOString().split('T')[0] : '' %></td>
+                        <td><span class="fw-bold text-dark"><%= p.packageName %></span></td>
+                        <td><span class="text-purple fw-bold">+<%= p.credits %> cr</span></td>
+                        <td><span class="fw-bold text-dark">₹<%= p.amount.toLocaleString('en-IN') %></span></td>
+                        <td><span class="font-monospace small text-muted"><%= p.razorpayOrderId %></span></td>
+                        <td>
+                          <% if (p.razorpayPaymentId) { %>
+                            <span class="font-monospace small text-dark"><%= p.razorpayPaymentId %></span>
+                          <% } else { %>
+                            <span class="text-muted small">—</span>
+                          <% } %>
+                        </td>
+                        <td>
+                          <span class="badge <%= statusBadgeClass %> rounded-pill px-2.5 py-1">
+                            <%= p.status %>
+                          </span>
+                        </td>
+                      </tr>
+                    <% }) %>
+                  </tbody>
+                </table>
+              </div>
+            <% } %>
           </div>
 
         </div>

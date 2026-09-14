@@ -29,8 +29,12 @@ async function startServer() {
     app.set('view engine', 'ejs');
     app.set('views', path.join(__dirname, 'views'));
 
-    // Parse incoming request JSON / bodies
-    app.use(express.json());
+    // Parse incoming request JSON / bodies (preserve rawBody for webhook HMAC verification)
+    app.use(express.json({
+      verify: (req, res, buf) => {
+        req.rawBody = buf;
+      }
+    }));
     app.use(express.urlencoded({ extended: true }));
 
     // Express Session Middleware with Mongo Session Store (reusing Mongoose connection)
@@ -72,12 +76,16 @@ async function startServer() {
     const authRoutes = require('./routes/authRoutes');
     const userRoutes = require('./routes/userRoutes');
     const adminRoutes = require('./routes/adminRoutes');
+    const paymentRoutes = require('./routes/paymentRoutes');
 
     // Mount MVC Routers
     app.use('/', publicRoutes);
     app.use('/', authRoutes);
     app.use('/user', userRoutes);
     app.use('/admin', adminRoutes);
+    app.use('/api/payments', paymentRoutes);
+    app.use('/api/credits', paymentRoutes);
+    app.use('/api/calls', paymentRoutes);
 
     // 404 Fallback - redirect to home page
     app.use((req, res) => {
