@@ -1,0 +1,44 @@
+<%# 
+  Reusable Server-Side Pagination Partial
+  Parameters expected:
+  - currentPage: number
+  - totalPages: number
+  - totalRecords: number
+  - baseUrl: string (e.g. '/admin/users')
+  - queryParams: string (e.g. '&q=test&status=active' or '')
+%>
+<% if (typeof totalPages !== 'undefined' && totalPages > 1) { %>
+  <% const qParams = typeof queryParams !== 'undefined' && queryParams ? queryParams : ''; %>
+  <nav class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 mt-4 pt-3 border-top pagination-nav-wrapper">
+    <span class="text-muted small">
+      Showing page <strong><%= currentPage %></strong> of <strong><%= totalPages %></strong> 
+      (<%= typeof totalRecords !== 'undefined' ? totalRecords : 0 %> total records)
+    </span>
+    <ul class="pagination pagination-sm mb-0">
+      <!-- Previous Page Button -->
+      <li class="page-item <%= currentPage <= 1 ? 'disabled' : '' %>">
+        <a class="page-link" href="<%= baseUrl %>?page=<%= currentPage - 1 %><%= qParams %>" aria-label="Previous">
+          <i class="bi bi-chevron-left me-1"></i>Prev
+        </a>
+      </li>
+
+      <!-- Page Numbers with Ellipsis -->
+      <% for (let p = 1; p <= totalPages; p++) { %>
+        <% if (p === 1 || p === totalPages || (p >= currentPage - 2 && p <= currentPage + 2)) { %>
+          <li class="page-item <%= p === currentPage ? 'active' : '' %>">
+            <a class="page-link" href="<%= baseUrl %>?page=<%= p %><%= qParams %>"><%= p %></a>
+          </li>
+        <% } else if (p === currentPage - 3 || p === currentPage + 3) { %>
+          <li class="page-item disabled"><span class="page-link">…</span></li>
+        <% } %>
+      <% } %>
+
+      <!-- Next Page Button -->
+      <li class="page-item <%= currentPage >= totalPages ? 'disabled' : '' %>">
+        <a class="page-link" href="<%= baseUrl %>?page=<%= currentPage + 1 %><%= qParams %>" aria-label="Next">
+          Next<i class="bi bi-chevron-right ms-1"></i>
+        </a>
+      </li>
+    </ul>
+  </nav>
+<% } %>

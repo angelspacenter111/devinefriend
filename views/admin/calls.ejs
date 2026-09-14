@@ -40,36 +40,43 @@
               <small class="text-muted">Total records: <span class="fw-semibold"><%= typeof totalCalls !== 'undefined' ? totalCalls : calls.length %></span></small>
             </div>
             
-            <!-- Filters Form: Date, User Name, Status -->
-            <form method="GET" action="/admin/calls" class="row g-2 align-items-center w-100 mt-2 mt-md-0" style="max-width: 680px;">
-              <div class="col-12 col-md-4">
+            <!-- Filters Form: User/Phone, Date, Status, Credit Status -->
+            <form method="GET" action="/admin/calls" class="row g-2 align-items-center w-100 mt-2 mt-lg-0" style="max-width: 780px;">
+              <div class="col-12 col-sm-3">
                 <div class="input-group input-group-sm">
                   <span class="input-group-text bg-light border-end-0"><i class="bi bi-person text-muted"></i></span>
-                  <input type="text" name="userName" class="form-control form-control-custom border-start-0" placeholder="User name or phone..." value="<%= typeof userNameQuery !== 'undefined' ? userNameQuery : (typeof searchQuery !== 'undefined' ? searchQuery : '') %>">
+                  <input type="text" name="userName" class="form-control form-control-custom border-start-0" placeholder="User or phone..." value="<%= typeof userNameQuery !== 'undefined' ? userNameQuery : (typeof searchQuery !== 'undefined' ? searchQuery : '') %>">
                 </div>
               </div>
 
-              <div class="col-6 col-md-3">
-                <div class="input-group input-group-sm">
-                  <span class="input-group-text bg-light border-end-0"><i class="bi bi-calendar3 text-muted"></i></span>
-                  <input type="date" name="date" class="form-control form-control-custom border-start-0" title="Filter by date" value="<%= typeof selectedDate !== 'undefined' ? selectedDate : '' %>">
-                </div>
+              <div class="col-6 col-sm-2">
+                <input type="date" name="date" class="form-control form-control-custom form-control-sm" title="Filter by date" value="<%= typeof selectedDate !== 'undefined' ? selectedDate : '' %>">
               </div>
 
-              <div class="col-6 col-md-3">
+              <div class="col-6 col-sm-2">
                 <select name="status" class="form-select form-control-custom form-select-sm" onchange="this.form.submit()">
                   <% const statuses = ['All', 'Completed', 'Cancelled', 'Missed', 'Rejected', 'Failed', 'Auto-Disconnected (No Credits)']; %>
                   <% statuses.forEach(st => { %>
                     <option value="<%= st %>" <%= (typeof selectedStatus !== 'undefined' && selectedStatus === st) ? 'selected' : '' %>>
-                      <%= st === 'All' ? 'All Statuses' : st %>
+                      <%= st === 'All' ? 'All Status' : st %>
                     </option>
                   <% }) %>
                 </select>
               </div>
 
-              <div class="col-12 col-md-2 d-flex gap-1.5">
-                <button type="submit" class="btn btn-sm btn-brand px-3 flex-grow-1"><i class="bi bi-funnel-fill me-1"></i> Filter</button>
-                <% if ((typeof userNameQuery !== 'undefined' && userNameQuery) || (typeof selectedDate !== 'undefined' && selectedDate) || (typeof selectedStatus !== 'undefined' && selectedStatus !== 'All')) { %>
+              <div class="col-6 col-sm-3">
+                <select name="creditStatus" class="form-select form-control-custom form-select-sm" onchange="this.form.submit()">
+                  <option value="All" <%= (typeof selectedCreditStatus !== 'undefined' && selectedCreditStatus === 'All') ? 'selected' : '' %>>All Deductions</option>
+                  <option value="deducted" <%= (typeof selectedCreditStatus !== 'undefined' && selectedCreditStatus === 'deducted') ? 'selected' : '' %>>Deducted</option>
+                  <option value="waived" <%= (typeof selectedCreditStatus !== 'undefined' && selectedCreditStatus === 'waived') ? 'selected' : '' %>>Waived</option>
+                  <option value="failed" <%= (typeof selectedCreditStatus !== 'undefined' && selectedCreditStatus === 'failed') ? 'selected' : '' %>>Failed</option>
+                  <option value="none" <%= (typeof selectedCreditStatus !== 'undefined' && selectedCreditStatus === 'none') ? 'selected' : '' %>>None</option>
+                </select>
+              </div>
+
+              <div class="col-12 col-sm-2 d-flex gap-1.5">
+                <button type="submit" class="btn btn-sm btn-brand px-2 flex-grow-1"><i class="bi bi-funnel-fill me-1"></i> Filter</button>
+                <% if ((typeof userNameQuery !== 'undefined' && userNameQuery) || (typeof selectedDate !== 'undefined' && selectedDate) || (typeof selectedStatus !== 'undefined' && selectedStatus !== 'All') || (typeof selectedCreditStatus !== 'undefined' && selectedCreditStatus !== 'All')) { %>
                   <a href="/admin/calls" class="btn btn-sm btn-outline-secondary px-2" title="Reset Filters"><i class="bi bi-arrow-clockwise"></i></a>
                 <% } %>
               </div>
@@ -212,34 +219,14 @@
             </table>
           </div>
 
-          <!-- Pagination Controls -->
-          <% if (typeof totalPages !== 'undefined' && totalPages > 1) { %>
-            <nav class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 mt-4 pt-3 border-top">
-              <span class="text-muted small">Showing page <%= currentPage %> of <%= totalPages %> (<%= totalCalls %> total records)</span>
-              <ul class="pagination pagination-sm mb-0">
-                <% 
-                  const queryParams = (typeof userNameQuery !== 'undefined' && userNameQuery ? `&userName=${encodeURIComponent(userNameQuery)}` : '') + 
-                                      (typeof selectedDate !== 'undefined' && selectedDate ? `&date=${encodeURIComponent(selectedDate)}` : '') + 
-                                      (typeof selectedStatus !== 'undefined' && selectedStatus !== 'All' ? `&status=${encodeURIComponent(selectedStatus)}` : '');
-                %>
-                <li class="page-item <%= currentPage <= 1 ? 'disabled' : '' %>">
-                  <a class="page-link" href="/admin/calls?page=<%= currentPage - 1 %><%= queryParams %>">Previous</a>
-                </li>
-                <% for (let p = 1; p <= totalPages; p++) { %>
-                  <% if (p === 1 || p === totalPages || (p >= currentPage - 2 && p <= currentPage + 2)) { %>
-                    <li class="page-item <%= p === currentPage ? 'active' : '' %>">
-                      <a class="page-link" href="/admin/calls?page=<%= p %><%= queryParams %>"><%= p %></a>
-                    </li>
-                  <% } else if (p === currentPage - 3 || p === currentPage + 3) { %>
-                    <li class="page-item disabled"><span class="page-link">...</span></li>
-                  <% } %>
-                <% } %>
-                <li class="page-item <%= currentPage >= totalPages ? 'disabled' : '' %>">
-                  <a class="page-link" href="/admin/calls?page=<%= currentPage + 1 %><%= queryParams %>">Next</a>
-                </li>
-              </ul>
-            </nav>
-          <% } %>
+          <!-- Pagination Partial -->
+          <%- include('../partials/pagination', {
+            currentPage: typeof currentPage !== 'undefined' ? currentPage : 1,
+            totalPages: typeof totalPages !== 'undefined' ? totalPages : 1,
+            totalRecords: typeof totalCalls !== 'undefined' ? totalCalls : calls.length,
+            baseUrl: '/admin/calls',
+            queryParams: typeof queryParams !== 'undefined' ? queryParams : ''
+          }) %>
           </div>
         </div>
       </main>

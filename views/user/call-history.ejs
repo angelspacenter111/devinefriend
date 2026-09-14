@@ -92,20 +92,55 @@
 
           <!-- 2. CALL HISTORY FEED -->
           <div class="app-card p-0 overflow-hidden mb-4">
-            <div class="p-3.5 px-4 d-flex align-items-center justify-content-between border-bottom bg-white">
+            <div class="p-3.5 px-4 d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3 border-bottom bg-white">
               <div>
                 <h5 class="fw-bold mb-0 text-dark">Call History Log</h5>
                 <small class="text-muted">Total <%= typeof totalCalls !== 'undefined' ? totalCalls : calls.length %> conversations</small>
               </div>
+
+              <!-- Filters: Search, Status, Date -->
+              <form method="GET" action="/user/call-history" class="row g-2 align-items-center w-100 mt-1 mt-lg-0" style="max-width: 650px;">
+                <div class="col-12 col-sm-4">
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="q" class="form-control form-control-custom border-start-0" placeholder="Search ID or Advisor..." value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>">
+                  </div>
+                </div>
+
+                <div class="col-6 col-sm-3">
+                  <select name="status" class="form-select form-control-custom form-select-sm" onchange="this.form.submit()">
+                    <% const uStatuses = ['All', 'Completed', 'Cancelled', 'Missed', 'Rejected', 'Failed']; %>
+                    <% uStatuses.forEach(st => { %>
+                      <option value="<%= st %>" <%= (typeof selectedStatus !== 'undefined' && selectedStatus === st) ? 'selected' : '' %>>
+                        <%= st === 'All' ? 'All Status' : st %>
+                      </option>
+                    <% }) %>
+                  </select>
+                </div>
+
+                <div class="col-6 col-sm-3">
+                  <input type="date" name="date" class="form-control form-control-custom form-control-sm" title="Filter by date" value="<%= typeof selectedDate !== 'undefined' ? selectedDate : '' %>">
+                </div>
+
+                <div class="col-12 col-sm-2 d-flex gap-1.5">
+                  <button type="submit" class="btn btn-sm btn-brand px-2 flex-grow-1"><i class="bi bi-funnel-fill me-1"></i> Filter</button>
+                  <% if ((typeof searchQuery !== 'undefined' && searchQuery) || (typeof selectedStatus !== 'undefined' && selectedStatus !== 'All') || (typeof selectedDate !== 'undefined' && selectedDate)) { %>
+                    <a href="/user/call-history" class="btn btn-sm btn-outline-secondary px-2" title="Reset Filters"><i class="bi bi-arrow-clockwise"></i></a>
+                  <% } %>
+                </div>
+              </form>
             </div>
 
             <% if (calls.length === 0) { %>
-              <div class="text-center py-5 px-3">
-                <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mb-3" style="width: 56px; height: 56px;">
-                  <i class="bi bi-telephone-x text-muted fs-4"></i>
+              <div class="text-center py-5 px-3 bg-light rounded-4 border border-dashed m-3">
+                <div class="rounded-circle bg-white shadow-xs d-inline-flex align-items-center justify-content-center p-3 mb-2 text-muted">
+                  <i class="bi bi-telephone-x fs-2 text-muted"></i>
                 </div>
                 <h6 class="fw-bold text-dark mb-1">No Call Records Found</h6>
-                <p class="text-muted small mb-0">Previous conversations will show up here once logged.</p>
+                <p class="text-muted small mb-3">No conversations match your selected filters.</p>
+                <a href="/user/call-history" class="btn btn-sm btn-outline-brand rounded-pill px-3">
+                  <i class="bi bi-arrow-clockwise me-1"></i> Clear Filters
+                </a>
               </div>
             <% } else { %>
               
@@ -190,27 +225,16 @@
               </div>
             <% } %>
 
-            <!-- Pagination Controls -->
-            <% if (typeof totalPages !== 'undefined' && totalPages > 1) { %>
-              <nav class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 p-3 border-top bg-white">
-                <span class="text-muted small">Page <%= currentPage %> of <%= totalPages %></span>
-                <ul class="pagination pagination-sm mb-0">
-                  <li class="page-item <%= currentPage <= 1 ? 'disabled' : '' %>">
-                    <a class="page-link" href="/user/call-history?page=<%= currentPage - 1 %>">Prev</a>
-                  </li>
-                  <% for (let p = 1; p <= totalPages; p++) { %>
-                    <% if (p === 1 || p === totalPages || (p >= currentPage - 2 && p <= currentPage + 2)) { %>
-                      <li class="page-item <%= p === currentPage ? 'active' : '' %>">
-                        <a class="page-link" href="/user/call-history?page=<%= p %>"><%= p %></a>
-                      </li>
-                    <% } %>
-                  <% } %>
-                  <li class="page-item <%= currentPage >= totalPages ? 'disabled' : '' %>">
-                    <a class="page-link" href="/user/call-history?page=<%= currentPage + 1 %>">Next</a>
-                  </li>
-                </ul>
-              </nav>
-            <% } %>
+            <!-- Pagination Partial -->
+            <div class="px-3 pb-3">
+              <%- include('../partials/pagination', {
+                currentPage: typeof currentPage !== 'undefined' ? currentPage : 1,
+                totalPages: typeof totalPages !== 'undefined' ? totalPages : 1,
+                totalRecords: typeof totalCalls !== 'undefined' ? totalCalls : calls.length,
+                baseUrl: '/user/call-history',
+                queryParams: typeof queryParams !== 'undefined' ? queryParams : ''
+              }) %>
+            </div>
           </div>
 
         </div>

@@ -35,14 +35,36 @@
           
           <!-- Pricing Config Panel -->
           <div class="card-premium border-0 bg-white shadow-sm p-4 mb-4">
-            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 mb-4">
               <div>
                 <h5 class="fw-bold mb-1">Credit Packages & Pricing</h5>
-                <p class="text-muted small mb-0">Changes saved here will reflect immediately on user recharge screens.</p>
+                <small class="text-muted">Total packages: <span class="fw-semibold"><%= typeof totalPlans !== 'undefined' ? totalPlans : plans.length %></span></small>
               </div>
-              <button class="btn btn-brand btn-sm px-3" data-bs-toggle="modal" data-bs-target="#addPlanModal">
-                <i class="bi bi-plus-lg me-1"></i> Add Pricing Plan
-              </button>
+
+              <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2 w-100 w-lg-auto">
+                <!-- Filter Form: Search, Status -->
+                <form method="GET" action="/admin/pricing" class="d-flex align-items-center gap-2 flex-grow-1">
+                  <div class="input-group input-group-sm" style="min-width: 180px;">
+                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="q" class="form-control form-control-custom border-start-0" placeholder="Search plan name/ID..." value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>">
+                  </div>
+
+                  <select name="status" class="form-select form-control-custom form-select-sm" onchange="this.form.submit()" style="min-width: 130px;">
+                    <option value="all" <%= (typeof selectedStatus !== 'undefined' && selectedStatus === 'all') ? 'selected' : '' %>>All Status</option>
+                    <option value="active" <%= (typeof selectedStatus !== 'undefined' && selectedStatus === 'active') ? 'selected' : '' %>>Active Only</option>
+                    <option value="disabled" <%= (typeof selectedStatus !== 'undefined' && selectedStatus === 'disabled') ? 'selected' : '' %>>Disabled Only</option>
+                  </select>
+
+                  <button type="submit" class="btn btn-sm btn-brand px-2.5"><i class="bi bi-funnel-fill"></i></button>
+                  <% if ((typeof searchQuery !== 'undefined' && searchQuery) || (typeof selectedStatus !== 'undefined' && selectedStatus !== 'all')) { %>
+                    <a href="/admin/pricing" class="btn btn-sm btn-outline-secondary px-2" title="Reset Filters"><i class="bi bi-arrow-clockwise"></i></a>
+                  <% } %>
+                </form>
+
+                <button class="btn btn-brand btn-sm px-3 text-nowrap" data-bs-toggle="modal" data-bs-target="#addPlanModal">
+                  <i class="bi bi-plus-lg me-1"></i> Add Plan
+                </button>
+              </div>
             </div>
 
             <!-- Mobile View: Modern Cards (visible on phones) -->
@@ -76,7 +98,7 @@
                           <p class="text-muted small mb-3"><%= plan.description %></p>
                         <% } %>
 
-                        <div class="d-flex gap-2">
+                        <div class="d-flex gap-2 pt-2 border-top">
                           <button class="btn btn-sm btn-light border w-100 py-2 btn-edit-plan" 
                                   data-id="<%= plan._id %>" 
                                   data-name="<%= plan.name %>" 
@@ -98,7 +120,16 @@
                     </div>
                   <% }) %>
                 <% } else { %>
-                  <div class="col-12 text-center py-4 text-muted">No pricing plans found. Click Add Plan to seed.</div>
+                  <div class="col-12 text-center py-5 px-3 bg-light rounded-4 border border-dashed my-2">
+                    <div class="rounded-circle bg-white shadow-xs d-inline-flex align-items-center justify-content-center p-3 mb-2 text-muted">
+                      <i class="bi bi-box-seam fs-2 text-muted"></i>
+                    </div>
+                    <h6 class="fw-bold text-dark mb-1">No Pricing Plans Found</h6>
+                    <p class="text-muted small mb-3">No plans match your filter criteria.</p>
+                    <a href="/admin/pricing" class="btn btn-sm btn-outline-brand rounded-pill px-3">
+                      <i class="bi bi-arrow-clockwise me-1"></i> Clear Filters
+                    </a>
+                  </div>
                 <% } %>
               </div>
             </div>
@@ -163,12 +194,32 @@
                     <% }) %>
                   <% } else { %>
                     <tr>
-                      <td colspan="7" class="text-center text-muted py-4">No pricing plans found.</td>
+                      <td colspan="7" class="text-center py-5">
+                        <div class="py-4">
+                          <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center p-3 mb-2 text-muted">
+                            <i class="bi bi-box-seam fs-2 text-muted"></i>
+                          </div>
+                          <h6 class="fw-bold text-dark mb-1">No Pricing Plans Found</h6>
+                          <p class="text-muted small mb-3">No plans match your filter criteria.</p>
+                          <a href="/admin/pricing" class="btn btn-sm btn-outline-brand rounded-pill px-3">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Clear Filters
+                          </a>
+                        </div>
+                      </td>
                     </tr>
                   <% } %>
                 </tbody>
               </table>
             </div>
+
+            <!-- Pagination Partial -->
+            <%- include('../partials/pagination', {
+              currentPage: typeof currentPage !== 'undefined' ? currentPage : 1,
+              totalPages: typeof totalPages !== 'undefined' ? totalPages : 1,
+              totalRecords: typeof totalPlans !== 'undefined' ? totalPlans : plans.length,
+              baseUrl: '/admin/pricing',
+              queryParams: typeof queryParams !== 'undefined' ? queryParams : ''
+            }) %>
 
           </div>
 

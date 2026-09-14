@@ -4,6 +4,11 @@ const Transaction = require('../models/Transaction');
 const PricingPlan = require('../models/PricingPlan');
 const bcrypt = require('bcryptjs');
 
+// Helper to safely escape regex characters
+const escapeRegex = (string) => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
 // Helper to convert mm:ss to numerical minutes
 const parseMins = (durationStr) => {
   if (!durationStr || !durationStr.includes(':')) return 0;
@@ -238,21 +243,73 @@ exports.getCallHistory = async (req, res) => {
     const limit = 10;
     const skip = (page - 1) * limit;
 
-    // Fetch the most recent call for the dedicated Last Call Summary card at the top
+    const { status, date, q } = req.query;
+    const conditions = [{ user: user._id }];
+
+    // 1. Status Filter
+    if (status && status !== 'All' && status !== 'All Statuses' && status !== 'all') {
+      conditions.push({ status: status });
+    }
+
+    // 2. Date Filter (YYYY-MM-DD)
+    if (date && date.trim() !== '') {
+      const parts = date.trim().split('-');
+      if (parts.length === 3) {
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        
+        const localStart = new Date(year, month, day, 0, 0, 0, 0);
+        const localEnd = new Date(year, month, day, 23, 59, 59, 999);
+        const utcStart = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+        const utcEnd = new Date(Date.UTC(year, month, day, 23, 59, 59, 999));
+        
+        const minStart = localStart < utcStart ? localStart : utcStart;
+        const maxEnd = localEnd > utcEnd ? localEnd : utcEnd;
+
+        conditions.push({
+          $or: [
+            { date: { $gte: minStart, $lte: maxEnd } },
+            { startTime: { $gte: minStart, $lte: maxEnd } },
+            { createdAt: { $gte: minStart, $lte: maxEnd } }
+          ]
+        });
+      }
+    }
+
+    // 3. Search Query (Call ID, receiverName)
+    const searchQuery = (q || '').trim();
+    if (searchQuery !== '') {
+      const safeSearch = escapeRegex(searchQuery);
+      const searchRegex = new RegExp(safeSearch, 'i');
+      conditions.push({
+        $or: [
+          { callId: searchRegex },
+          { receiverName: searchRegex }
+        ]
+      });
+    }
+
+    const filter = conditions.length > 0 ? { $and: conditions } : { user: user._id };
+
+    // Fetch latest call overall for the top card (or latest matching)
     const latestCall = await Call.findOne({ user: user._id })
       .populate('admin')
       .sort({ date: -1, createdAt: -1 });
 
-    // Total calls count for pagination
-    const totalCalls = await Call.countDocuments({ user: user._id });
+    const totalCalls = await Call.countDocuments(filter);
     const totalPages = Math.ceil(totalCalls / limit) || 1;
 
-    // Paginated list of all calls
-    const calls = await Call.find({ user: user._id })
+    const calls = await Call.find(filter)
       .populate('admin')
       .sort({ date: -1, createdAt: -1 })
       .skip(skip)
       .limit(limit);
+
+    const queryParams = 
+      (searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : '') +
+      (date ? `&date=${encodeURIComponent(date)}` : '') +
+      (status && status !== 'All' && status !== 'all' ? `&status=${encodeURIComponent(status)}` : '');
 
     res.render('user/call-history', {
       title: 'Call History - Friend',
@@ -262,7 +319,11 @@ exports.getCallHistory = async (req, res) => {
       calls,
       currentPage: page,
       totalPages,
-      totalCalls
+      totalCalls,
+      selectedStatus: status || 'All',
+      selectedDate: date || '',
+      searchQuery,
+      queryParams
     });
   } catch (error) {
     console.error('[Call History Error]', error);
@@ -271,8 +332,87 @@ exports.getCallHistory = async (req, res) => {
 };
 
 exports.getTransactions = async (req, res) => {
-  // Transactions are hidden from user as per design specifications
-  res.redirect('/user/wallet');
+  try {
+    const user = req.user;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = 10;
+    const skip = (page - 1) * limit;
+
+    const { q, type, date } = req.query;
+    const conditions = [{ user: user._id }];
+
+    // 1. Search Query (txnId, desc)
+    const searchQuery = (q || '').trim();
+    if (searchQuery !== '') {
+      const safeSearch = escapeRegex(searchQuery);
+      const searchRegex = new RegExp(safeSearch, 'i');
+      conditions.push({
+        $or: [
+          { txnId: searchRegex },
+          { desc: searchRegex }
+        ]
+      });
+    }
+
+    // 2. Type Filter (credit, debit)
+    if (type && type !== 'all' && type !== 'All') {
+      conditions.push({ type: type.toLowerCase() });
+    }
+
+    // 3. Date Filter (YYYY-MM-DD)
+    if (date && date.trim() !== '') {
+      const parts = date.trim().split('-');
+      if (parts.length === 3) {
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        
+        const localStart = new Date(year, month, day, 0, 0, 0, 0);
+        const localEnd = new Date(year, month, day, 23, 59, 59, 999);
+        const utcStart = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+        const utcEnd = new Date(Date.UTC(year, month, day, 23, 59, 59, 999));
+        
+        const minStart = localStart < utcStart ? localStart : utcStart;
+        const maxEnd = localEnd > utcEnd ? localEnd : utcEnd;
+
+        conditions.push({
+          date: { $gte: minStart, $lte: maxEnd }
+        });
+      }
+    }
+
+    const filter = { $and: conditions };
+
+    const totalTransactions = await Transaction.countDocuments(filter);
+    const totalPages = Math.ceil(totalTransactions / limit) || 1;
+
+    const transactions = await Transaction.find(filter)
+      .sort({ date: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const queryParams = 
+      (searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : '') +
+      (type && type !== 'all' ? `&type=${encodeURIComponent(type)}` : '') +
+      (date ? `&date=${encodeURIComponent(date)}` : '');
+
+    res.render('user/transactions', {
+      title: 'Transactions - Friend',
+      activeTab: 'wallet',
+      user,
+      transactions,
+      currentPage: page,
+      totalPages,
+      totalTransactions,
+      searchQuery,
+      selectedType: type || 'all',
+      selectedDate: date || '',
+      queryParams
+    });
+  } catch (error) {
+    console.error('[User Transactions Error]', error);
+    res.status(500).send('Server Error');
+  }
 };
 
 exports.getProfile = (req, res) => {

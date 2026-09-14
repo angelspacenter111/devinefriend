@@ -1,8 +1,14 @@
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const Call = require('../models/Call');
 const Transaction = require('../models/Transaction');
 const PricingPlan = require('../models/PricingPlan');
 const callService = require('../services/callService');
+
+// Helper to safely escape regex characters
+const escapeRegex = (string) => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
 
 // Default pricing plans seed configuration
 const defaultPlans = [
@@ -217,10 +223,59 @@ exports.getDashboard = async (req, res) => {
 
 exports.getUsers = async (req, res) => {
   try {
-    // Get all users
-    const users = await User.find({ role: 'user' }).sort({ joined: -1 });
-    
-    // Calculate total calls and total credits consumed by each user
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = 15;
+    const skip = (page - 1) * limit;
+
+    const { q, status, sortBy } = req.query;
+    const conditions = [{ role: 'user' }];
+
+    // 1. Search Query (Name, Mobile, or User ID)
+    const searchQuery = (q || '').trim();
+    if (searchQuery !== '') {
+      const safeSearch = escapeRegex(searchQuery);
+      const searchRegex = new RegExp(safeSearch, 'i');
+      
+      const searchOr = [
+        { name: searchRegex },
+        { mobile: searchRegex }
+      ];
+
+      if (mongoose.Types.ObjectId.isValid(searchQuery)) {
+        searchOr.push({ _id: new mongoose.Types.ObjectId(searchQuery) });
+      }
+
+      conditions.push({ $or: searchOr });
+    }
+
+    // 2. Status Filter
+    if (status === 'active') {
+      conditions.push({ isBlocked: false });
+    } else if (status === 'suspended' || status === 'blocked') {
+      conditions.push({ isBlocked: true });
+    }
+
+    const filter = conditions.length > 0 ? { $and: conditions } : { role: 'user' };
+
+    // 3. Sorting
+    let sortOption = { joined: -1 };
+    if (sortBy === 'oldest') {
+      sortOption = { joined: 1 };
+    } else if (sortBy === 'credits_high') {
+      sortOption = { credits: -1 };
+    } else if (sortBy === 'credits_low') {
+      sortOption = { credits: 1 };
+    }
+
+    const totalUsers = await User.countDocuments(filter);
+    const totalPages = Math.ceil(totalUsers / limit) || 1;
+
+    const users = await User.find(filter)
+      .sort(sortOption)
+      .skip(skip)
+      .limit(limit);
+
+    // Calculate total calls and total credits consumed by each user on current page
     const usersWithCalls = await Promise.all(users.map(async (user) => {
       const callCount = await Call.countDocuments({ user: user._id });
       const completedUserCalls = await Call.find({ user: user._id, status: 'Completed' });
@@ -232,10 +287,22 @@ exports.getUsers = async (req, res) => {
       };
     }));
 
+    const queryParams = 
+      (searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : '') +
+      (status && status !== 'all' ? `&status=${encodeURIComponent(status)}` : '') +
+      (sortBy && sortBy !== 'newest' ? `&sortBy=${encodeURIComponent(sortBy)}` : '');
+
     res.render('admin/users', {
       title: 'User Directory - Friend Control',
       activeTab: 'users',
-      users: usersWithCalls
+      users: usersWithCalls,
+      currentPage: page,
+      totalPages,
+      totalUsers,
+      searchQuery,
+      selectedStatus: status || 'all',
+      selectedSort: sortBy || 'newest',
+      queryParams
     });
   } catch (error) {
     console.error('[Admin Users Error]', error);
@@ -249,15 +316,20 @@ exports.getCalls = async (req, res) => {
     const limit = 15;
     const skip = (page - 1) * limit;
 
-    const { status, q, userName, date } = req.query;
+    const { status, q, userName, date, creditStatus } = req.query;
     const conditions = [];
 
     // 1. Status Filter
-    if (status && status !== 'All' && status !== 'All Statuses') {
+    if (status && status !== 'All' && status !== 'All Statuses' && status !== 'all') {
       conditions.push({ status: status });
     }
 
-    // 2. Date Filter (YYYY-MM-DD)
+    // 2. Credit Status Filter
+    if (creditStatus && creditStatus !== 'All' && creditStatus !== 'All Statuses' && creditStatus !== 'all') {
+      conditions.push({ creditStatus: creditStatus.toLowerCase() });
+    }
+
+    // 3. Date Filter (YYYY-MM-DD)
     if (date && date.trim() !== '') {
       const parts = date.trim().split('-');
       if (parts.length === 3) {
@@ -283,10 +355,11 @@ exports.getCalls = async (req, res) => {
       }
     }
 
-    // 3. User Name / Phone / Call ID Filter
+    // 4. User Name / Phone / Call ID Filter
     const nameSearch = (userName || q || '').trim();
     if (nameSearch !== '') {
-      const searchRegex = new RegExp(nameSearch, 'i');
+      const safeSearch = escapeRegex(nameSearch);
+      const searchRegex = new RegExp(safeSearch, 'i');
       const matchingUsers = await User.find({
         $or: [{ name: searchRegex }, { mobile: searchRegex }]
       }).select('_id');
@@ -315,6 +388,12 @@ exports.getCalls = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
+    const queryParams = 
+      (nameSearch ? `&userName=${encodeURIComponent(nameSearch)}` : '') +
+      (date ? `&date=${encodeURIComponent(date)}` : '') +
+      (status && status !== 'All' && status !== 'all' ? `&status=${encodeURIComponent(status)}` : '') +
+      (creditStatus && creditStatus !== 'All' && creditStatus !== 'all' ? `&creditStatus=${encodeURIComponent(creditStatus)}` : '');
+
     res.render('admin/calls', {
       title: 'Call History Database - Friend Control',
       activeTab: 'calls',
@@ -323,9 +402,11 @@ exports.getCalls = async (req, res) => {
       totalPages,
       totalCalls,
       selectedStatus: status || 'All',
+      selectedCreditStatus: creditStatus || 'All',
       userNameQuery: nameSearch,
       selectedDate: date || '',
-      searchQuery: nameSearch
+      searchQuery: nameSearch,
+      queryParams
     });
   } catch (error) {
     console.error('[Admin Calls Error]', error);
@@ -333,14 +414,96 @@ exports.getCalls = async (req, res) => {
   }
 };
 
-
 exports.getTransactions = async (req, res) => {
   try {
-    const transactions = await Transaction.find({}).populate('user').sort({ date: -1 });
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = 15;
+    const skip = (page - 1) * limit;
+
+    const { q, type, status, date } = req.query;
+    const conditions = [];
+
+    // 1. Search Query (txnId, desc, user name/mobile)
+    const searchQuery = (q || '').trim();
+    if (searchQuery !== '') {
+      const safeSearch = escapeRegex(searchQuery);
+      const searchRegex = new RegExp(safeSearch, 'i');
+      
+      const matchingUsers = await User.find({
+        $or: [{ name: searchRegex }, { mobile: searchRegex }]
+      }).select('_id');
+      const userIds = matchingUsers.map(u => u._id);
+
+      conditions.push({
+        $or: [
+          { txnId: searchRegex },
+          { desc: searchRegex },
+          { user: { $in: userIds } }
+        ]
+      });
+    }
+
+    // 2. Type Filter (credit, debit)
+    if (type && type !== 'all' && type !== 'All') {
+      conditions.push({ type: type.toLowerCase() });
+    }
+
+    // 3. Status Filter (Successful, Completed, Failed)
+    if (status && status !== 'all' && status !== 'All') {
+      conditions.push({ status: status });
+    }
+
+    // 4. Date Filter (YYYY-MM-DD)
+    if (date && date.trim() !== '') {
+      const parts = date.trim().split('-');
+      if (parts.length === 3) {
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        
+        const localStart = new Date(year, month, day, 0, 0, 0, 0);
+        const localEnd = new Date(year, month, day, 23, 59, 59, 999);
+        const utcStart = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+        const utcEnd = new Date(Date.UTC(year, month, day, 23, 59, 59, 999));
+        
+        const minStart = localStart < utcStart ? localStart : utcStart;
+        const maxEnd = localEnd > utcEnd ? localEnd : utcEnd;
+
+        conditions.push({
+          date: { $gte: minStart, $lte: maxEnd }
+        });
+      }
+    }
+
+    const filter = conditions.length > 0 ? { $and: conditions } : {};
+
+    const totalTransactions = await Transaction.countDocuments(filter);
+    const totalPages = Math.ceil(totalTransactions / limit) || 1;
+
+    const transactions = await Transaction.find(filter)
+      .populate('user')
+      .sort({ date: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const queryParams = 
+      (searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : '') +
+      (type && type !== 'all' ? `&type=${encodeURIComponent(type)}` : '') +
+      (status && status !== 'all' ? `&status=${encodeURIComponent(status)}` : '') +
+      (date ? `&date=${encodeURIComponent(date)}` : '');
+
     res.render('admin/transactions', {
       title: 'Transaction Audits - Friend Control',
       activeTab: 'transactions',
-      transactions
+      transactions,
+      currentPage: page,
+      totalPages,
+      totalTransactions,
+      searchQuery,
+      selectedType: type || 'all',
+      selectedStatus: status || 'all',
+      selectedDate: date || '',
+      queryParams
     });
   } catch (error) {
     console.error('[Admin Transactions Error]', error);
@@ -390,11 +553,59 @@ exports.getCredits = async (req, res) => {
 
 exports.getPricing = async (req, res) => {
   try {
-    const plans = await getOrSeedPricingPlans();
+    await getOrSeedPricingPlans();
+
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = 10;
+    const skip = (page - 1) * limit;
+
+    const { q, status } = req.query;
+    const conditions = [];
+
+    const searchQuery = (q || '').trim();
+    if (searchQuery !== '') {
+      const safeSearch = escapeRegex(searchQuery);
+      const searchRegex = new RegExp(safeSearch, 'i');
+      conditions.push({
+        $or: [
+          { planId: searchRegex },
+          { name: searchRegex },
+          { badge: searchRegex },
+          { description: searchRegex }
+        ]
+      });
+    }
+
+    if (status === 'active') {
+      conditions.push({ isActive: true });
+    } else if (status === 'disabled') {
+      conditions.push({ isActive: false });
+    }
+
+    const filter = conditions.length > 0 ? { $and: conditions } : {};
+
+    const totalPlans = await PricingPlan.countDocuments(filter);
+    const totalPages = Math.ceil(totalPlans / limit) || 1;
+
+    const plans = await PricingPlan.find(filter)
+      .sort({ order: 1, credits: 1 })
+      .skip(skip)
+      .limit(limit);
+
+    const queryParams = 
+      (searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : '') +
+      (status && status !== 'all' ? `&status=${encodeURIComponent(status)}` : '');
+
     res.render('admin/pricing', {
       title: 'Manage Pricing Plans - Friend Control',
       activeTab: 'pricing',
-      plans
+      plans,
+      currentPage: page,
+      totalPages,
+      totalPlans,
+      searchQuery,
+      selectedStatus: status || 'all',
+      queryParams
     });
   } catch (error) {
     console.error('[Admin Pricing Error]', error);
