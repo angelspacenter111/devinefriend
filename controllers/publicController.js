@@ -26,7 +26,7 @@ exports.getSupport = (req, res) => {
 
 exports.getPricing = (req, res) => {
   res.render('pricing', {
-    title: 'Pricing & Wallet Points - Talk With Ashu',
+    title: 'Pricing & Wallet Coins - Talk With Ashu',
     activeTab: 'pricing'
   });
 };

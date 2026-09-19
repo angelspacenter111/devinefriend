@@ -16,7 +16,7 @@ exports.createOrder = async (req, res) => {
       return res.status(403).json({
         success: false,
         code: 'ADVISOR_OFFLINE',
-        message: 'Ashu is currently offline. Points can only be purchased when Ashu is online.'
+        message: 'Ashu is currently offline. Coins can only be purchased when Ashu is online.'
       });
     }
 
@@ -190,7 +190,7 @@ exports.checkCallAccess = async (req, res) => {
       return res.status(403).json({
         success: false,
         code: result.code || 'INSUFFICIENT_CREDITS',
-        message: result.message || `You need at least ${requiredCredits} points to start a ${callType.toLowerCase()} call. Please purchase points to continue.`,
+        message: result.message || `You need at least ${requiredCredits} coins to start a ${callType.toLowerCase()} call. Please purchase coins to continue.`,
         credits: result.credits || 0,
         requiredCredits: result.requiredCredits || requiredCredits,
         callType

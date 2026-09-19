@@ -61,8 +61,8 @@
                 <select name="sortBy" class="form-select form-control-custom form-select-sm" onchange="this.form.submit()">
                   <option value="newest" <%= (typeof selectedSort !== 'undefined' && selectedSort === 'newest') ? 'selected' : '' %>>Newest Joined</option>
                   <option value="oldest" <%= (typeof selectedSort !== 'undefined' && selectedSort === 'oldest') ? 'selected' : '' %>>Oldest</option>
-                  <option value="credits_high" <%= (typeof selectedSort !== 'undefined' && selectedSort === 'credits_high') ? 'selected' : '' %>>Highest Points</option>
-                  <option value="credits_low" <%= (typeof selectedSort !== 'undefined' && selectedSort === 'credits_low') ? 'selected' : '' %>>Lowest Points</option>
+                  <option value="credits_high" <%= (typeof selectedSort !== 'undefined' && selectedSort === 'credits_high') ? 'selected' : '' %>>Highest Coins</option>
+                  <option value="credits_low" <%= (typeof selectedSort !== 'undefined' && selectedSort === 'credits_low') ? 'selected' : '' %>>Lowest Coins</option>
                 </select>
               </div>
 
@@ -115,12 +115,12 @@
                   <div class="d-flex align-items-center justify-content-between py-2 border-top border-bottom my-2">
                     <span class="small text-muted"><i class="bi bi-telephone me-1"></i><%= usr.callCount %> calls</span>
                     <span class="fw-bold text-purple small" title="Current Wallet Balance"><span class="user-credits-val"><%= usr.credits %></span> Avail</span>
-                    <span class="badge bg-warning-subtle text-dark border rounded-pill px-2 py-0.5 small" title="Points consumed in consultations"><i class="bi bi-coin text-warning me-1"></i><%= usr.creditsUsed || 0 %> pts used</span>
+                    <span class="badge bg-warning-subtle text-dark border rounded-pill px-2 py-0.5 small" title="Coins consumed in consultations"><i class="bi bi-coin text-warning me-1"></i><%= usr.creditsUsed || 0 %> coins used</span>
                     <span class="small text-muted"><%= usr.joined ? usr.joined.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '' %></span>
                   </div>
 
                   <div class="d-flex gap-2 justify-content-end">
-                    <button class="btn btn-sm btn-light border px-3 btn-wallet-edit" title="Edit Wallet Points" data-bs-toggle="modal" data-bs-target="#editWalletModal" data-id="<%= usr._id %>" data-name="<%= usr.name %>" data-credits="<%= usr.credits %>" <%= usr.isBlocked ? 'disabled' : '' %>>
+                    <button class="btn btn-sm btn-light border px-3 btn-wallet-edit" title="Edit Wallet Coins" data-bs-toggle="modal" data-bs-target="#editWalletModal" data-id="<%= usr._id %>" data-name="<%= usr.name %>" data-credits="<%= usr.credits %>" <%= usr.isBlocked ? 'disabled' : '' %>>
                       <i class="bi bi-wallet2 text-primary me-1"></i> Wallet
                     </button>
                     <% if (usr.isBlocked) { %>
@@ -143,7 +143,7 @@
                   <th>Name</th>
                   <th>Mobile</th>
                   <th>Available Balance</th>
-                  <th>Points Consumed</th>
+                  <th>Coins Consumed</th>
                   <th>Total Calls</th>
                   <th>Joined Date</th>
                   <th>Status</th>
@@ -180,10 +180,10 @@
                       <td><span class="fw-semibold font-monospace"><%= usr._id.toString().substring(18) %></span></td>
                       <td><strong><%= usr.name %></strong></td>
                       <td><%= usr.mobile %></td>
-                      <td><span class="fw-bold text-purple"><span class="user-credits-val"><%= usr.credits %></span> Pts</span></td>
+                      <td><span class="fw-bold text-purple"><span class="user-credits-val"><%= usr.credits %></span> Coins</span></td>
                       <td>
                         <span class="badge bg-warning-subtle text-warning-emphasis border rounded-pill px-2.5 py-1 fw-bold">
-                          <i class="bi bi-coin me-1"></i><%= usr.creditsUsed || 0 %> Pts Used
+                          <i class="bi bi-coin me-1"></i><%= usr.creditsUsed || 0 %> Coins Used
                         </span>
                       </td>
                       <td><%= usr.callCount %> calls</td>
@@ -191,7 +191,7 @@
                       <td><span class="badge <%= badgeClass %> status-badge rounded-pill px-2.5 py-1.5"><%= statusText %></span></td>
                       <td>
                         <div class="d-flex gap-1.5">
-                          <button class="btn btn-sm btn-light border px-2 btn-wallet-edit" title="Edit Wallet Points" data-bs-toggle="modal" data-bs-target="#editWalletModal" data-id="<%= usr._id %>" data-name="<%= usr.name %>" data-credits="<%= usr.credits %>" <%= usr.isBlocked ? 'disabled' : '' %>><i class="bi bi-wallet2 text-primary-blue"></i> Wallet</button>
+                          <button class="btn btn-sm btn-light border px-2 btn-wallet-edit" title="Edit Wallet Coins" data-bs-toggle="modal" data-bs-target="#editWalletModal" data-id="<%= usr._id %>" data-name="<%= usr.name %>" data-credits="<%= usr.credits %>" <%= usr.isBlocked ? 'disabled' : '' %>><i class="bi bi-wallet2 text-primary-blue"></i> Wallet</button>
                           
                           <% if (usr.isBlocked) { %>
                             <button class="btn btn-sm btn-danger btn-admin-block px-2" data-id="<%= usr._id %>"><i class="bi bi-x-circle me-1"></i> Blocked</button>
@@ -232,21 +232,21 @@
     <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
       <div class="modal-content rounded-4 border-0 shadow-lg">
         <div class="modal-header border-bottom-0 pb-0">
-          <h5 class="fw-bold mb-0">Modify Points: <span id="modal-user-name" class="text-primary-pink">User</span></h5>
+          <h5 class="fw-bold mb-0">Modify Coins: <span id="modal-user-name" class="text-primary-pink">User</span></h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body py-4">
-          <p class="text-muted small">Update the wallet balance directly. Add points for loyalty, or adjust after technical issue refunds.</p>
+          <p class="text-muted small">Update the wallet balance directly. Add coins for loyalty, or adjust after technical issue refunds.</p>
           <div class="mb-3">
-            <label class="form-label form-label-custom">Direct Points Adjustment</label>
+            <label class="form-label form-label-custom">Direct Coins Adjustment</label>
             <input type="number" class="form-control form-control-custom" id="wallet-credits-input" value="25" min="0">
           </div>
           <div class="mb-3">
             <label class="form-label form-label-custom">Reason for Change</label>
             <select class="form-select form-control-custom">
-              <option>Technical issue point restore</option>
+              <option>Technical issue coin restore</option>
               <option>Loyalty promotion reward</option>
-              <option>Manual billing point load</option>
+              <option>Manual billing coin load</option>
               <option>Administrative adjustment</option>
             </select>
           </div>
@@ -272,7 +272,7 @@
         $('#wallet-credits-input').val($(this).data('credits'));
       });
 
-      // 2. Submit Wallet Point adjustments
+      // 2. Submit Wallet Coin adjustments
       $('#btn-save-wallet').on('click', function() {
         const newCredits = $('#wallet-credits-input').val();
         if (!currentUserIdForWallet) return;
@@ -286,11 +286,11 @@
               $('#editWalletModal').modal('hide');
               location.reload();
             } else {
-              alert(res.message || 'Failed to update points.');
+              alert(res.message || 'Failed to update coins.');
             }
           },
           error: function(err) {
-            alert('Server error updating points.');
+            alert('Server error updating coins.');
           }
         });
       });

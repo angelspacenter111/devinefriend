@@ -12,7 +12,7 @@
         </div>
         <div class="mb-2">
           <span class="badge rounded-pill px-3 py-1.5" id="modal-call-type-badge" style="background: rgba(23,105,224,0.1); color: #1769E0; font-size: 0.8rem;">
-            Voice Call (1 Pt/min)
+            Voice Call (1 Coin/min)
           </span>
         </div>
         <h4 class="fw-bold mb-1" id="modal-call-title">Incoming Call</h4>
@@ -113,10 +113,10 @@
         if (typeBadge) {
           if (isVideo) {
             typeBadge.className = 'badge rounded-pill px-3 py-1.5 bg-purple-subtle text-purple border border-purple-subtle';
-            typeBadge.innerHTML = '<i class="bi bi-camera-video-fill me-1"></i> Video Call (2 Pts/min)';
+            typeBadge.innerHTML = '<i class="bi bi-camera-video-fill me-1"></i> Video Call (2 Coins/min)';
           } else {
             typeBadge.className = 'badge rounded-pill px-3 py-1.5 bg-primary-subtle text-primary border border-primary-subtle';
-            typeBadge.innerHTML = '<i class="bi bi-telephone-fill me-1"></i> Voice Call (1 Pt/min)';
+            typeBadge.innerHTML = '<i class="bi bi-telephone-fill me-1"></i> Voice Call (1 Coin/min)';
           }
         }
         if (callTitle) {

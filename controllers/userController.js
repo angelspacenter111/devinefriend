@@ -125,7 +125,7 @@ exports.getBuyCredits = async (req, res) => {
     }
 
     res.render('user/buy-credits', {
-      title: 'Buy Points - Talk With Ashu',
+      title: 'Buy Coins - Talk With Ashu',
       activeTab: 'buy-credits',
       user: req.user,
       plans,
@@ -141,7 +141,7 @@ exports.getBuyCredits = async (req, res) => {
 exports.postBuyCredits = async (req, res) => {
   return res.status(400).json({
     success: false,
-    message: 'Direct point modification is disabled. All point purchases must be processed through Razorpay Checkout.'
+    message: 'Direct coin modification is disabled. All coin purchases must be processed through Razorpay Checkout.'
   });
 };
 

@@ -7,11 +7,11 @@
 
   <% const isVideo = typeof callType !== 'undefined' && callType === 'Video'; %>
 
-  <!-- Native Mobile Full-Screen Call Interface -->
-  <div class="native-call-screen <%= isVideo ? 'video-mode' : '' %>">
-    
-    <!-- If Video Call: Video Elements Layer -->
-    <% if (isVideo) { %>
+  <% if (isVideo) { %>
+    <!-- Native Mobile Full-Screen Video Call Interface (No Text, Controls Only) -->
+    <div class="native-call-screen video-mode">
+      
+      <!-- Fullscreen Video Elements Layer -->
       <div class="video-stage-wrapper" id="videoStageWrapper">
         <video id="remoteVideo" autoplay playsinline class="remote-video-element"></video>
         <div class="local-pip-container" id="localPipContainer">
@@ -21,218 +21,347 @@
           </button>
         </div>
       </div>
-    <% } %>
 
-    <!-- Top Header Bar -->
-    <div class="call-header-bar <%= isVideo ? 'video-overlay-header' : '' %>">
-      <div class="d-flex align-items-center gap-2">
-        <a href="/user/dashboard" class="btn btn-outline-light btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.15);" title="Return to Dashboard">
-          <i class="bi bi-chevron-down fs-6"></i>
-        </a>
-        <span class="badge rounded-pill px-3 py-1.5 text-white-50 small font-monospace" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.1);">
-          ID: <%= typeof call !== 'undefined' && call ? call.callId : '' %>
-        </span>
-        <% if (isVideo) { %>
-          <span class="badge bg-purple-subtle text-purple border border-purple-subtle rounded-pill px-2.5 py-1 small">
-            <i class="bi bi-camera-video-fill me-1"></i> Video (2 pts/min)
-          </span>
-        <% } %>
-      </div>
-
-      <div>
-        <span class="call-status-badge connecting call-status-pill connecting">
-          <span class="status-indicator-dot online me-1"></span> Connecting...
-        </span>
-      </div>
-    </div>
-
-    <!-- Center Stage: Avatar, Waves & Timer -->
-    <div class="call-center-stage <%= isVideo ? 'video-center-overlay' : '' %>" id="callCenterStage">
-      <div class="call-meta-info mb-4">
-        <div class="badge rounded-pill px-3 py-1 small text-white-50 mb-2" style="background: rgba(255, 255, 255, 0.08);">
-          <i class="bi bi-patch-check-fill text-warning me-1"></i> Talk With Ashu
-        </div>
-        <h2><%= typeof call !== 'undefined' && call && call.receiverName ? call.receiverName : 'Talk With Ashu' %></h2>
-        <p><%= isVideo ? 'Private 1-on-1 Video Consultation' : 'Private 1-on-1 Audio Consultation' %></p>
-      </div>
-
-      <!-- Pulsing Radial Sound Wave Rings -->
-      <div class="call-avatar-container" id="callAvatarContainer">
-        <div class="call-avatar-ring-pulse"></div>
-        <div class="call-avatar-ring-pulse"></div>
-        <div class="call-avatar-ring-pulse"></div>
-        <div class="call-avatar-inner" style="<%= isVideo ? 'background: linear-gradient(135deg, #7B4DCE 0%, #E91E8F 100%);' : '' %>">
-          <i class="bi <%= isVideo ? 'bi-camera-video' : 'bi-person-heart' %>"></i>
+      <!-- Hidden State Tracking Elements for WebRTC & Billing Engine -->
+      <div class="d-none" aria-hidden="true" style="display: none !important;">
+        <span class="call-status-badge connecting call-status-pill connecting"></span>
+        <div class="call-live-timer call-timer">00:00</div>
+        <span id="call-credits-used">0</span>
+        <span id="call-credits-remaining" class="simulated-balance"><%= user.credits %></span>
+        <div id="call-cancel-btn-wrapper">
+          <button id="call-cancel-btn"></button>
         </div>
       </div>
 
-      <!-- Live Call Duration Timer -->
-      <div class="call-live-timer call-timer mb-2">00:00</div>
+      <!-- Floating Bottom Controls Area (Only Control Buttons, No Text) -->
+      <div class="video-overlay-footer" id="call-screen-footer-container">
+        <div class="call-actions-bar" id="call-active-controls">
+          <button class="call-ctrl-btn app-tap-active" id="mute-toggle-btn" onclick="toggleLocalMute()" title="Mute / Unmute Microphone">
+            <i class="bi bi-mic-fill"></i>
+          </button>
 
-      <!-- Audio Soundwave Bars when active -->
-      <div class="soundwave-visualizer mb-3" style="height: 28px; gap: 4px;">
-        <span class="soundwave-bar" style="background: #E91E8F;"></span>
-        <span class="soundwave-bar" style="background: #1769E0;"></span>
-        <span class="soundwave-bar" style="background: #7B4DCE;"></span>
-        <span class="soundwave-bar" style="background: #E91E8F;"></span>
-        <span class="soundwave-bar" style="background: #1769E0;"></span>
-        <span class="soundwave-bar" style="background: #7B4DCE;"></span>
-        <span class="soundwave-bar" style="background: #E91E8F;"></span>
-        <span class="soundwave-bar" style="background: #1769E0;"></span>
-      </div>
-
-      <!-- Real-time Point Counters -->
-      <div class="call-credits-badge-group">
-        <div class="call-credits-badge">
-          <i class="bi bi-stopwatch text-warning me-1"></i>
-          Used: <strong id="call-credits-used">0</strong> pts
-        </div>
-        <div class="call-credits-badge">
-          <i class="bi bi-coin text-primary-blue me-1"></i>
-          Remaining: <strong id="call-credits-remaining" class="simulated-balance"><%= user.credits %></strong> pts
-        </div>
-      </div>
-    </div>
-
-    <!-- Bottom Controls Area -->
-    <div class="text-center <%= isVideo ? 'video-overlay-footer' : '' %>" id="call-screen-footer-container">
-      
-      <!-- Active Call Dialpad Controls (Visible when connected) -->
-      <div class="call-actions-bar d-none" id="call-active-controls">
-        <button class="call-ctrl-btn app-tap-active" id="mute-toggle-btn" onclick="toggleLocalMute()" title="Mute / Unmute Microphone">
-          <i class="bi bi-mic-fill"></i>
-          <small class="d-block" style="font-size: 0.65rem; margin-top: 2px;">Mute</small>
-        </button>
-
-        <% if (isVideo) { %>
           <button class="call-ctrl-btn app-tap-active" id="camera-toggle-btn" onclick="toggleLocalVideo()" title="Camera On / Off">
             <i class="bi bi-camera-video-fill"></i>
-            <small class="d-block" style="font-size: 0.65rem; margin-top: 2px;">Camera</small>
           </button>
-        <% } %>
 
-        <button class="call-ctrl-btn end-btn end-call app-tap-active" id="call-end-btn" title="End Call">
-          <i class="bi bi-telephone-x-fill"></i>
-        </button>
+          <button class="call-ctrl-btn end-btn end-call app-tap-active" id="call-end-btn" title="End Call">
+            <i class="bi bi-telephone-x-fill"></i>
+          </button>
 
-        <button class="call-ctrl-btn app-tap-active" id="speaker-toggle-btn" onclick="toggleRemoteSpeaker()" title="Speaker On / Off">
-          <i class="bi bi-volume-up-fill"></i>
-          <small class="d-block" style="font-size: 0.65rem; margin-top: 2px;">Speaker</small>
-        </button>
+          <button class="call-ctrl-btn app-tap-active" id="speaker-toggle-btn" onclick="toggleRemoteSpeaker()" title="Speaker On / Off">
+            <i class="bi bi-volume-up-fill"></i>
+          </button>
+        </div>
       </div>
 
-      <!-- Cancel Connection Button (Visible while ringing / connecting) -->
-      <div class="mb-4" id="call-cancel-btn-wrapper">
-        <button class="btn btn-danger btn-lg rounded-pill px-5 py-3 shadow-lg fs-5 app-tap-active" id="call-cancel-btn">
-          <i class="bi bi-telephone-x-fill me-2"></i> Cancel Connection
-        </button>
-      </div>
-
-      <!-- Privacy & Security Guarantee -->
-      <div class="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill text-white-50 small" style="background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.1);">
-        <i class="bi bi-shield-lock-fill text-success"></i>
-        <span>Encrypted 1-on-1 <%= isVideo ? 'video' : 'audio' %> • Not recorded • Strict Privacy</span>
-      </div>
     </div>
+  <% } else { %>
+    <!-- Native Mobile Full-Screen Audio Call Interface -->
+    <div class="native-call-screen">
 
-  </div>
+      <!-- Top Header Bar -->
+      <div class="call-header-bar">
+        <div class="d-flex align-items-center gap-2">
+          <a href="/user/dashboard" class="btn btn-outline-light btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.15);" title="Return to Dashboard">
+            <i class="bi bi-chevron-down fs-6"></i>
+          </a>
+          <span class="badge rounded-pill px-3 py-1.5 text-white-50 small font-monospace" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.1);">
+            ID: <%= typeof call !== 'undefined' && call ? call.callId : '' %>
+          </span>
+        </div>
+
+        <div>
+          <span class="call-status-badge connecting call-status-pill connecting">
+            <span class="status-indicator-dot online me-1"></span> Connecting...
+          </span>
+        </div>
+      </div>
+
+      <!-- Center Stage: Avatar, Waves & Timer -->
+      <div class="call-center-stage" id="callCenterStage">
+        <div class="call-meta-info mb-4">
+          <div class="badge rounded-pill px-3 py-1 small text-white-50 mb-2" style="background: rgba(255, 255, 255, 0.08);">
+            <i class="bi bi-patch-check-fill text-warning me-1"></i> Talk With Ashu
+          </div>
+          <h2><%= typeof call !== 'undefined' && call && call.receiverName ? call.receiverName : 'Talk With Ashu' %></h2>
+          <p>Private 1-on-1 Audio Consultation</p>
+        </div>
+
+        <!-- Pulsing Radial Sound Wave Rings -->
+        <div class="call-avatar-container" id="callAvatarContainer">
+          <div class="call-avatar-ring-pulse"></div>
+          <div class="call-avatar-ring-pulse"></div>
+          <div class="call-avatar-ring-pulse"></div>
+          <div class="call-avatar-inner">
+            <i class="bi bi-person-heart"></i>
+          </div>
+        </div>
+
+        <!-- Live Call Duration Timer -->
+        <div class="call-live-timer call-timer mb-2">00:00</div>
+
+        <!-- Audio Soundwave Bars when active -->
+        <div class="soundwave-visualizer mb-3" style="height: 28px; gap: 4px;">
+          <span class="soundwave-bar" style="background: #E91E8F;"></span>
+          <span class="soundwave-bar" style="background: #1769E0;"></span>
+          <span class="soundwave-bar" style="background: #7B4DCE;"></span>
+          <span class="soundwave-bar" style="background: #E91E8F;"></span>
+          <span class="soundwave-bar" style="background: #1769E0;"></span>
+          <span class="soundwave-bar" style="background: #7B4DCE;"></span>
+          <span class="soundwave-bar" style="background: #E91E8F;"></span>
+          <span class="soundwave-bar" style="background: #1769E0;"></span>
+        </div>
+
+        <!-- Real-time Coin Counters -->
+        <div class="call-credits-badge-group">
+          <div class="call-credits-badge">
+            <i class="bi bi-stopwatch text-warning me-1"></i>
+            Used: <strong id="call-credits-used">0</strong> coins
+          </div>
+          <div class="call-credits-badge">
+            <i class="bi bi-coin text-primary-blue me-1"></i>
+            Remaining: <strong id="call-credits-remaining" class="simulated-balance"><%= user.credits %></strong> coins
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Controls Area -->
+      <div class="text-center" id="call-screen-footer-container">
+        
+        <!-- Active Call Dialpad Controls (Visible when connected) -->
+        <div class="call-actions-bar d-none" id="call-active-controls">
+          <button class="call-ctrl-btn app-tap-active" id="mute-toggle-btn" onclick="toggleLocalMute()" title="Mute / Unmute Microphone">
+            <i class="bi bi-mic-fill"></i>
+            <small class="d-block" style="font-size: 0.65rem; margin-top: 2px;">Mute</small>
+          </button>
+
+          <button class="call-ctrl-btn end-btn end-call app-tap-active" id="call-end-btn" title="End Call">
+            <i class="bi bi-telephone-x-fill"></i>
+          </button>
+
+          <button class="call-ctrl-btn app-tap-active" id="speaker-toggle-btn" onclick="toggleRemoteSpeaker()" title="Speaker On / Off">
+            <i class="bi bi-volume-up-fill"></i>
+            <small class="d-block" style="font-size: 0.65rem; margin-top: 2px;">Speaker</small>
+          </button>
+        </div>
+
+        <!-- Cancel Connection Button (Visible while ringing / connecting) -->
+        <div class="mb-4" id="call-cancel-btn-wrapper">
+          <button class="btn btn-danger btn-lg rounded-pill px-5 py-3 shadow-lg fs-5 app-tap-active" id="call-cancel-btn">
+            <i class="bi bi-telephone-x-fill me-2"></i> Cancel Connection
+          </button>
+        </div>
+
+        <!-- Privacy & Security Guarantee -->
+        <div class="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill text-white-50 small" style="background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.1);">
+          <i class="bi bi-shield-lock-fill text-success"></i>
+          <span>Encrypted 1-on-1 audio • Not recorded • Strict Privacy</span>
+        </div>
+      </div>
+
+    </div>
+  <% } %>
 
   <!-- Hidden remote audio element for WebRTC -->
   <audio id="remoteAudio" autoplay></audio>
 
   <!-- Video call layout CSS -->
   <style>
-    .video-mode {
-      position: relative;
-      overflow: hidden;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+    /* Full-Screen Video Call Layout */
+    body.video-call-active {
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      height: 100dvh !important;
+      overflow: hidden !important;
+      background: #000000 !important;
+      position: fixed !important;
+      inset: 0 !important;
     }
-    .video-stage-wrapper {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-      background: #000;
+
+    .native-call-screen.video-mode {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      height: 100dvh !important;
+      max-width: 100vw !important;
+      max-height: 100dvh !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      border: none !important;
+      border-radius: 0 !important;
+      overflow: hidden !important;
+      background: #000000 !important;
+      z-index: 99999 !important;
+      display: block !important;
     }
-    .remote-video-element {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      background: #0f172a;
+
+    .video-mode .video-stage-wrapper {
+      position: absolute !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      background: #000000 !important;
+      z-index: 1 !important;
+      overflow: hidden !important;
     }
-    .local-pip-container {
-      position: absolute;
-      top: 72px;
-      right: 16px;
-      width: 110px;
-      height: 155px;
-      border-radius: 14px;
-      overflow: hidden;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      z-index: 15;
-      background: #1e293b;
+
+    .video-mode .remote-video-element {
+      position: absolute !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover !important;
+      display: block !important;
+      background: #000000 !important;
     }
+
+    /* Floating Local Camera PiP in top corner */
+    .video-mode .local-pip-container {
+      position: absolute !important;
+      top: calc(env(safe-area-inset-top, 0px) + 16px) !important;
+      right: 16px !important;
+      width: 110px !important;
+      height: 155px !important;
+      border-radius: 16px !important;
+      overflow: hidden !important;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7) !important;
+      border: 2px solid rgba(255, 255, 255, 0.35) !important;
+      z-index: 25 !important;
+      background: #0f172a !important;
+      transition: width 0.3s ease, height 0.3s ease !important;
+    }
+
     @media (min-width: 768px) {
-      .local-pip-container {
-        width: 160px;
-        height: 220px;
-        top: 80px;
-        right: 24px;
+      .video-mode .local-pip-container {
+        width: 150px !important;
+        height: 210px !important;
+        top: 24px !important;
+        right: 24px !important;
       }
     }
-    .local-video-element {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transform: scaleX(-1);
+
+    .video-mode .local-video-element {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover !important;
+      transform: scaleX(-1) !important;
     }
-    .local-flip-btn {
-      position: absolute;
-      bottom: 6px;
-      right: 6px;
-      width: 28px;
-      height: 28px;
-      padding: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.75rem;
-      background: rgba(0,0,0,0.65);
-      border: 1px solid rgba(255,255,255,0.2);
+
+    .video-mode .local-flip-btn {
+      position: absolute !important;
+      bottom: 8px !important;
+      right: 8px !important;
+      width: 32px !important;
+      height: 32px !important;
+      padding: 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-size: 0.9rem !important;
+      background: rgba(0, 0, 0, 0.65) !important;
+      border: 1px solid rgba(255, 255, 255, 0.4) !important;
+      border-radius: 50% !important;
+      color: #FFFFFF !important;
+      z-index: 30 !important;
+      cursor: pointer !important;
     }
-    .video-overlay-header {
-      position: relative;
-      z-index: 20;
-      background: linear-gradient(180deg, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0) 100%);
+
+    .video-mode .local-flip-btn:active {
+      transform: scale(0.9) !important;
     }
-    .video-overlay-footer {
-      position: relative;
-      z-index: 20;
-      background: linear-gradient(0deg, rgba(15,23,42,0.9) 0%, rgba(15,23,42,0) 100%);
+
+    /* Floating Video Controls Overlay (Only Buttons, No Text) */
+    .video-mode .video-overlay-footer {
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      width: 100% !important;
+      z-index: 40 !important;
+      padding: 30px 16px calc(env(safe-area-inset-bottom, 0px) + 26px) 16px !important;
+      background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.4) 40%, rgba(0, 0, 0, 0.8) 100%) !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      pointer-events: none !important;
     }
-    .video-center-overlay {
-      position: relative;
-      z-index: 10;
-      transition: opacity 0.3s ease;
+
+    .video-mode .video-overlay-footer .call-actions-bar {
+      pointer-events: auto !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 20px !important;
+      margin: 0 !important;
     }
-    .video-call-active.connected .video-center-overlay .call-avatar-container,
-    .video-call-active.connected .video-center-overlay .soundwave-visualizer {
+
+    /* Modern Circular Floating Buttons */
+    .video-mode .call-ctrl-btn {
+      width: 60px !important;
+      height: 60px !important;
+      min-width: 60px !important;
+      border-radius: 50% !important;
+      border: 1.5px solid rgba(255, 255, 255, 0.28) !important;
+      background: rgba(15, 23, 42, 0.65) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      color: #FFFFFF !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-size: 1.4rem !important;
+      padding: 0 !important;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45) !important;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      cursor: pointer !important;
+    }
+
+    .video-mode .call-ctrl-btn:hover {
+      background: rgba(255, 255, 255, 0.25) !important;
+      transform: scale(1.08) !important;
+    }
+
+    .video-mode .call-ctrl-btn:active {
+      transform: scale(0.92) !important;
+    }
+
+    .video-mode .call-ctrl-btn.active {
+      background: #FFFFFF !important;
+      color: #0F172A !important;
+      border-color: #FFFFFF !important;
+    }
+
+    /* Red End Call Button */
+    .video-mode .call-ctrl-btn.end-btn {
+      background: #EF4444 !important;
+      width: 68px !important;
+      height: 68px !important;
+      min-width: 68px !important;
+      font-size: 1.75rem !important;
+      border-color: rgba(255, 255, 255, 0.35) !important;
+      box-shadow: 0 8px 28px rgba(239, 68, 68, 0.6) !important;
+    }
+
+    .video-mode .call-ctrl-btn.end-btn:hover {
+      background: #DC2626 !important;
+      transform: scale(1.08) !important;
+    }
+
+    /* ABSOLUTELY HIDE ANY TEXT OR LABELS IN VIDEO MODE */
+    .video-mode .call-ctrl-btn small,
+    .video-mode .call-ctrl-btn span:not(.spinner-border),
+    .video-mode .call-header-bar,
+    .video-mode .call-center-stage,
+    .video-mode #call-cancel-btn-wrapper,
+    .video-mode .call-low-credit-bar,
+    .video-mode .video-overlay-header {
       display: none !important;
-    }
-    .video-call-active.connected .video-center-overlay .call-live-timer {
-      background: rgba(0,0,0,0.6);
-      backdrop-filter: blur(8px);
-      padding: 4px 18px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.2);
-      display: inline-block;
     }
   </style>
 

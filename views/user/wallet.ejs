@@ -21,7 +21,7 @@
         <div class="d-flex align-items-center gap-3">
           <div class="header-wallet-badge">
             <i class="bi bi-coin me-1"></i>
-            <span class="fw-bold"><span class="simulated-balance"><%= user.credits %></span> Points</span>
+            <span class="fw-bold"><span class="simulated-balance"><%= user.credits %></span> Coins</span>
           </div>
           <a href="/user/profile" class="btn btn-light d-flex align-items-center gap-2 border rounded-pill py-1 px-3">
             <div class="rounded-circle bg-light-lavender d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
@@ -55,7 +55,7 @@
               <span class="text-white-50 small d-block mb-1">Total Talk Time Available</span>
               <div class="d-flex align-items-baseline gap-2">
                 <h1 class="display-4 fw-extrabold text-white mb-0"><span class="simulated-balance"><%= user.credits %></span></h1>
-                <span class="fs-4 text-white-50 fw-semibold">Points</span>
+                <span class="fs-4 text-white-50 fw-semibold">Coins</span>
               </div>
               <small class="text-white-50 mt-1 d-block">
                 Corresponds to <span class="simulated-balance fw-bold text-white"><%= user.credits %></span> minutes of private voice consultation to Talk With Ashu.
@@ -64,7 +64,7 @@
 
             <div class="d-flex flex-wrap gap-2 pt-3 border-top border-white-10">
               <a href="/user/buy-credits" class="btn btn-light rounded-pill px-4 py-2.5 fw-bold text-primary app-tap-active shadow-sm">
-                <i class="bi bi-plus-circle-fill me-1.5"></i> Add Points Now
+                <i class="bi bi-plus-circle-fill me-1.5"></i> Add Coins Now
               </a>
               <a href="/user/call" class="btn btn-outline-light rounded-pill px-4 py-2.5 fw-semibold app-tap-active">
                 <i class="bi bi-telephone-fill me-1.5"></i> Talk With Ashu
@@ -77,12 +77,12 @@
             <div class="col-sm-6">
               <div class="app-card mb-0 h-100">
                 <div class="d-flex align-items-center gap-3">
-                  <div class="rounded-3 bg-success-subtle text-success p-3 fs-4">
+                  <div class="rounded-circle bg-success-subtle text-success p-3 fs-4">
                     <i class="bi bi-arrow-down-left-circle-fill"></i>
                   </div>
                   <div>
-                    <span class="text-muted small d-block">Total Points Loaded</span>
-                    <h4 class="fw-bold text-dark mb-0"><%= totalPurchased %> pts</h4>
+                    <span class="text-muted small d-block">Total Coins Loaded</span>
+                    <h4 class="fw-bold text-dark mb-0"><%= totalPurchased %> coins</h4>
                     <small class="text-muted"><%= totalPurchased %> Total Minutes</small>
                   </div>
                 </div>
@@ -92,12 +92,12 @@
             <div class="col-sm-6">
               <div class="app-card mb-0 h-100">
                 <div class="d-flex align-items-center gap-3">
-                  <div class="rounded-3 bg-danger-subtle text-danger p-3 fs-4">
+                  <div class="rounded-circle bg-danger-subtle text-danger p-3 fs-4">
                     <i class="bi bi-arrow-up-right-circle-fill"></i>
                   </div>
                   <div>
-                    <span class="text-muted small d-block">Total Points Used</span>
-                    <h4 class="fw-bold text-dark mb-0"><%= totalUsed %> pts</h4>
+                    <span class="text-muted small d-block">Total Coins Used</span>
+                    <h4 class="fw-bold text-dark mb-0"><%= totalUsed %> coins</h4>
                     <small class="text-muted"><%= totalUsed %> Minutes Talked</small>
                   </div>
                 </div>
@@ -105,31 +105,31 @@
             </div>
           </div>
 
-          <!-- 3. How Points Work (Replaces transactions table for privacy & simplicity) -->
+          <!-- 3. How Coins Work (Replaces transactions table for privacy & simplicity) -->
           <div class="app-card p-4 mb-4">
             <h5 class="fw-bold text-dark mb-3">
-              <i class="bi bi-info-circle-fill text-primary me-2"></i> How Your Points Work
+              <i class="bi bi-info-circle-fill text-primary me-2"></i> How Your Coins Work
             </h5>
             <div class="row g-3">
               <div class="col-md-4">
                 <div class="p-3 bg-light rounded-4 h-100">
                   <div class="text-primary fs-3 mb-2"><i class="bi bi-clock-history"></i></div>
-                  <h6 class="fw-bold text-dark mb-1">1 Point = 1 Minute</h6>
-                  <p class="text-muted small mb-0">Every 1 point provides 1 full minute of high-definition private audio time to Talk With Ashu.</p>
+                  <h6 class="fw-bold text-dark mb-1">1 Coin = 1 Minute</h6>
+                  <p class="text-muted small mb-0">Every 1 coin provides 1 full minute of high-definition private audio time to Talk With Ashu.</p>
                 </div>
               </div>
               <div class="col-md-4">
                 <div class="p-3 bg-light rounded-4 h-100">
                   <div class="text-success fs-3 mb-2"><i class="bi bi-shield-lock-fill"></i></div>
                   <h6 class="fw-bold text-dark mb-1">Zero Hidden Deductions</h6>
-                  <p class="text-muted small mb-0">Points are only deducted during an active, connected conversation. Unanswered or cancelled calls cost 0 points.</p>
+                  <p class="text-muted small mb-0">Coins are only deducted during an active, connected conversation. Unanswered or cancelled calls cost 0 coins.</p>
                 </div>
               </div>
               <div class="col-md-4">
                 <div class="p-3 bg-light rounded-4 h-100">
                   <div class="text-purple fs-3 mb-2"><i class="bi bi-infinity"></i></div>
-                  <h6 class="fw-bold text-dark mb-1">Points Never Expire</h6>
-                  <p class="text-muted small mb-0">Your pre-loaded points remain securely stored in your wallet and can be used whenever you need guidance.</p>
+                  <h6 class="fw-bold text-dark mb-1">Coins Never Expire</h6>
+                  <p class="text-muted small mb-0">Your pre-loaded coins remain securely stored in your wallet and can be used whenever you need guidance.</p>
                 </div>
               </div>
             </div>
@@ -137,7 +137,7 @@
             <div class="mt-4 pt-3 border-top text-center text-sm-start d-sm-flex align-items-center justify-content-between">
               <span class="text-muted small mb-2 mb-sm-0 d-block">Need more guidance time to Talk With Ashu?</span>
               <a href="/user/buy-credits" class="btn btn-brand rounded-pill px-4 py-2 small fw-semibold app-tap-active">
-                <i class="bi bi-lightning-charge-fill me-1"></i> Top Up Points
+                <i class="bi bi-lightning-charge-fill me-1"></i> Top Up Coins
               </a>
             </div>
           </div>

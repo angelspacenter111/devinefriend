@@ -521,7 +521,7 @@ function startActiveCallTimer() {
         }
 
         if (activeUser.credits < rate) {
-          console.log("[Billing] Points insufficient for next minute. Disconnecting call...");
+          console.log("[Billing] Coins insufficient for next minute. Disconnecting call...");
           terminateCallSession("Auto-Disconnected (No Credits)");
         }
       }
@@ -530,11 +530,12 @@ function startActiveCallTimer() {
 }
 
 function triggerLowCreditWarning(rate = 1) {
+  if (isVideoCall) return; // Full-screen video call: suppress text alert banners
   if ($(".call-low-credit-bar").length === 0) {
     const minsRemaining = Math.max(1, Math.floor((activeUser.credits || 0) / rate));
     const warningHtml = `
       <div class="call-low-credit-bar">
-        <span><i class="bi bi-exclamation-triangle-fill me-2"></i> Low Points Alert: ~${minsRemaining} Min Remaining</span>
+        <span><i class="bi bi-exclamation-triangle-fill me-2"></i> Low Coins Alert: ~${minsRemaining} Min Remaining</span>
         <a href="/user/buy-credits" target="_blank" class="btn btn-sm btn-light text-danger fw-bold rounded-pill px-3">Recharge Now</a>
       </div>
     `;
@@ -563,11 +564,10 @@ function terminateCallSession(statusType) {
 
   // Protect buttons against multi-click
   $("#call-end-btn, #call-cancel-btn").prop('disabled', true);
-  if (statusType === 'Cancelled' || statusType === 'Missed') {
+  if ($("#call-cancel-btn").is(":visible")) {
     $("#call-cancel-btn").text('Cancelling...');
-  } else {
-    $("#call-end-btn").html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
   }
+  $("#call-end-btn").html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
 
   // Clear timers
   if (callTimerInterval) {
@@ -706,6 +706,7 @@ async function flipCamera() {
     const localVideo = document.getElementById('localVideo');
     if (localVideo) {
       localVideo.srcObject = localStream;
+      localVideo.style.transform = (currentFacingMode === 'environment') ? 'none' : 'scaleX(-1)';
     }
     console.log(`[WebRTC] Camera flipped to: ${currentFacingMode}`);
   } catch (err) {

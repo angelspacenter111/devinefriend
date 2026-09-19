@@ -112,7 +112,7 @@
                       </div>
                       <div class="text-end">
                         <span class="fw-bold <%= isCredit ? 'text-success' : 'text-danger' %> small d-block">
-                          <%= isCredit ? '+' : '-' %><%= txn.credits %> Pts
+                          <%= isCredit ? '+' : '-' %><%= txn.credits %> Coins
                         </span>
                         <small class="text-muted font-monospace"><%= txn.date ? txn.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '' %></small>
                       </div>
@@ -136,7 +136,7 @@
                     <th>Date</th>
                     <th>User</th>
                     <th>Description</th>
-                    <th>Points Loaded</th>
+                    <th>Coins Loaded</th>
                     <th>Amount Received</th>
                     <th>Status</th>
                   </tr>
@@ -161,8 +161,8 @@
                     <% transactions.forEach(txn => { %>
                       <% 
                         const creditFormatted = txn.type === "credit"
-                          ? `<span class="text-success fw-bold">+${txn.credits} Points</span>`
-                          : `<span class="text-danger fw-bold">-${txn.credits} Points</span>`;
+                          ? `<span class="text-success fw-bold">+${txn.credits} Coins</span>`
+                          : `<span class="text-danger fw-bold">-${txn.credits} Coins</span>`;
                         
                         let badgeClass = "bg-success-subtle text-success";
                         if (txn.status === "Failed") badgeClass = "bg-danger-subtle text-danger";

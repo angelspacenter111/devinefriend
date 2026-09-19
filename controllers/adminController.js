@@ -539,7 +539,7 @@ exports.getCredits = async (req, res) => {
     const avgSessionLength = completedCalls.length > 0 ? (totalCallMins / completedCalls.length).toFixed(1) : 0;
     
     res.render('admin/credits', {
-      title: 'Point Audits - Talk With Ashu Control',
+      title: 'Coin Audits - Talk With Ashu Control',
       activeTab: 'credits',
       transactions,
       stats: {
@@ -685,7 +685,7 @@ exports.postAddPricing = async (req, res) => {
     const numPrice = parseInt(price, 10);
 
     if (isNaN(numCredits) || numCredits <= 0) {
-      return res.status(400).json({ success: false, message: 'Points must be a positive number.' });
+      return res.status(400).json({ success: false, message: 'Coins must be a positive number.' });
     }
     if (isNaN(numPrice) || numPrice < 0) {
       return res.status(400).json({ success: false, message: 'Price must be a valid positive amount.' });
@@ -934,7 +934,7 @@ exports.postUpdateCredits = async (req, res) => {
     const { credits } = req.body;
 
     if (credits === undefined || isNaN(credits)) {
-      return res.status(400).json({ success: false, message: 'Invalid points amount.' });
+      return res.status(400).json({ success: false, message: 'Invalid coins amount.' });
     }
 
     const user = await User.findById(id);
@@ -955,7 +955,7 @@ exports.postUpdateCredits = async (req, res) => {
       const adjustmentTxn = new Transaction({
         txnId: "TXN-" + Math.floor(1000 + Math.random() * 9000) + Math.floor(10 + Math.random() * 90),
         user: user._id,
-        desc: `Admin Adjustment (${diff > 0 ? '+' : ''}${diff} Points)`,
+        desc: `Admin Adjustment (${diff > 0 ? '+' : ''}${diff} Coins)`,
         type: diff > 0 ? 'credit' : 'debit',
         credits: Math.abs(diff),
         amount: "₹0",
@@ -966,12 +966,12 @@ exports.postUpdateCredits = async (req, res) => {
 
     return res.json({
       success: true,
-      message: `User points balance updated to ${cleanCredits}.`,
+      message: `User coins balance updated to ${cleanCredits}.`,
       credits: user.credits
     });
   } catch (error) {
     console.error('[Admin User Credits Update Error]', error);
-    return res.status(500).json({ success: false, message: 'Server error updating points.' });
+    return res.status(500).json({ success: false, message: 'Server error updating coins.' });
   }
 };
 

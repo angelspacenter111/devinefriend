@@ -15,7 +15,7 @@
       <!-- Top Header (Desktop) -->
       <header class="header-panel shadow-sm d-none d-lg-flex">
         <div class="d-flex align-items-center gap-3">
-          <h4 class="mb-0 fw-bold">Manage Pricing & Points</h4>
+          <h4 class="mb-0 fw-bold">Manage Pricing & Coins</h4>
         </div>
         
         <div class="d-flex align-items-center gap-3">
@@ -37,7 +37,7 @@
           <div class="card-premium border-0 bg-white shadow-sm p-4 mb-4">
             <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 mb-4">
               <div>
-                <h5 class="fw-bold mb-1">Point Packages & Pricing</h5>
+                <h5 class="fw-bold mb-1">Coin Packages & Pricing</h5>
                 <small class="text-muted">Total packages: <span class="fw-semibold"><%= typeof totalPlans !== 'undefined' ? totalPlans : plans.length %></span></small>
               </div>
 
@@ -110,7 +110,7 @@
                           <div>
                             <h6 class="fw-bold mb-0 text-dark"><%= plan.name %></h6>
                             <span class="text-muted small">
-                              <%= plan.credits %> Points 
+                              <%= plan.credits %> Coins 
                               (<%= plan.category === 'Video' ? Math.floor(plan.credits / 2) + ' Video Mins' : plan.credits + ' Voice Mins' %>)
                             </span>
                           </div>
@@ -166,7 +166,7 @@
                     <th>Plan ID</th>
                     <th>Name / Tag</th>
                     <th>Category</th>
-                    <th>Points Value</th>
+                    <th>Coins Value</th>
                     <th>Call Duration</th>
                     <th>Price Pack (₹)</th>
                     <th>Status</th>
@@ -202,14 +202,14 @@
                             </span>
                           <% } %>
                         </td>
-                        <td><span class="fw-bold text-dark"><%= plan.credits %> Points</span></td>
+                        <td><span class="fw-bold text-dark"><%= plan.credits %> Coins</span></td>
                         <td>
                           <% if (plan.category === 'Video') { %>
                             <span class="text-purple fw-bold"><%= Math.floor(plan.credits / 2) %> Video Mins</span>
-                            <small class="text-muted d-block" style="font-size: 0.72rem;">(2 pts/min)</small>
+                            <small class="text-muted d-block" style="font-size: 0.72rem;">(2 coins/min)</small>
                           <% } else { %>
                             <span class="text-dark fw-semibold"><%= plan.credits %> Voice Mins</span>
-                            <small class="text-muted d-block" style="font-size: 0.72rem;">(1 pt/min)</small>
+                            <small class="text-muted d-block" style="font-size: 0.72rem;">(1 coin/min)</small>
                           <% } %>
                         </td>
                         <td><strong class="fs-6 text-dark">₹<%= plan.price.toLocaleString('en-IN') %></strong></td>
@@ -307,7 +307,7 @@
             </div>
             <div class="row g-2 mb-3">
               <div class="col-6">
-                <label class="form-label form-label-custom">Points <span class="text-danger">*</span></label>
+                <label class="form-label form-label-custom">Coins <span class="text-danger">*</span></label>
                 <input type="number" id="add_plan_credits" class="form-control form-control-custom" placeholder="e.g. 30" min="1" required>
               </div>
               <div class="col-6">
@@ -368,7 +368,7 @@
             </div>
             <div class="row g-2 mb-3">
               <div class="col-6">
-                <label class="form-label form-label-custom">Points Value <span class="text-danger">*</span></label>
+                <label class="form-label form-label-custom">Coins Value <span class="text-danger">*</span></label>
                 <input type="number" id="edit_plan_credits" class="form-control form-control-custom" min="1" required>
               </div>
               <div class="col-6">

@@ -117,7 +117,7 @@ exports.postRegister = async (req, res) => {
     const welcomeTxn = new Transaction({
       txnId: "TXN-" + Math.floor(1000 + Math.random() * 9000) + Math.floor(10 + Math.random() * 90),
       user: savedUser._id,
-      desc: "Welcome Bonus (25 Free Points)",
+      desc: "Welcome Bonus (25 Free Coins)",
       type: "credit",
       credits: 25,
       amount: "₹0",

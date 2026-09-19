@@ -15,7 +15,7 @@
       <!-- Top Header (Desktop) -->
       <header class="header-panel shadow-sm d-none d-lg-flex">
         <div class="d-flex align-items-center gap-3">
-          <h4 class="mb-0 fw-bold">Point Flow Auditing</h4>
+          <h4 class="mb-0 fw-bold">Coin Flow Auditing</h4>
         </div>
         
         <div class="d-flex align-items-center gap-3">
@@ -32,26 +32,26 @@
       <!-- Main Contents Canvas -->
       <main class="main-content-inner">
         <div class="app-container">
-        <!-- Point Summary strip -->
+        <!-- Coin Summary strip -->
         <div class="row g-3 mb-4">
           <div class="col-md-4">
             <div class="card-premium border-0 bg-white shadow-sm p-4 text-center">
               <i class="bi bi-arrow-down-left-circle-fill text-success fs-2 mb-2"></i>
-              <span class="text-muted d-block small mb-1">Total Points Sold</span>
+              <span class="text-muted d-block small mb-1">Total Coins Sold</span>
               <h3 class="fw-extrabold text-dark mb-0"><%= stats.totalCreditsSold %></h3>
             </div>
           </div>
           <div class="col-md-4">
             <div class="card-premium border-0 bg-white shadow-sm p-4 text-center">
               <i class="bi bi-arrow-up-right-circle-fill text-danger fs-2 mb-2"></i>
-              <span class="text-muted d-block small mb-1">Total Points Used</span>
+              <span class="text-muted d-block small mb-1">Total Coins Used</span>
               <h3 class="fw-extrabold text-dark mb-0"><%= stats.totalCreditsUsed %></h3>
             </div>
           </div>
           <div class="col-md-4">
             <div class="card-premium border-0 bg-white shadow-sm p-4 text-center">
               <i class="bi bi-safe-fill text-purple fs-2 mb-2"></i>
-              <span class="text-muted d-block small mb-1">Available User Points (In Circulation)</span>
+              <span class="text-muted d-block small mb-1">Available User Coins (In Circulation)</span>
               <h3 class="fw-extrabold text-purple mb-0"><%= stats.creditsInCirculation %></h3>
             </div>
           </div>
@@ -61,26 +61,26 @@
         <div class="row g-4 mb-4">
           <div class="col-lg-7">
             <div class="card-premium border-0 bg-white shadow-sm p-4">
-              <h5 class="fw-bold mb-4">Point Consumption History</h5>
+              <h5 class="fw-bold mb-4">Coin Consumption History</h5>
               <div class="chart-container-css">
                 <div class="chart-bar-css-wrapper">
-                  <div class="chart-bar-css" data-val="1,200 Points" style="height: 45%;"></div>
+                  <div class="chart-bar-css" data-val="1,200 Coins" style="height: 45%;"></div>
                   <span class="chart-bar-label">Mon</span>
                 </div>
                 <div class="chart-bar-css-wrapper">
-                  <div class="chart-bar-css" data-val="2,400 Points" style="height: 70%;"></div>
+                  <div class="chart-bar-css" data-val="2,400 Coins" style="height: 70%;"></div>
                   <span class="chart-bar-label">Tue</span>
                 </div>
                 <div class="chart-bar-css-wrapper">
-                  <div class="chart-bar-css" data-val="3,100 Points" style="height: 90%;"></div>
+                  <div class="chart-bar-css" data-val="3,100 Coins" style="height: 90%;"></div>
                   <span class="chart-bar-label">Wed</span>
                 </div>
                 <div class="chart-bar-css-wrapper">
-                  <div class="chart-bar-css" data-val="1,800 Points" style="height: 55%;"></div>
+                  <div class="chart-bar-css" data-val="1,800 Coins" style="height: 55%;"></div>
                   <span class="chart-bar-label">Thu</span>
                 </div>
                 <div class="chart-bar-css-wrapper">
-                  <div class="chart-bar-css" data-val="3,400 Points" style="height: 100%;"></div>
+                  <div class="chart-bar-css" data-val="3,400 Coins" style="height: 100%;"></div>
                   <span class="chart-bar-label">Fri</span>
                 </div>
               </div>
@@ -89,7 +89,7 @@
 
           <div class="col-lg-5">
             <div class="card-premium border-0 bg-white shadow-sm p-4">
-              <h5 class="fw-bold mb-3">Point Circulation Details</h5>
+              <h5 class="fw-bold mb-3">Coin Circulation Details</h5>
               <div class="d-grid gap-3 small">
                 <div class="d-flex align-items-center justify-content-between p-2.5 rounded-3 bg-light">
                   <span class="text-muted">Avg. Session length</span>
@@ -100,7 +100,7 @@
                   <span class="fw-bold text-success">₹<%= ((typeof stats !== 'undefined' && stats && stats.totalRevenue) || 0).toLocaleString('en-IN') %></span>
                 </div>
                 <div class="d-flex align-items-center justify-content-between p-2.5 rounded-3 bg-light">
-                  <span class="text-muted">Avg. Price per Point</span>
+                  <span class="text-muted">Avg. Price per Coin</span>
                   <span class="fw-bold text-dark">₹24.9</span>
                 </div>
               </div>

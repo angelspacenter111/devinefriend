@@ -45,7 +45,7 @@ $(document).ready(function () {
       $buyBtns.removeClass("btn-buy-offline").css({ opacity: "1", cursor: "pointer" });
       $buyBtns.each(function() {
         const price = $(this).data("price");
-        $(this).html(price ? `Add ${price}` : "Add Points");
+        $(this).html(price ? `Add ${price}` : "Add Coins");
       });
     } else {
       $dots.removeClass("online").addClass("offline");
@@ -141,14 +141,14 @@ $(document).ready(function () {
     e.preventDefault();
     const $btn = $(this);
 
-    // Guard: Ashu must be online to purchase points
+    // Guard: Ashu must be online to purchase coins
     if (typeof window.isAdvisorOnline !== 'undefined' && !window.isAdvisorOnline) {
       const modalEl = document.getElementById('advisorOfflineModal');
       if (modalEl && typeof bootstrap !== 'undefined') {
         const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
         modal.show();
       } else {
-        showToast("Ashu is currently offline. Points can only be purchased when Ashu is online.", "warning");
+        showToast("Ashu is currently offline. Coins can only be purchased when Ashu is online.", "warning");
       }
       return;
     }
@@ -188,7 +188,7 @@ $(document).ready(function () {
           amount: res.amount,
           currency: res.currency || "INR",
           name: "Talk With Ashu",
-          description: res.description || "Voice Call Points",
+          description: res.description || "Voice Call Coins",
           order_id: res.orderId,
           prefill: {
             name: (window.sessionUser && window.sessionUser.name) ? window.sessionUser.name : "",
@@ -201,7 +201,7 @@ $(document).ready(function () {
           modal: {
             ondismiss: function () {
               $btn.html(origText).prop("disabled", false);
-              showToast("Payment cancelled. Points were not charged.", "warning");
+              showToast("Payment cancelled. Coins were not charged.", "warning");
             }
           },
           handler: function (response) {
@@ -224,7 +224,7 @@ $(document).ready(function () {
                     window.sessionUser.credits = verifyRes.credits;
                   }
                   $(".simulated-balance").text(verifyRes.credits);
-                  showToast(verifyRes.message || `Payment verified! You now have ${verifyRes.credits} points.`, "success");
+                  showToast(verifyRes.message || `Payment verified! You now have ${verifyRes.credits} coins.`, "success");
 
                   setTimeout(() => {
                     location.reload();

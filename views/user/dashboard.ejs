@@ -29,7 +29,7 @@
 
           <div class="header-wallet-badge">
             <i class="bi bi-coin me-1"></i>
-            <span class="fw-bold"><span class="simulated-balance"><%= user.credits %></span> Points</span>
+            <span class="fw-bold"><span class="simulated-balance"><%= user.credits %></span> Coins</span>
             <span class="text-muted small ms-1">(≈ <span class="simulated-balance"><%= user.credits %></span> mins)</span>
           </div>
 
@@ -96,7 +96,7 @@
                     <span class="soundwave-bar"></span>
                   </div>
                   <span class="text-white-50 small">
-                    Available: <strong class="text-white"><span class="simulated-balance"><%= user.credits %></span> Points</strong>
+                    Available: <strong class="text-white"><span class="simulated-balance"><%= user.credits %></span> Coins</strong>
                     (<%= user.credits %>m Voice / <%= Math.floor(user.credits / 2) %>m Video)
                   </span>
                 </div>
@@ -106,25 +106,25 @@
                 <% if (user.credits >= 1) { %>
                   <div class="d-flex flex-column gap-2">
                     <a href="/user/call?type=voice" class="btn btn-brand btn-lg rounded-pill px-4 py-3 shadow-lg w-100 app-tap-active btn-start-call <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? '' : 'btn-advisor-offline' %>" id="dash-start-call-btn" style="font-size: 1.05rem;">
-                      <i class="bi bi-telephone-fill me-2"></i> Voice Call <small class="text-white-50 ms-1">(1 pt/min)</small>
+                      <i class="bi bi-telephone-fill me-2"></i> Voice Call <small class="text-white-50 ms-1">(1 coin/min)</small>
                     </a>
                     <% if (user.credits >= 2) { %>
                       <a href="/user/call?type=video" class="btn btn-outline-light btn-lg rounded-pill px-4 py-2.5 shadow-sm w-100 app-tap-active btn-start-call <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? '' : 'btn-advisor-offline' %>" id="dash-start-video-btn" style="font-size: 0.98rem; border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.12);">
-                        <i class="bi bi-camera-video-fill me-2 text-warning"></i> Video Call <small class="text-white-50 ms-1">(2 pts/min)</small>
+                        <i class="bi bi-camera-video-fill me-2 text-warning"></i> Video Call <small class="text-white-50 ms-1">(2 coins/min)</small>
                       </a>
                     <% } else { %>
-                      <a href="/user/buy-credits?lowCredits=true" class="btn btn-outline-light btn-lg rounded-pill px-4 py-2.5 shadow-sm w-100 app-tap-active" style="font-size: 0.95rem; border-color: rgba(255,255,255,0.3); opacity: 0.85;" title="Video call requires minimum 2 points">
-                        <i class="bi bi-camera-video me-2"></i> Video Call <small class="text-white-50 ms-1">(Need 2 pts)</small>
+                      <a href="/user/buy-credits?lowCredits=true" class="btn btn-outline-light btn-lg rounded-pill px-4 py-2.5 shadow-sm w-100 app-tap-active" style="font-size: 0.95rem; border-color: rgba(255,255,255,0.3); opacity: 0.85;" title="Video call requires minimum 2 coins">
+                        <i class="bi bi-camera-video me-2"></i> Video Call <small class="text-white-50 ms-1">(Need 2 coins)</small>
                       </a>
                     <% } %>
                   </div>
                 <% } else { %>
                   <a href="/user/buy-credits?lowCredits=true" class="btn btn-warning btn-lg rounded-pill px-4 py-3.5 shadow-lg w-100 app-tap-active" title="Recharge required to talk" style="font-size: 1.1rem;">
-                    <i class="bi bi-coin me-2"></i> Add Points to Call
+                    <i class="bi bi-coin me-2"></i> Add Coins to Call
                   </a>
                 <% } %>
                 <small class="text-white-50 d-block mt-2 text-center text-lg-end" style="font-size: 0.75rem;">
-                  Voice: 1 pt/min • Video: 2 pts/min • Encrypted
+                  Voice: 1 coin/min • Video: 2 coins/min • Encrypted
                 </small>
               </div>
             </div>
@@ -169,7 +169,7 @@
                   </div>
                   <div class="d-flex align-items-baseline gap-2">
                     <h2 class="display-6 fw-extrabold text-primary mb-0"><span class="simulated-balance"><%= user.credits %></span></h2>
-                    <span class="text-muted fw-semibold">Points</span>
+                    <span class="text-muted fw-semibold">Coins</span>
                   </div>
                   <p class="text-muted small mt-2 mb-0">
                     Allows approximately <strong><span class="simulated-balance"><%= user.credits %></span> minutes</strong> of live voice conversation to Talk With Ashu.
@@ -177,7 +177,7 @@
                 </div>
                 <div class="mt-3 pt-3 border-top">
                   <a href="/user/buy-credits" class="btn btn-outline-brand btn-sm rounded-pill w-100 py-2.5 fw-semibold app-tap-active">
-                    <i class="bi bi-plus-circle-fill me-1"></i> Quick Recharge Points
+                    <i class="bi bi-plus-circle-fill me-1"></i> Quick Recharge Coins
                   </a>
                 </div>
               </div>
@@ -236,7 +236,7 @@
                       badgeClass = "bg-warning-subtle text-warning";
                       iconClass = call.callType === "Video" ? "bi-camera-video-off text-warning" : "bi-telephone-x-fill text-warning";
                     }
-                    if (call.status === "Failed" || (call.status && (call.status.includes("No Points") || call.status.includes("No Credits")))) {
+                    if (call.status === "Failed" || (call.status && (call.status.includes("No Points") || call.status.includes("No Coins") || call.status.includes("No Credits")))) {
                       badgeClass = "bg-danger-subtle text-danger";
                       iconClass = "bi-exclamation-circle-fill text-danger";
                     }
@@ -260,7 +260,7 @@
                     </div>
                     <div class="text-end">
                       <span class="badge <%= badgeClass %> rounded-pill px-2.5 py-1 small mb-1 d-inline-block"><%= call.status %></span>
-                      <small class="d-block text-muted font-monospace"><%= call.duration %> (<%= call.credits %> pts)</small>
+                      <small class="d-block text-muted font-monospace"><%= call.duration %> (<%= call.credits %> coins)</small>
                     </div>
                   </div>
                 <% }) %>

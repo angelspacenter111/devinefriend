@@ -64,12 +64,12 @@ async function initiateCall({ user, callType = 'Voice' }) {
   }
 
   const isVideo = (callType === 'Video');
-  const creditRate = isVideo ? 2 : 1; // Video calls consume 2 points/minute, Voice calls 1 point/minute
+  const creditRate = isVideo ? 2 : 1; // Video calls consume 2 coins/minute, Voice calls 1 coin/minute
   const minRequired = creditRate;
 
   if (freshUser.credits < minRequired) {
     logStructured('CALL_FAILED', { reason: 'INSUFFICIENT_CREDITS', userId: freshUser._id, credits: freshUser.credits, required: minRequired });
-    const err = new Error(`Insufficient points to initiate a ${isVideo ? 'video' : 'voice'} call (minimum ${minRequired} points required)`);
+    const err = new Error(`Insufficient coins to initiate a ${isVideo ? 'video' : 'voice'} call (minimum ${minRequired} coins required)`);
     err.code = 'INSUFFICIENT_CREDITS';
     throw err;
   }
@@ -462,7 +462,7 @@ async function checkCallAccess(userId, requiredCredits = 1, callType = 'Voice') 
     return {
       allowed: false,
       code: 'INSUFFICIENT_CREDITS',
-      message: `You need at least ${minCredits} points to start a ${callType.toLowerCase()} call. Please purchase points to continue.`,
+      message: `You need at least ${minCredits} coins to start a ${callType.toLowerCase()} call. Please purchase coins to continue.`,
       credits: user.credits,
       requiredCredits: minCredits
     };
