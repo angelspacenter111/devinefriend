@@ -4,7 +4,7 @@
 <body class="app-mode">
 
   <!-- Mobile-First App Top Bar -->
-  <%- include('../partials/app-header', { pageTitle: 'Recharge Credits', showBack: true, backUrl: '/user/wallet' }) %>
+  <%- include('../partials/app-header', { pageTitle: 'Recharge Points', showBack: true, backUrl: '/user/wallet' }) %>
 
   <div class="panel-wrapper">
     <!-- Desktop Left Sidebar -->
@@ -15,13 +15,13 @@
       <!-- Desktop Header Panel -->
       <header class="header-panel shadow-sm d-none d-lg-flex">
         <div class="d-flex align-items-center gap-3">
-          <h4 class="mb-0 fw-bold">Purchase Credits</h4>
+          <h4 class="mb-0 fw-bold">Purchase Points</h4>
         </div>
         
         <div class="d-flex align-items-center gap-3">
           <div class="header-wallet-badge">
             <i class="bi bi-coin me-1"></i>
-            <span class="fw-bold"><span class="simulated-balance"><%= user.credits %></span> Credits</span>
+            <span class="fw-bold"><span class="simulated-balance"><%= user.credits %></span> Points</span>
           </div>
           <a href="/user/profile" class="btn btn-light d-flex align-items-center gap-2 border rounded-pill py-1 px-3">
             <div class="rounded-circle bg-light-lavender d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
@@ -45,57 +45,115 @@
             <div class="d-flex align-items-center gap-2">
               <i class="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
               <div>
-                <strong class="text-dark d-block">Credits Needed to Start Call</strong>
-                <span class="text-muted small">You need at least 1 credit (1 minute) to connect with an advisor. Select a pack below.</span>
+                <strong class="text-dark d-block">Points Needed to Start Call</strong>
+                <span class="text-muted small">You need at least 1 point for voice or 2 points for video call to Talk With Ashu. Select a pack below.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ashu Offline Notice (Shown when Ashu is offline) -->
+          <div id="ashu-offline-buy-banner" class="alert alert-danger border-0 rounded-4 mb-3 p-3 shadow-sm <%= (typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline) ? 'd-none' : '' %>" style="background-color: #FFF2F2; border-left: 4px solid #EF4444 !important;">
+            <div class="d-flex align-items-center gap-3">
+              <div class="rounded-circle bg-danger-subtle text-danger d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px; font-size: 1.25rem;">
+                <i class="bi bi-person-slash"></i>
+              </div>
+              <div>
+                <strong class="text-danger d-block">Ashu is Currently Offline</strong>
+                <span class="text-muted small">Points can only be purchased when Ashu is online and available to talk. You will be able to recharge as soon as Ashu comes online.</span>
               </div>
             </div>
           </div>
 
           <!-- Current Balance Pill Banner -->
-          <div class="app-card bg-light border-0 p-3 mb-4 d-flex align-items-center justify-content-between">
+          <div class="app-card bg-light border-0 p-3 mb-4 d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div class="d-flex align-items-center gap-3">
               <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; font-size: 1.25rem;">
                 <i class="bi bi-wallet2"></i>
               </div>
               <div>
                 <span class="text-muted small d-block">Current Wallet Balance</span>
-                <strong class="text-dark fs-5"><span class="simulated-balance"><%= user.credits %></span> Credits</strong>
+                <strong class="text-dark fs-5"><span class="simulated-balance"><%= user.credits %></span> Points</strong>
               </div>
             </div>
-            <span class="badge bg-white text-muted border rounded-pill px-3 py-1.5 small">1 Cr = 1 Min</span>
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-white text-dark border rounded-pill px-2.5 py-1 small">
+                <i class="bi bi-telephone-fill text-primary me-1"></i> Voice: 1 Pt/min
+              </span>
+              <span class="badge bg-purple-subtle text-purple border border-purple-subtle rounded-pill px-2.5 py-1 small">
+                <i class="bi bi-camera-video-fill me-1"></i> Video: 2 Pts/min
+              </span>
+            </div>
           </div>
 
-          <h5 class="fw-extrabold text-dark mb-3">Select a Talk Pack</h5>
+          <!-- Filter Toolbar & Section Header -->
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+            <h5 class="fw-extrabold text-dark mb-0">Select a Recharge Pack</h5>
+            <div class="btn-group btn-group-sm p-1 bg-light rounded-pill border" role="group" id="planFilterGroup">
+              <button type="button" class="btn btn-sm rounded-pill fw-semibold btn-filter active btn-dark text-white px-3" data-filter="all">All Packs</button>
+              <button type="button" class="btn btn-sm rounded-pill fw-semibold btn-filter btn-light text-muted px-3" data-filter="Voice">
+                <i class="bi bi-telephone-fill me-1"></i> Voice
+              </button>
+              <button type="button" class="btn btn-sm rounded-pill fw-semibold btn-filter btn-light text-muted px-3" data-filter="Video">
+                <i class="bi bi-camera-video-fill me-1"></i> Video
+              </button>
+            </div>
+          </div>
 
           <!-- Pack Grid (Mobile-friendly App Cards) -->
-          <div class="row g-3 mb-4">
+          <div class="row g-3 mb-4" id="planCardsGrid">
             <% if (typeof plans !== 'undefined' && plans && plans.length > 0) { %>
               <% plans.forEach(plan => { %>
-                <div class="col-sm-6 col-lg-4">
+                <div class="col-sm-6 col-lg-4 plan-card-item" data-category="<%= plan.category || 'Voice' %>">
                   <div class="app-card h-100 d-flex flex-column justify-content-between p-3.5 app-tap-active position-relative <%= plan.isPopular ? 'border-primary shadow-sm' : '' %>" <%= plan.isPopular ? 'style="border-width: 2px !important; background: linear-gradient(180deg, #FFFFFF 0%, #F5F1FF 100%);"' : '' %>>
                     <% if (plan.isPopular) { %>
                       <span class="position-absolute top-0 end-0 bg-primary text-white rounded-bottom-start-3 px-3 py-1 fw-bold" style="font-size: 0.72rem; border-bottom-left-radius: 12px;">MOST POPULAR</span>
                     <% } %>
                     <div>
                       <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="badge <%= plan.isPopular ? 'bg-purple-subtle text-purple' : 'bg-primary-subtle text-primary' %> rounded-pill px-2.5 py-1 small">
-                          <%= plan.badge || plan.name %>
-                        </span>
-                        <i class="bi <%= plan.credits >= 50 ? 'bi-stars text-warning' : (plan.credits >= 20 ? 'bi-chat-heart text-primary' : 'bi-stopwatch text-muted') %>"></i>
+                        <% if (plan.category === 'Video') { %>
+                          <span class="badge bg-purple-subtle text-purple border border-purple-subtle rounded-pill px-2.5 py-1 small">
+                            <i class="bi bi-camera-video-fill me-1"></i><%= plan.badge || 'Video Pack' %>
+                          </span>
+                        <% } else if (plan.category === 'All') { %>
+                          <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2.5 py-1 small">
+                            <i class="bi bi-asterisk me-1"></i><%= plan.badge || 'Combo Pack' %>
+                          </span>
+                        <% } else { %>
+                          <span class="badge <%= plan.isPopular ? 'bg-purple-subtle text-purple' : 'bg-primary-subtle text-primary' %> rounded-pill px-2.5 py-1 small">
+                            <i class="bi bi-telephone-fill me-1"></i><%= plan.badge || 'Voice Pack' %>
+                          </span>
+                        <% } %>
+                        <i class="bi <%= plan.category === 'Video' ? 'bi-camera-video text-purple' : (plan.credits >= 50 ? 'bi-stars text-warning' : (plan.credits >= 20 ? 'bi-chat-heart text-primary' : 'bi-stopwatch text-muted')) %>"></i>
                       </div>
-                      <h4 class="fw-bold mb-0 <%= plan.isPopular ? 'text-purple' : 'text-dark' %>"><%= plan.credits %> Credits</h4>
-                      <span class="text-muted small d-block mb-2"><%= plan.credits %> Minutes talk time</span>
-                      <div class="fs-4 fw-extrabold <%= plan.isPopular ? 'text-purple' : 'text-dark' %> mb-3">₹<%= plan.price.toLocaleString('en-IN') %></div>
-                      <p class="text-muted small mb-3"><%= plan.description || 'Seamless consultation with Life Advisor.' %></p>
+                      <h4 class="fw-bold mb-0 <%= plan.isPopular || plan.category === 'Video' ? 'text-purple' : 'text-dark' %>"><%= plan.credits %> Points</h4>
+                      <% if (plan.category === 'Video') { %>
+                        <span class="text-purple fw-semibold small d-block mb-2">
+                          <i class="bi bi-camera-video me-1"></i> <%= Math.floor(plan.credits / 2) %> Mins Video <small class="text-muted fw-normal">(2 pts/min)</small>
+                        </span>
+                      <% } else if (plan.category === 'All') { %>
+                        <span class="text-muted small d-block mb-2">
+                          <%= plan.credits %> Voice Mins or <%= Math.floor(plan.credits / 2) %> Video Mins
+                        </span>
+                      <% } else { %>
+                        <span class="text-muted small d-block mb-2">
+                          <i class="bi bi-telephone me-1"></i> <%= plan.credits %> Minutes Voice Call <small class="text-muted">(1 pt/min)</small>
+                        </span>
+                      <% } %>
+                      <div class="fs-4 fw-extrabold <%= plan.isPopular || plan.category === 'Video' ? 'text-purple' : 'text-dark' %> mb-3">₹<%= plan.price.toLocaleString('en-IN') %></div>
+                      <p class="text-muted small mb-3"><%= plan.description || (plan.category === 'Video' ? 'High quality 1-on-1 Video Consultation to Talk With Ashu.' : 'Seamless consultation to Talk With Ashu.') %></p>
                     </div>
-                    <button class="btn <%= plan.isPopular ? 'btn-brand' : 'btn-outline-brand' %> rounded-pill w-100 py-2.5 fw-bold btn-buy-credits" data-plan-id="<%= plan._id %>" data-credits="<%= plan.credits %>" data-price="₹<%= plan.price.toLocaleString('en-IN') %>">
-                      Add ₹<%= plan.price.toLocaleString('en-IN') %>
+                    <button class="btn <%= (plan.isPopular || plan.category === 'Video') ? 'btn-brand' : 'btn-outline-brand' %> rounded-pill w-100 py-2.5 fw-bold btn-buy-credits <%= (typeof isAdvisorOnline !== 'undefined' && !isAdvisorOnline) ? 'btn-buy-offline' : '' %>" data-plan-id="<%= plan._id %>" data-credits="<%= plan.credits %>" data-price="₹<%= plan.price.toLocaleString('en-IN') %>" <%= (typeof isAdvisorOnline !== 'undefined' && !isAdvisorOnline) ? 'style="opacity: 0.7; cursor: not-allowed;"' : '' %>>
+                      <% if (typeof isAdvisorOnline !== 'undefined' && !isAdvisorOnline) { %>
+                        <i class="bi bi-clock me-1"></i> Ashu is Offline
+                      <% } else { %>
+                        Add ₹<%= plan.price.toLocaleString('en-IN') %>
+                      <% } %>
                     </button>
                   </div>
                 </div>
               <% }); %>
             <% } else { %>
-              <div class="col-12 text-center py-4 text-muted">No talk packs available currently.</div>
+              <div class="col-12 text-center py-4 text-muted">No recharge packs available currently.</div>
             <% } %>
           </div>
 
@@ -104,7 +162,7 @@
             <i class="bi bi-shield-check text-success fs-3"></i>
             <div class="small">
               <strong class="text-dark d-block">100% Confidential & Secure Recharges</strong>
-              <span class="text-muted">Credits never expire. Deducted continuously per second while connected on a live call.</span>
+              <span class="text-muted">Points never expire. Deducted continuously per minute while connected on a live call (Voice: 1 pt/min, Video: 2 pts/min).</span>
             </div>
           </div>
 
@@ -126,6 +184,25 @@
       const alertEl = document.getElementById('low-credits-alert');
       if (alertEl) alertEl.classList.remove('d-none');
     }
+
+    // Category filter pills
+    $('.btn-filter').on('click', function() {
+      $('.btn-filter').removeClass('active btn-dark text-white').addClass('btn-light text-muted');
+      $(this).addClass('active btn-dark text-white').removeClass('btn-light text-muted');
+      const cat = $(this).data('filter');
+      if (cat === 'all') {
+        $('.plan-card-item').fadeIn(150);
+      } else {
+        $('.plan-card-item').each(function() {
+          const pCat = $(this).data('category');
+          if (pCat === cat || pCat === 'All') {
+            $(this).fadeIn(150);
+          } else {
+            $(this).fadeOut(150);
+          }
+        });
+      }
+    });
   </script>
 </body>
 </html>

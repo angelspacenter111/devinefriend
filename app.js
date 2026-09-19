@@ -122,12 +122,14 @@ async function startServer() {
         socket.callId = data.callId;
         socket.userId = data.userId;
         socket.userName = data.userName;
+        socket.callType = data.callType || 'Voice';
         socket.role = 'user';
 
         callService.logStructured('CALL_INCOMING', {
           callId: data.callId,
           userId: data.userId,
           userName: data.userName,
+          callType: socket.callType,
           socketId: socket.id,
           roomId: roomId
         });
@@ -137,6 +139,7 @@ async function startServer() {
           callId: data.callId,
           callerId: socket.id,
           callerName: data.userName,
+          callType: socket.callType,
           userId: data.userId,
           roomId: roomId
         });
@@ -153,6 +156,7 @@ async function startServer() {
           callId: data.callId,
           adminId: data.adminId,
           adminName: data.adminName,
+          callType: data.callType || socket.callType,
           socketId: socket.id
         });
 
@@ -171,7 +175,8 @@ async function startServer() {
         socket.to(roomId).emit('peer-connected', {
           callId: data.callId,
           adminId: socket.id,
-          adminName: data.adminName || 'Life Advisor'
+          adminName: data.adminName || 'Ashu',
+          callType: data.callType || socket.callType || 'Voice'
         });
       });
 
@@ -194,7 +199,7 @@ async function startServer() {
           }
         }
 
-        socket.to(roomId).emit('call-rejected', { callId, reason: 'Declined by Advisor' });
+        socket.to(roomId).emit('call-rejected', { callId, reason: 'Declined by Ashu' });
         io.to('admins').emit('call-dismissed', { callId });
         socket.leave(roomId);
       });
@@ -315,8 +320,8 @@ async function startServer() {
 
     // Start Server Listen
     server.listen(PORT, () => {
-      console.log(`[Friend Server] WebRTC enabled server running successfully at http://localhost:${PORT}`);
-      console.log(`[Friend Status] Press CTRL+C to stop the process.`);
+      console.log(`[Talk With Ashu Server] WebRTC enabled server running successfully at http://localhost:${PORT}`);
+      console.log(`[Talk With Ashu Status] Press CTRL+C to stop the process.`);
     });
   } catch (error) {
     console.error(`[Fatal Startup Error] Server failed to start:`, error);

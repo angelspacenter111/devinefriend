@@ -21,7 +21,7 @@
         <div class="d-flex align-items-center gap-3">
           <div class="header-wallet-badge">
             <i class="bi bi-coin me-1"></i>
-            <span class="fw-bold"><span class="simulated-balance"><%= user.credits %></span> Credits</span>
+            <span class="fw-bold"><span class="simulated-balance"><%= user.credits %></span> Points</span>
           </div>
           <a href="/user/profile" class="btn btn-light d-flex align-items-center gap-2 border rounded-pill py-1 px-3">
             <div class="rounded-circle bg-light-lavender d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
@@ -44,7 +44,7 @@
           <div class="app-card bg-light border-0 p-3.5 mb-4 d-flex align-items-center justify-content-between">
             <div>
               <span class="text-muted small d-block">Available Account Balance</span>
-              <h3 class="fw-extrabold text-primary mb-0"><span class="simulated-balance"><%= user.credits %></span> Credits</h3>
+              <h3 class="fw-extrabold text-primary mb-0"><span class="simulated-balance"><%= user.credits %></span> Points</h3>
             </div>
             <a href="/user/buy-credits" class="btn btn-brand rounded-pill px-3.5 py-2 small fw-semibold app-tap-active">
               <i class="bi bi-plus-circle me-1"></i> Top Up
@@ -124,7 +124,7 @@
                     </div>
                     <div class="text-end">
                       <span class="d-block fw-bold <%= isCredit ? 'text-success' : 'text-danger' %>">
-                        <%= isCredit ? '+' : '-' %><%= txn.credits %> cr
+                        <%= isCredit ? '+' : '-' %><%= txn.credits %> pts
                       </span>
                       <small class="text-muted"><%= txn.amount %></small>
                     </div>
@@ -141,7 +141,7 @@
                       <th>Date</th>
                       <th>Description</th>
                       <th>Type</th>
-                      <th>Credits</th>
+                      <th>Points</th>
                       <th>Balance</th>
                       <th>Status</th>
                     </tr>
@@ -155,8 +155,8 @@
                           : `<span class="badge bg-danger-subtle text-danger"><i class="bi bi-arrow-up-right me-1"></i> Call Spend</span>`;
                         
                         const creditFormatted = isCredit
-                          ? `<span class="text-success fw-bold">+${txn.credits} Credits</span>`
-                          : `<span class="text-danger fw-bold">-${txn.credits} Credits</span>`;
+                          ? `<span class="text-success fw-bold">+${txn.credits} Points</span>`
+                          : `<span class="text-danger fw-bold">-${txn.credits} Points</span>`;
                       %>
                       <tr>
                         <td><span class="fw-semibold text-dark font-monospace small"><%= txn.txnId %></span></td>
@@ -171,7 +171,7 @@
                         <td><%- creditFormatted %></td>
                         <td>
                           <% if (txn.balanceAfter != null) { %>
-                            <span class="fw-bold text-dark"><%= txn.balanceAfter %> cr</span>
+                            <span class="fw-bold text-dark"><%= txn.balanceAfter %> pts</span>
                           <% } else { %>
                             <span class="text-muted small">—</span>
                           <% } %>
@@ -229,7 +229,7 @@
                         <i class="bi bi-credit-card-2-front"></i>
                       </div>
                       <div>
-                        <strong class="d-block text-dark small"><%= p.packageName %> (<%= p.credits %> Credits)</strong>
+                        <strong class="d-block text-dark small"><%= p.packageName %> (<%= p.credits %> Points)</strong>
                         <small class="text-muted font-monospace d-block" style="font-size: 0.72rem;">
                           Order: <%= p.razorpayOrderId %>
                         </small>
@@ -260,7 +260,7 @@
                     <tr>
                       <th>Date</th>
                       <th>Package</th>
-                      <th>Credits</th>
+                      <th>Points</th>
                       <th>Amount</th>
                       <th>Razorpay Order ID</th>
                       <th>Razorpay Payment ID</th>
@@ -276,7 +276,7 @@
                       <tr>
                         <td><%= p.createdAt ? p.createdAt.toISOString().split('T')[0] : '' %></td>
                         <td><span class="fw-bold text-dark"><%= p.packageName %></span></td>
-                        <td><span class="text-purple fw-bold">+<%= p.credits %> cr</span></td>
+                        <td><span class="text-purple fw-bold">+<%= p.credits %> pts</span></td>
                         <td><span class="fw-bold text-dark">₹<%= p.amount.toLocaleString('en-IN') %></span></td>
                         <td><span class="font-monospace small text-muted"><%= p.razorpayOrderId %></span></td>
                         <td>

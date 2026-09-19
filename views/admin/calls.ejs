@@ -102,20 +102,25 @@
                   let badgeClass = "bg-success-subtle text-success";
                   if (call.status === "Cancelled" || call.status === "Missed" || call.status === "Rejected") badgeClass = "bg-warning-subtle text-warning";
                   if (call.status === "Failed") badgeClass = "bg-danger-subtle text-danger";
-                  if (call.status && call.status.includes("No Credits")) badgeClass = "bg-danger text-white";
+                  if (call.status && (call.status.includes("No Points") || call.status.includes("No Credits"))) badgeClass = "bg-danger text-white";
 
                   let creditBadgeClass = "bg-secondary-subtle text-secondary";
                   if (call.creditStatus === "deducted") creditBadgeClass = "bg-success-subtle text-success";
                   if (call.creditStatus === "waived") creditBadgeClass = "bg-info-subtle text-info";
                   if (call.creditStatus === "failed") creditBadgeClass = "bg-danger-subtle text-danger";
 
-                  const advisorName = (call.admin && call.admin.name) ? call.admin.name : (call.receiverName || 'System Admin');
+                  const advisorName = (call.admin && call.admin.name) ? call.admin.name : (call.receiverName || 'Ashu');
                   const userName = call.user ? call.user.name : (call.callerName || 'Deleted User');
                   const userMobile = call.user ? call.user.mobile : '';
                 %>
                 <div class="mobile-data-card">
                   <div class="d-flex align-items-center justify-content-between mb-2">
-                    <span class="badge <%= badgeClass %> rounded-pill px-2.5 py-1"><%= call.status %></span>
+                    <div class="d-flex align-items-center gap-1.5">
+                      <span class="badge <%= badgeClass %> rounded-pill px-2.5 py-1"><%= call.status %></span>
+                      <span class="badge <%= call.callType === 'Video' ? 'bg-purple-subtle text-purple' : 'bg-light text-muted border' %> rounded-pill px-2 py-0.5" style="font-size: 0.72rem;">
+                        <%= call.callType === 'Video' ? 'Video' : 'Voice' %>
+                      </span>
+                    </div>
                     <span class="text-muted small font-monospace"><%= call.callId %></span>
                   </div>
                   <div class="d-flex align-items-center justify-content-between mb-2">
@@ -125,7 +130,7 @@
                     </div>
                     <div class="text-end">
                       <strong class="text-dark d-block small"><%= call.duration %></strong>
-                      <small class="text-purple fw-bold"><%= call.credits %> cr</small>
+                      <small class="text-purple fw-bold"><%= call.credits %> pts</small>
                     </div>
                   </div>
                   <div class="d-flex align-items-center justify-content-between pt-2 border-top">
@@ -146,13 +151,13 @@
                 <tr>
                   <th>Call ID</th>
                   <th>User</th>
-                  <th>Advisor</th>
+                  <th>Talk With Ashu</th>
                   <th>Type</th>
                   <th>Date & Time</th>
                   <th>Duration</th>
-                  <th>Credits</th>
+                  <th>Points</th>
                   <th>Status</th>
-                  <th>Credit Status</th>
+                  <th>Point Status</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -178,14 +183,14 @@
                       let badgeClass = "bg-success-subtle text-success";
                       if (call.status === "Cancelled" || call.status === "Missed" || call.status === "Rejected") badgeClass = "bg-warning-subtle text-warning";
                       if (call.status === "Failed") badgeClass = "bg-danger-subtle text-danger";
-                      if (call.status && call.status.includes("No Credits")) badgeClass = "bg-danger text-white";
+                      if (call.status && (call.status.includes("No Points") || call.status.includes("No Credits"))) badgeClass = "bg-danger text-white";
 
                       let creditBadgeClass = "bg-secondary-subtle text-secondary";
                       if (call.creditStatus === "deducted") creditBadgeClass = "bg-success-subtle text-success";
                       if (call.creditStatus === "waived") creditBadgeClass = "bg-info-subtle text-info";
                       if (call.creditStatus === "failed") creditBadgeClass = "bg-danger-subtle text-danger";
 
-                      const advisorName = (call.admin && call.admin.name) ? call.admin.name : (call.receiverName || 'System Admin');
+                      const advisorName = (call.admin && call.admin.name) ? call.admin.name : (call.receiverName || 'Ashu');
                       const userName = call.user ? call.user.name : (call.callerName || 'Deleted User');
                       const userMobile = call.user ? call.user.mobile : '';
                     %>
@@ -204,7 +209,7 @@
                         <small class="text-muted"><%= call.time %></small>
                       </td>
                       <td><span class="fw-semibold"><%= call.duration %></span></td>
-                      <td><span class="fw-bold text-purple"><%= call.credits %> Credits</span></td>
+                      <td><span class="fw-bold text-purple"><%= call.credits %> Points</span></td>
                       <td><span class="badge <%= badgeClass %> rounded-pill px-2.5 py-1"><%= call.status %></span></td>
                       <td><span class="badge <%= creditBadgeClass %> rounded-pill px-2.5 py-1 text-capitalize"><%= call.creditStatus || 'none' %></span></td>
                       <td>
@@ -294,9 +299,9 @@
                 </div>
                 <div class="col-md-6">
                   <div class="p-3 bg-light rounded-3 h-100">
-                    <span class="text-muted small d-block mb-1 text-uppercase fw-semibold">Advisor Details</span>
+                    <span class="text-muted small d-block mb-1 text-uppercase fw-semibold">Companion Details</span>
                     <h6 class="fw-bold mb-1">${d.admin.name}</h6>
-                    <small class="text-muted">Advisor ID: <code>${d.admin.id}</code></small>
+                    <small class="text-muted">Companion ID: <code>${d.admin.id}</code></small>
                   </div>
                 </div>
 
@@ -315,8 +320,8 @@
                   <strong class="fs-5">${d.duration}</strong> <small class="text-muted">(${d.durationSeconds}s)</small>
                 </div>
                 <div class="col-6 col-md-3">
-                  <span class="text-muted small d-block">Credit Rate</span>
-                  <strong>${d.creditRate} Credit / Min</strong>
+                  <span class="text-muted small d-block">Point Rate</span>
+                  <strong>${d.creditRate} Point / Min</strong>
                 </div>
 
                 <div class="col-6 col-md-3">
@@ -340,8 +345,8 @@
 
                 <div class="col-md-6">
                   <div class="p-3 rounded-3 border bg-white">
-                    <span class="text-muted small d-block mb-1">Total Credits Billed</span>
-                    <h4 class="fw-extrabold text-purple mb-0">${d.credits} <span class="fs-6 fw-normal text-muted">Credits</span></h4>
+                    <span class="text-muted small d-block mb-1">Total Points Billed</span>
+                    <h4 class="fw-extrabold text-purple mb-0">${d.credits} <span class="fs-6 fw-normal text-muted">Points</span></h4>
                     <span class="badge bg-${d.creditStatus === 'deducted' ? 'success' : 'secondary'}-subtle text-${d.creditStatus === 'deducted' ? 'success' : 'secondary'} rounded-pill mt-2 text-capitalize">Deduction: ${d.creditStatus}</span>
                   </div>
                 </div>

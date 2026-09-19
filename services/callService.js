@@ -63,9 +63,13 @@ async function initiateCall({ user, callType = 'Voice' }) {
     throw new Error('User not found');
   }
 
-  if (freshUser.credits < 1) {
-    logStructured('CALL_FAILED', { reason: 'INSUFFICIENT_CREDITS', userId: freshUser._id, credits: freshUser.credits });
-    const err = new Error('Insufficient credits to initiate a call (minimum 1 credit required)');
+  const isVideo = (callType === 'Video');
+  const creditRate = isVideo ? 2 : 1; // Video calls consume 2 points/minute, Voice calls 1 point/minute
+  const minRequired = creditRate;
+
+  if (freshUser.credits < minRequired) {
+    logStructured('CALL_FAILED', { reason: 'INSUFFICIENT_CREDITS', userId: freshUser._id, credits: freshUser.credits, required: minRequired });
+    const err = new Error(`Insufficient points to initiate a ${isVideo ? 'video' : 'voice'} call (minimum ${minRequired} points required)`);
     err.code = 'INSUFFICIENT_CREDITS';
     throw err;
   }
@@ -78,15 +82,15 @@ async function initiateCall({ user, callType = 'Voice' }) {
     callId,
     user: freshUser._id,
     callerName: freshUser.name || 'Caller',
-    receiverName: 'Life Advisor',
-    callType: callType || 'Voice',
+    receiverName: 'Talk With Ashu',
+    callType: isVideo ? 'Video' : 'Voice',
     date: now,
     time: timeStr,
     startTime: now,
     duration: '00:00',
     durationSeconds: 0,
     durationMinutes: 0,
-    creditRate: 1, // 1 credit per minute
+    creditRate: creditRate,
     credits: 0,
     creditStatus: 'none',
     status: 'Initiated',
@@ -127,7 +131,7 @@ async function acceptCall({ callId, admin }) {
 
   if (admin && admin._id) {
     call.admin = admin._id;
-    call.receiverName = admin.name || 'System Admin';
+    call.receiverName = admin.name || 'Ashu';
   }
   call.acceptedTime = new Date();
   call.status = 'Ringing';
@@ -254,7 +258,7 @@ async function finalizeCall(callId, { reason = 'Completed', forcedEndTime = null
     durationMinutes = Math.ceil(durationSeconds / 60);
 
     if (durationSeconds > 0) {
-      const rate = lockedCall.creditRate || 1;
+      const rate = lockedCall.creditRate || (lockedCall.callType === 'Video' ? 2 : 1);
       creditsToDeduct = durationMinutes * rate;
     }
 
@@ -390,7 +394,7 @@ const activeAdminSockets = new Map(); // socketId -> { adminId, name, joinedAt }
 function registerAdminPresence(socketId, info = {}) {
   activeAdminSockets.set(socketId, {
     adminId: info.adminId || null,
-    name: info.name || 'Admin',
+    name: info.name || 'Ashu',
     joinedAt: new Date()
   });
   logStructured('ADMIN_ONLINE', { socketId, activeCount: activeAdminSockets.size });
@@ -426,7 +430,9 @@ async function getCallById(callId) {
 /**
  * Access control check for calls
  */
-async function checkCallAccess(userId, requiredCredits = 1) {
+async function checkCallAccess(userId, requiredCredits = 1, callType = 'Voice') {
+  const minCredits = (callType === 'Video' && requiredCredits === 1) ? 2 : requiredCredits;
+
   if (!userId) {
     return {
       allowed: false,
@@ -452,13 +458,13 @@ async function checkCallAccess(userId, requiredCredits = 1) {
     };
   }
 
-  if (user.credits < requiredCredits) {
+  if (user.credits < minCredits) {
     return {
       allowed: false,
       code: 'INSUFFICIENT_CREDITS',
-      message: 'You do not have enough credits. Please purchase credits to continue.',
+      message: `You need at least ${minCredits} points to start a ${callType.toLowerCase()} call. Please purchase points to continue.`,
       credits: user.credits,
-      requiredCredits
+      requiredCredits: minCredits
     };
   }
 

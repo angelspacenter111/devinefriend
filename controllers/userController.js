@@ -36,7 +36,7 @@ exports.getDashboard = async (req, res) => {
     const totalMinsRounded = Math.round(totalMins);
 
     res.render('user/dashboard', {
-      title: 'User Dashboard - Friend',
+      title: 'User Dashboard - Talk With Ashu',
       activeTab: 'dashboard',
       user,
       calls,
@@ -73,7 +73,7 @@ exports.getWallet = async (req, res) => {
     });
 
     res.render('user/wallet', {
-      title: 'My Wallet - Friend',
+      title: 'My Wallet - Talk With Ashu',
       activeTab: 'wallet',
       user,
       transactions,
@@ -91,11 +91,14 @@ exports.getBuyCredits = async (req, res) => {
     let plans = await PricingPlan.find({ isActive: true }).sort({ order: 1, credits: 1 });
     if (!plans || plans.length === 0) {
       const defaultPlans = [
-        { planId: 'PLAN-5501', name: 'Starter Pack', badge: 'Starter', credits: 5, price: 149, description: 'Quick initial check-in or brief conversation.', isPopular: false, isActive: true, order: 1 },
-        { planId: 'PLAN-5502', name: 'Bridge Pack', badge: 'Bridge', credits: 10, price: 299, description: 'Talk through an immediate worry or stressor.', isPopular: false, isActive: true, order: 2 },
-        { planId: 'PLAN-5503', name: 'Comfort Pack', badge: 'Comfort', credits: 25, price: 599, description: 'Ample time to speak calmly, reflect and breathe.', isPopular: true, isActive: true, order: 3 },
-        { planId: 'PLAN-5504', name: 'Deep Listen Pack', badge: 'Deep Listen', credits: 50, price: 1199, description: 'Ideal for multiple in-depth conversation sessions.', isPopular: false, isActive: true, order: 4 },
-        { planId: 'PLAN-5505', name: 'Best Value Pack', badge: 'Best Value', credits: 100, price: 2199, description: 'Maximum savings for regular check-in support.', isPopular: false, isActive: true, order: 5 }
+        { planId: 'PLAN-5501', name: 'Starter Pack', badge: 'Starter', category: 'Voice', credits: 5, price: 149, description: 'Quick initial check-in or brief conversation.', isPopular: false, isActive: true, order: 1 },
+        { planId: 'PLAN-5502', name: 'Bridge Pack', badge: 'Bridge', category: 'Voice', credits: 10, price: 299, description: 'Talk through an immediate worry or stressor.', isPopular: false, isActive: true, order: 2 },
+        { planId: 'PLAN-5503', name: 'Comfort Pack', badge: 'Comfort', category: 'Voice', credits: 25, price: 599, description: 'Ample time to speak calmly, reflect and breathe.', isPopular: true, isActive: true, order: 3 },
+        { planId: 'PLAN-5504', name: 'Deep Listen Pack', badge: 'Deep Listen', category: 'Voice', credits: 50, price: 1199, description: 'Ideal for multiple in-depth conversation sessions.', isPopular: false, isActive: true, order: 4 },
+        { planId: 'PLAN-5505', name: 'Best Value Pack', badge: 'Best Value', category: 'Voice', credits: 100, price: 2199, description: 'Maximum savings for regular check-in support.', isPopular: false, isActive: true, order: 5 },
+        { planId: 'PLAN-6601', name: 'Starter Video Pack', badge: 'Video HD', category: 'Video', credits: 20, price: 499, description: '10 Minutes of face-to-face private video consultation.', isPopular: false, isActive: true, order: 6 },
+        { planId: 'PLAN-6602', name: 'Comfort Video Pack', badge: 'Popular Video', category: 'Video', credits: 50, price: 1099, description: '25 Minutes of in-depth video consultation to Talk With Ashu.', isPopular: true, isActive: true, order: 7 },
+        { planId: 'PLAN-6603', name: 'Executive Video Pack', badge: 'Best Video', category: 'Video', credits: 100, price: 1999, description: '50 Minutes of high-definition video check-ins.', isPopular: false, isActive: true, order: 8 }
       ];
       try {
         await PricingPlan.insertMany(defaultPlans);
@@ -103,13 +106,30 @@ exports.getBuyCredits = async (req, res) => {
       } catch (err) {
         plans = defaultPlans;
       }
+    } else {
+      // If plans exist, ensure video packs are also seeded if missing
+      const hasVideoPlan = await PricingPlan.findOne({ category: 'Video' });
+      if (!hasVideoPlan) {
+        const defaultVideoPlans = [
+          { planId: 'PLAN-6601', name: 'Starter Video Pack', badge: 'Video HD', category: 'Video', credits: 20, price: 499, description: '10 Minutes of face-to-face private video consultation.', isPopular: false, isActive: true, order: 6 },
+          { planId: 'PLAN-6602', name: 'Comfort Video Pack', badge: 'Popular Video', category: 'Video', credits: 50, price: 1099, description: '25 Minutes of in-depth video consultation to Talk With Ashu.', isPopular: true, isActive: true, order: 7 },
+          { planId: 'PLAN-6603', name: 'Executive Video Pack', badge: 'Best Video', category: 'Video', credits: 100, price: 1999, description: '50 Minutes of high-definition video check-ins.', isPopular: false, isActive: true, order: 8 }
+        ];
+        try {
+          await PricingPlan.insertMany(defaultVideoPlans);
+          plans = await PricingPlan.find({ isActive: true }).sort({ order: 1, credits: 1 });
+        } catch (e) {
+          console.warn('[Seed Video Plans Warning]', e.message);
+        }
+      }
     }
 
     res.render('user/buy-credits', {
-      title: 'Buy Credits - Friend',
+      title: 'Buy Points - Talk With Ashu',
       activeTab: 'buy-credits',
       user: req.user,
-      plans
+      plans,
+      isAdvisorOnline: callService.isAdvisorOnline()
     });
   } catch (error) {
     console.error('[User Buy Credits Error]', error);
@@ -121,7 +141,7 @@ exports.getBuyCredits = async (req, res) => {
 exports.postBuyCredits = async (req, res) => {
   return res.status(400).json({
     success: false,
-    message: 'Direct credit modification is disabled. All credit purchases must be processed through Razorpay Checkout.'
+    message: 'Direct point modification is disabled. All point purchases must be processed through Razorpay Checkout.'
   });
 };
 
@@ -130,22 +150,29 @@ const callService = require('../services/callService');
 exports.getCall = async (req, res) => {
   try {
     const user = req.user;
-    if (user.credits < 1) {
-      return res.redirect('/user/buy-credits?lowCredits=true');
+    const requestedType = (req.query.type === 'video' || req.query.callType === 'Video') ? 'Video' : 'Voice';
+    const minCredits = requestedType === 'Video' ? 2 : 1;
+
+    if (user.credits < minCredits) {
+      return res.redirect(`/user/buy-credits?lowCredits=true&need=${minCredits}&type=${requestedType.toLowerCase()}`);
     }
 
-    const call = await callService.initiateCall({ user, callType: 'Voice' });
+    const call = await callService.initiateCall({ user, callType: requestedType });
 
     res.render('user/call', {
-      title: 'Voice Call - Friend',
+      title: `${requestedType} Call - Talk With Ashu`,
       activeTab: 'call',
       user,
-      call
+      call,
+      callType: requestedType,
+      creditRate: call.creditRate || (requestedType === 'Video' ? 2 : 1)
     });
   } catch (error) {
     console.error('[User Call Initiation Error]', error);
     if (error.code === 'INSUFFICIENT_CREDITS') {
-      return res.redirect('/user/buy-credits?lowCredits=true');
+      const type = (req.query.type === 'video' || req.query.callType === 'Video') ? 'video' : 'voice';
+      const need = type === 'video' ? 2 : 1;
+      return res.redirect(`/user/buy-credits?lowCredits=true&need=${need}&type=${type}`);
     }
     res.status(500).send('Server Error initiating call');
   }
@@ -268,7 +295,7 @@ exports.getCallHistory = async (req, res) => {
       (status && status !== 'All' && status !== 'all' ? `&status=${encodeURIComponent(status)}` : '');
 
     res.render('user/call-history', {
-      title: 'Call History - Friend',
+      title: 'Call History - Talk With Ashu',
       activeTab: 'call-history',
       user,
       latestCall,
@@ -293,7 +320,7 @@ exports.getTransactions = (req, res) => {
 
 exports.getProfile = (req, res) => {
   res.render('user/profile', {
-    title: 'Profile Settings - Friend',
+    title: 'Profile Settings - Talk With Ashu',
     activeTab: 'profile',
     user: req.user,
     successMessage: null,
@@ -309,7 +336,7 @@ exports.postProfile = async (req, res) => {
 
     if (!name || !mobile) {
       return res.render('user/profile', {
-        title: 'Profile Settings - Friend',
+        title: 'Profile Settings - Talk With Ashu',
         activeTab: 'profile',
         user,
         successMessage: null,
@@ -324,7 +351,7 @@ exports.postProfile = async (req, res) => {
       const mobileExists = await User.findOne({ mobile: cleanMobile });
       if (mobileExists) {
         return res.render('user/profile', {
-          title: 'Profile Settings - Friend',
+          title: 'Profile Settings - Talk With Ashu',
           activeTab: 'profile',
           user,
           successMessage: null,
@@ -340,7 +367,7 @@ exports.postProfile = async (req, res) => {
     await user.save();
 
     res.render('user/profile', {
-      title: 'Profile Settings - Friend',
+      title: 'Profile Settings - Talk With Ashu',
       activeTab: 'profile',
       user,
       successMessage: 'Profile details updated successfully!',
@@ -360,7 +387,7 @@ exports.postChangePassword = async (req, res) => {
 
     if (!currentPassword || !newPassword || !confirmPassword) {
       return res.render('user/profile', {
-        title: 'Profile Settings - Friend',
+        title: 'Profile Settings - Talk With Ashu',
         activeTab: 'profile',
         user,
         successMessage: null,
@@ -370,7 +397,7 @@ exports.postChangePassword = async (req, res) => {
 
     if (newPassword !== confirmPassword) {
       return res.render('user/profile', {
-        title: 'Profile Settings - Friend',
+        title: 'Profile Settings - Talk With Ashu',
         activeTab: 'profile',
         user,
         successMessage: null,
@@ -381,7 +408,7 @@ exports.postChangePassword = async (req, res) => {
     const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {
       return res.render('user/profile', {
-        title: 'Profile Settings - Friend',
+        title: 'Profile Settings - Talk With Ashu',
         activeTab: 'profile',
         user,
         successMessage: null,
@@ -394,7 +421,7 @@ exports.postChangePassword = async (req, res) => {
     await user.save();
 
     res.render('user/profile', {
-      title: 'Profile Settings - Friend',
+      title: 'Profile Settings - Talk With Ashu',
       activeTab: 'profile',
       user,
       successMessage: 'Password updated successfully!',

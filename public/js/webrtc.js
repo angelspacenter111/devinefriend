@@ -51,6 +51,8 @@ function transitionTo(nextState, context) {
 // Active call metadata validation
 const urlParams = new URLSearchParams(window.location.search);
 const currentCallId = (window.activeCallId && window.activeCallId.trim()) || urlParams.get('callId') || localStorage.getItem('active_call_id') || '';
+const isVideoCall = (window.callType === 'Video') || (urlParams.get('type') === 'video') || (localStorage.getItem('active_call_type') === 'Video');
+const currentCreditRate = window.creditRate || (isVideoCall ? 2 : 1);
 
 let isTerminating = false;
 let ringingTimeoutTimer = null;
@@ -128,7 +130,8 @@ function initializeCallerFlow() {
     socket.emit('join-call-room', {
       callId: currentCallId,
       userId: userId,
-      userName: userName
+      userName: userName,
+      callType: isVideoCall ? 'Video' : 'Voice'
     });
   }
 
@@ -151,7 +154,7 @@ function initializeCallerFlow() {
   ringingTimeoutTimer = setTimeout(() => {
     if (currentCallState === CallState.RINGING || currentCallState === CallState.OUTGOING) {
       console.warn("[WebRTC Timeout] Ringing timed out after 45s without answer.");
-      alert("Our support advisors are currently busy assisting other members. Please try calling again in a few moments.");
+      alert("Ashu is currently busy assisting another member. Please try calling again in a few moments.");
       socket.emit('hangup', { callId: currentCallId, reason: 'Missed' });
       terminateCallSession('Missed');
     }
@@ -161,7 +164,7 @@ function initializeCallerFlow() {
   socket.off('peer-connected').on('peer-connected', async (data) => {
     if (isTerminalState(currentCallState)) return;
 
-    console.log(`[Socket] Support partner accepted call. Peer socket: ${data.adminId}`);
+    console.log(`[Socket] Ashu accepted call. Peer socket: ${data.adminId}`);
     if (ringingTimeoutTimer) {
       clearTimeout(ringingTimeoutTimer);
       ringingTimeoutTimer = null;
@@ -186,9 +189,9 @@ function initializeCallerFlow() {
 
   // Listen for admin to reject/decline call
   socket.off('call-rejected').on('call-rejected', (data) => {
-    console.warn(`[Socket] Call was declined by advisor:`, data);
+    console.warn(`[Socket] Call was declined by Ashu:`, data);
     if (ringingTimeoutTimer) clearTimeout(ringingTimeoutTimer);
-    alert('Your call request was declined by the support advisor.');
+    alert('Your call request was declined by Ashu.');
     terminateCallSession('Rejected');
   });
 }
@@ -211,13 +214,13 @@ function initializeReceiverFlow() {
     console.log(`[WebRTC] Emitting admin-accept-call for Call ID: ${currentCallId}, Socket ID: ${socket.id}`);
     socket.emit('admin-join', {
       adminId: (window.sessionUser && window.sessionUser.id) || null,
-      name: (window.sessionUser && window.sessionUser.name) || "Support Advisor"
+      name: (window.sessionUser && window.sessionUser.name) || "Ashu"
     });
     socket.emit('admin-accept-call', {
       callId: currentCallId,
       callerId: callerId,
       adminId: (window.sessionUser && window.sessionUser.id) || null,
-      adminName: (window.sessionUser && window.sessionUser.name) || "Support Advisor"
+      adminName: (window.sessionUser && window.sessionUser.name) || "Ashu"
     });
   }
 
@@ -317,13 +320,20 @@ async function setupPeerConnection() {
     }
   };
 
-  // Remote audio track reception
+  // Remote audio & video track reception
   peerConnection.ontrack = (event) => {
-    console.log(`[WebRTC] Remote track arrived. Streaming audio.`);
-    const remoteAudio = document.getElementById('remoteAudio');
-    if (remoteAudio && event.streams && event.streams[0]) {
-      remoteAudio.srcObject = event.streams[0];
-      remoteAudio.play().catch(e => console.warn('[WebRTC] Auto-play audio warning:', e));
+    console.log(`[WebRTC] Remote track arrived (${event.track ? event.track.kind : 'stream'}).`);
+    if (event.streams && event.streams[0]) {
+      const remoteAudio = document.getElementById('remoteAudio');
+      if (remoteAudio) {
+        remoteAudio.srcObject = event.streams[0];
+        remoteAudio.play().catch(e => console.warn('[WebRTC] Auto-play audio warning:', e));
+      }
+      const remoteVideo = document.getElementById('remoteVideo');
+      if (remoteVideo) {
+        remoteVideo.srcObject = event.streams[0];
+        remoteVideo.play().catch(e => console.warn('[WebRTC] Auto-play video warning:', e));
+      }
     }
   };
 
@@ -343,6 +353,7 @@ async function setupPeerConnection() {
       transitionTo(CallState.ACTIVE);
 
       console.log("[WebRTC] Call successfully established and active!");
+      $("body").addClass("connected");
       $(".call-status-badge").removeClass("connecting").addClass("connected").text("You're Connected");
       $(".call-pulse-animation, .call-pulse-animation-2").css("animation-duration", "1.5s");
       $("#call-cancel-btn-wrapper, #call-cancel-btn").addClass("d-none");
@@ -405,9 +416,32 @@ socket.off('call-finalized').on('call-finalized', (data) => {
   console.log(`[Socket] Call finalized confirmation received from server:`, data);
 });
 
-// Hardware microphone stream (with graceful silent track fallback)
+// Hardware camera / microphone stream (with graceful video-to-audio and silent fallback)
 async function getMicrophoneAccess() {
   if (localStream) return localStream;
+
+  // 1. If Video Call, request both audio and video stream
+  if (isVideoCall) {
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        localStream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: {
+            facingMode: 'user',
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          }
+        });
+        console.log("[WebRTC] Video and microphone access granted.");
+        attachLocalVideo(localStream);
+        return localStream;
+      }
+    } catch (videoErr) {
+      console.warn("[WebRTC Warning] Video camera access failed or denied, falling back to audio:", videoErr);
+    }
+  }
+
+  // 2. Audio-only media request
   try {
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -446,6 +480,14 @@ async function getMicrophoneAccess() {
   return null;
 }
 
+function attachLocalVideo(stream) {
+  const localVideo = document.getElementById('localVideo');
+  if (localVideo && stream) {
+    localVideo.srcObject = stream;
+    localVideo.play().catch(e => console.warn('[WebRTC] Local video auto-play warning:', e));
+  }
+}
+
 // ==========================================
 // 4. Visual Call Timer & Client-side Balance Tracker
 // ==========================================
@@ -453,6 +495,8 @@ function startActiveCallTimer() {
   if (callTimerInterval) return;
 
   console.log("[UI] Starting duration timer...");
+  const rate = currentCreditRate || (isVideoCall ? 2 : 1);
+
   callTimerInterval = setInterval(() => {
     secondsElapsed++;
 
@@ -464,19 +508,20 @@ function startActiveCallTimer() {
     const isUserCaller = $("#call-screen-trigger").length > 0 || window.isCaller;
     if (isUserCaller && secondsElapsed % 60 === 0) {
       if (activeUser && activeUser.credits > 0) {
-        activeUser.credits--;
-        currentCreditsUsed++;
+        const deductAmount = Math.min(activeUser.credits, rate);
+        activeUser.credits -= deductAmount;
+        currentCreditsUsed += deductAmount;
 
         $("#call-credits-remaining").text(activeUser.credits);
         $("#call-credits-used").text(currentCreditsUsed);
         $(".simulated-balance").text(activeUser.credits);
 
-        if (activeUser.credits === 2) {
-          triggerLowCreditWarning();
+        if (activeUser.credits <= (rate * 2)) {
+          triggerLowCreditWarning(rate);
         }
 
-        if (activeUser.credits <= 0) {
-          console.log("[Billing] Credits exhausted. Disconnecting call...");
+        if (activeUser.credits < rate) {
+          console.log("[Billing] Points insufficient for next minute. Disconnecting call...");
           terminateCallSession("Auto-Disconnected (No Credits)");
         }
       }
@@ -484,11 +529,12 @@ function startActiveCallTimer() {
   }, 1000);
 }
 
-function triggerLowCreditWarning() {
+function triggerLowCreditWarning(rate = 1) {
   if ($(".call-low-credit-bar").length === 0) {
+    const minsRemaining = Math.max(1, Math.floor((activeUser.credits || 0) / rate));
     const warningHtml = `
       <div class="call-low-credit-bar">
-        <span><i class="bi bi-exclamation-triangle-fill me-2"></i> Low Credit Alert: 2 Minutes Remaining</span>
+        <span><i class="bi bi-exclamation-triangle-fill me-2"></i> Low Points Alert: ~${minsRemaining} Min Remaining</span>
         <a href="/user/buy-credits" target="_blank" class="btn btn-sm btn-light text-danger fw-bold rounded-pill px-3">Recharge Now</a>
       </div>
     `;
@@ -622,3 +668,48 @@ function toggleRemoteSpeaker() {
     $btn.find("i").toggleClass("bi-volume-up-fill bi-volume-mute-fill");
   }
 }
+
+// Camera video mute/unmute toggle
+function toggleLocalVideo() {
+  const $btn = $("#camera-toggle-btn");
+  if (localStream) {
+    const videoTrack = localStream.getVideoTracks()[0];
+    if (videoTrack) {
+      videoTrack.enabled = !videoTrack.enabled;
+      $btn.toggleClass("active");
+      $btn.find("i").toggleClass("bi-camera-video-fill bi-camera-video-off-fill");
+      console.log(`[WebRTC] Camera toggled: ${videoTrack.enabled ? 'Enabled' : 'Disabled'}`);
+    }
+  }
+}
+
+// Front / back camera flipping on mobile devices
+let currentFacingMode = 'user';
+async function flipCamera() {
+  if (!localStream || !peerConnection) return;
+  const currentVideoTrack = localStream.getVideoTracks()[0];
+  if (!currentVideoTrack) return;
+
+  currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
+  try {
+    const newStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { exact: currentFacingMode } }
+    });
+    const newVideoTrack = newStream.getVideoTracks()[0];
+    const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+    if (sender) {
+      await sender.replaceTrack(newVideoTrack);
+    }
+    localStream.removeTrack(currentVideoTrack);
+    currentVideoTrack.stop();
+    localStream.addTrack(newVideoTrack);
+    const localVideo = document.getElementById('localVideo');
+    if (localVideo) {
+      localVideo.srcObject = localStream;
+    }
+    console.log(`[WebRTC] Camera flipped to: ${currentFacingMode}`);
+  } catch (err) {
+    console.warn('[WebRTC Warning] Could not flip camera:', err);
+  }
+}
+

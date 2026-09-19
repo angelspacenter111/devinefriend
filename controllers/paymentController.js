@@ -11,6 +11,15 @@ exports.createOrder = async (req, res) => {
     const { packageId } = req.body;
     const userId = req.user._id;
 
+    // Reject order creation if Ashu (admin) is not online
+    if (!callService.isAdvisorOnline()) {
+      return res.status(403).json({
+        success: false,
+        code: 'ADVISOR_OFFLINE',
+        message: 'Ashu is currently offline. Points can only be purchased when Ashu is online.'
+      });
+    }
+
     if (!packageId) {
       return res.status(400).json({
         success: false,
@@ -174,21 +183,25 @@ exports.getCreditTransactions = async (req, res) => {
  */
 exports.checkCallAccess = async (req, res) => {
   try {
-    const result = await callService.checkCallAccess(req.user._id, 1);
+    const callType = (req.query.type === 'video' || req.query.callType === 'Video') ? 'Video' : 'Voice';
+    const requiredCredits = callType === 'Video' ? 2 : 1;
+    const result = await callService.checkCallAccess(req.user._id, requiredCredits, callType);
     if (!result.allowed) {
       return res.status(403).json({
         success: false,
         code: result.code || 'INSUFFICIENT_CREDITS',
-        message: result.message || 'You do not have enough credits. Please purchase credits to continue.',
+        message: result.message || `You need at least ${requiredCredits} points to start a ${callType.toLowerCase()} call. Please purchase points to continue.`,
         credits: result.credits || 0,
-        requiredCredits: result.requiredCredits || 1
+        requiredCredits: result.requiredCredits || requiredCredits,
+        callType
       });
     }
 
     return res.status(200).json({
       success: true,
       canCall: true,
-      credits: result.credits
+      credits: result.credits,
+      callType
     });
   } catch (error) {
     console.error('[PaymentController] checkCallAccess Error:', error);

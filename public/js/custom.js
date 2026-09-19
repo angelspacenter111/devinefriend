@@ -21,6 +21,8 @@ $(document).ready(function () {
     const $badges = $(".advisor-status-badge");
     const $texts = $(".advisor-status-text");
     const $callBtns = $(".btn-start-call");
+    const $buyBtns = $(".btn-buy-credits");
+    const $offlineBuyBanner = $("#ashu-offline-buy-banner");
 
     if (isOnline) {
       $dots.removeClass("offline").addClass("online");
@@ -35,6 +37,16 @@ $(document).ready(function () {
       });
       $callBtns.removeClass("btn-advisor-offline");
       $("#dash-advisor-status-badge .advisor-status-text").text("Online Now");
+
+      // Enable buy buttons and hide offline notice banner
+      if ($offlineBuyBanner.length) {
+        $offlineBuyBanner.addClass("d-none");
+      }
+      $buyBtns.removeClass("btn-buy-offline").css({ opacity: "1", cursor: "pointer" });
+      $buyBtns.each(function() {
+        const price = $(this).data("price");
+        $(this).html(price ? `Add ${price}` : "Add Points");
+      });
     } else {
       $dots.removeClass("online").addClass("offline");
       $badges.removeClass("bg-success bg-success-subtle text-success border-success-subtle")
@@ -48,6 +60,15 @@ $(document).ready(function () {
       });
       $callBtns.addClass("btn-advisor-offline");
       $("#dash-advisor-status-badge .advisor-status-text").text("Currently Offline");
+
+      // Disable buy buttons and show offline notice banner
+      if ($offlineBuyBanner.length) {
+        $offlineBuyBanner.removeClass("d-none");
+      }
+      $buyBtns.addClass("btn-buy-offline").css({ opacity: "0.7", cursor: "not-allowed" });
+      $buyBtns.each(function() {
+        $(this).html('<i class="bi bi-clock me-1"></i> Ashu is Offline');
+      });
     }
   }
 
@@ -64,7 +85,7 @@ $(document).ready(function () {
       const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
       modal.show();
     } else {
-      alert("Life Advisors are currently in consultation or offline. Please wait or try calling again in a moment.");
+      alert("Ashu is currently in consultation or offline. Please wait or try calling again in a moment.");
     }
   });
 
@@ -78,9 +99,9 @@ $(document).ready(function () {
           const wasOnline = window.isAdvisorOnline;
           updateAdvisorStatusUI(data.isOnline);
 
-          // If Life Advisor just came online while user is on dashboard, show warm notification
+          // If Ashu just came online while user is on dashboard, show warm notification
           if (!wasOnline && data.isOnline && window.location.pathname.includes('/user/dashboard')) {
-            showToast("Your Life Advisor is now Online and ready to talk!", "success");
+            showToast("Ashu is now Online and ready to talk!", "success");
           }
         }
       });
@@ -119,6 +140,19 @@ $(document).ready(function () {
   $(".btn-buy-credits").on("click", function (e) {
     e.preventDefault();
     const $btn = $(this);
+
+    // Guard: Ashu must be online to purchase points
+    if (typeof window.isAdvisorOnline !== 'undefined' && !window.isAdvisorOnline) {
+      const modalEl = document.getElementById('advisorOfflineModal');
+      if (modalEl && typeof bootstrap !== 'undefined') {
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+      } else {
+        showToast("Ashu is currently offline. Points can only be purchased when Ashu is online.", "warning");
+      }
+      return;
+    }
+
     const planId = $btn.data("plan-id");
 
     if (!planId) {
@@ -153,8 +187,8 @@ $(document).ready(function () {
           key: res.keyId,
           amount: res.amount,
           currency: res.currency || "INR",
-          name: "Friend Emotional Support",
-          description: res.description || "Voice Call Credits",
+          name: "Talk With Ashu",
+          description: res.description || "Voice Call Points",
           order_id: res.orderId,
           prefill: {
             name: (window.sessionUser && window.sessionUser.name) ? window.sessionUser.name : "",
@@ -167,7 +201,7 @@ $(document).ready(function () {
           modal: {
             ondismiss: function () {
               $btn.html(origText).prop("disabled", false);
-              showToast("Payment cancelled. Credits were not charged.", "warning");
+              showToast("Payment cancelled. Points were not charged.", "warning");
             }
           },
           handler: function (response) {
@@ -190,7 +224,7 @@ $(document).ready(function () {
                     window.sessionUser.credits = verifyRes.credits;
                   }
                   $(".simulated-balance").text(verifyRes.credits);
-                  showToast(verifyRes.message || `Payment verified! You now have ${verifyRes.credits} credits.`, "success");
+                  showToast(verifyRes.message || `Payment verified! You now have ${verifyRes.credits} points.`, "success");
 
                   setTimeout(() => {
                     location.reload();

@@ -21,7 +21,7 @@
         <div class="d-flex align-items-center gap-3">
           <div class="header-wallet-badge">
             <i class="bi bi-coin me-1"></i>
-            <span class="fw-bold"><span class="simulated-balance"><%= user.credits %></span> Credits</span>
+            <span class="fw-bold"><span class="simulated-balance"><%= user.credits %></span> Points</span>
           </div>
           <a href="/user/profile" class="btn btn-light d-flex align-items-center gap-2 border rounded-pill py-1 px-3">
             <div class="rounded-circle bg-light-lavender d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
@@ -48,11 +48,11 @@
               if (latestCall.status === "Cancelled" || latestCall.status === "Missed" || latestCall.status === "Rejected") {
                 lastBadgeClass = "bg-warning text-dark";
                 lastStatusIcon = "bi-exclamation-circle-fill";
-              } else if (latestCall.status === "Failed" || (latestCall.status && latestCall.status.includes("No Credits"))) {
+              } else if (latestCall.status === "Failed" || (latestCall.status && latestCall.status.includes("No Points") || latestCall.status.includes("No Credits"))) {
                 lastBadgeClass = "bg-danger text-white";
                 lastStatusIcon = "bi-x-circle-fill";
               }
-              const advisorName = (latestCall.admin && latestCall.admin.name) ? latestCall.admin.name : (latestCall.receiverName || 'Life Advisor');
+              const advisorName = (latestCall.admin && latestCall.admin.name) ? latestCall.admin.name : (latestCall.receiverName || 'Talk With Ashu');
               const callDateFormatted = latestCall.date ? new Date(latestCall.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
             %>
             <div class="app-card border-0 shadow-sm p-4 mb-4 position-relative overflow-hidden" style="border-left: 5px solid #E91E8F !important;">
@@ -82,8 +82,8 @@
                     <strong class="text-dark fs-5"><%= latestCall.duration %></strong>
                   </div>
                   <div class="text-end ps-3 border-start">
-                    <span class="text-muted small d-block">Credits</span>
-                    <strong class="text-purple fs-5"><%= latestCall.credits %> cr</strong>
+                    <span class="text-muted small d-block">Points</span>
+                    <strong class="text-purple fs-5"><%= latestCall.credits %> pts</strong>
                   </div>
                 </div>
               </div>
@@ -103,7 +103,7 @@
                 <div class="col-12 col-sm-4">
                   <div class="input-group input-group-sm">
                     <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
-                    <input type="text" name="q" class="form-control form-control-custom border-start-0" placeholder="Search ID or Advisor..." value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>">
+                    <input type="text" name="q" class="form-control form-control-custom border-start-0" placeholder="Search ID or Companion..." value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>">
                   </div>
                 </div>
 
@@ -154,11 +154,11 @@
                       badgeClass = "bg-warning-subtle text-warning";
                       iconClass = "bi-telephone-x-fill text-warning";
                     }
-                    if (call.status === "Failed" || (call.status && call.status.includes("No Credits"))) {
+                    if (call.status === "Failed" || (call.status && call.status.includes("No Points") || call.status.includes("No Credits"))) {
                       badgeClass = "bg-danger-subtle text-danger";
                       iconClass = "bi-exclamation-circle-fill text-danger";
                     }
-                    const companion = (call.admin && call.admin.name) ? call.admin.name : (call.receiverName || 'Life Advisor');
+                    const companion = (call.admin && call.admin.name) ? call.admin.name : (call.receiverName || 'Talk With Ashu');
                   %>
                   <div class="app-list-item">
                     <div class="d-flex align-items-center">
@@ -174,7 +174,7 @@
                     </div>
                     <div class="text-end">
                       <span class="badge <%= badgeClass %> rounded-pill px-2.5 py-1 small mb-1 d-inline-block"><%= call.status %></span>
-                      <small class="d-block text-muted font-monospace"><%= call.duration %> (<%= call.credits %> cr)</small>
+                      <small class="d-block text-muted font-monospace"><%= call.callType === 'Video' ? 'Video • ' : '' %><%= call.duration %> (<%= call.credits %> pts)</small>
                     </div>
                   </div>
                 <% }) %>
@@ -186,12 +186,12 @@
                   <thead>
                     <tr>
                       <th>Call ID</th>
-                      <th>Life Advisor</th>
+                      <th>Talk With Ashu</th>
                       <th>Type</th>
                       <th>Date</th>
                       <th>Time</th>
                       <th>Duration</th>
-                      <th>Credits</th>
+                      <th>Points</th>
                       <th>Status</th>
                     </tr>
                   </thead>
@@ -201,8 +201,8 @@
                         let badgeClass = "bg-success-subtle text-success";
                         if (call.status === "Cancelled" || call.status === "Missed" || call.status === "Rejected") badgeClass = "bg-warning-subtle text-warning";
                         if (call.status === "Failed") badgeClass = "bg-danger-subtle text-danger";
-                        if (call.status && call.status.includes("No Credits")) badgeClass = "bg-danger text-white";
-                        const companion = (call.admin && call.admin.name) ? call.admin.name : (call.receiverName || 'Life Advisor');
+                        if (call.status && (call.status.includes("No Points") || call.status.includes("No Credits"))) badgeClass = "bg-danger text-white";
+                        const companion = (call.admin && call.admin.name) ? call.admin.name : (call.receiverName || 'Talk With Ashu');
                       %>
                       <tr>
                         <td><span class="fw-semibold text-dark"><%= call.callId %></span></td>
@@ -216,7 +216,7 @@
                         <td><%= call.date ? new Date(call.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '' %></td>
                         <td><%= call.time %></td>
                         <td><span class="fw-semibold"><%= call.duration %></span></td>
-                        <td><span class="fw-bold text-purple"><%= call.credits %> Credits</span></td>
+                        <td><span class="fw-bold text-purple"><%= call.credits %> Points</span></td>
                         <td><span class="badge <%= badgeClass %> rounded-pill px-2.5 py-1.5"><%= call.status %></span></td>
                       </tr>
                     <% }) %>

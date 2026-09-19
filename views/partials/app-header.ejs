@@ -14,11 +14,11 @@
       <% } %>
       
       <div>
-        <h1 class="app-brand-name"><%= typeof pageTitle !== 'undefined' ? pageTitle : 'Friend' %></h1>
+        <h1 class="app-brand-name"><%= typeof pageTitle !== 'undefined' ? pageTitle : 'Talk With Ashu' %></h1>
         <div class="d-flex align-items-center gap-1">
           <span class="app-status-chip <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'online' : 'offline' %> advisor-status-badge">
             <span class="status-indicator-dot <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'online' : 'offline' %>"></span>
-            <span class="advisor-status-text"><%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'Life Advisor Online' : 'Life Advisor Offline' %></span>
+            <span class="advisor-status-text"><%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'Talk With Ashu Online' : 'Talk With Ashu Offline' %></span>
           </span>
         </div>
       </div>
@@ -26,7 +26,7 @@
 
     <!-- Right: Wallet Credit Pill & Profile Dropdown -->
     <div class="d-flex align-items-center gap-2">
-      <a href="/user/buy-credits" class="app-credits-pill app-tap-active" title="Recharge Credits">
+      <a href="/user/buy-credits" class="app-credits-pill app-tap-active" title="Recharge Points">
         <i class="bi bi-coin text-warning"></i>
         <span><strong class="simulated-balance"><%= (typeof user !== 'undefined' && user) ? user.credits : 0 %></strong></span>
         <span class="credit-add-icon"><i class="bi bi-plus"></i></span>

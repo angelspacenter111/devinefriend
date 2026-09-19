@@ -15,13 +15,13 @@
       <!-- Desktop Header Panel (Visible on Desktop) -->
       <header class="header-panel shadow-sm d-none d-lg-flex">
         <div class="d-flex align-items-center gap-3">
-          <h4 class="mb-0 fw-bold text-dark">Life Advisor Dashboard</h4>
+          <h4 class="mb-0 fw-bold text-dark">Talk With Ashu Dashboard</h4>
         </div>
         
         <div class="d-flex align-items-center gap-3">
-          <div class="header-advisor-badge d-flex align-items-center gap-2 px-3 py-1.5 rounded-pill" title="Live Life Advisor Status">
+          <div class="header-advisor-badge d-flex align-items-center gap-2 px-3 py-1.5 rounded-pill" title="Live Status">
             <span class="status-indicator-dot <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'online' : 'offline' %>"></span>
-            <span class="small fw-semibold text-muted">Life Advisor:</span>
+            <span class="small fw-semibold text-muted">Talk With Ashu:</span>
             <span class="small fw-bold advisor-status-text <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'text-success' : 'text-secondary' %>">
               <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'Online Now' : 'Currently Offline' %>
             </span>
@@ -29,7 +29,7 @@
 
           <div class="header-wallet-badge">
             <i class="bi bi-coin me-1"></i>
-            <span class="fw-bold"><span class="simulated-balance"><%= user.credits %></span> Credits</span>
+            <span class="fw-bold"><span class="simulated-balance"><%= user.credits %></span> Points</span>
             <span class="text-muted small ms-1">(≈ <span class="simulated-balance"><%= user.credits %></span> mins)</span>
           </div>
 
@@ -56,7 +56,7 @@
             <div>
               <span class="text-muted small fw-semibold text-uppercase letter-spacing-1">Personal Guidance Space</span>
               <h2 class="fw-extrabold text-dark mb-0">Welcome, <%= user.name %> ✨</h2>
-              <p class="text-muted small mb-0 mt-1">Take a deep breath. Speak freely with your personal Life Advisor.</p>
+              <p class="text-muted small mb-0 mt-1">Take a deep breath. Speak freely with Ashu.</p>
             </div>
             <div class="d-none d-sm-block">
               <span class="badge bg-white text-muted border px-3 py-2 rounded-pill small shadow-sm">
@@ -73,16 +73,16 @@
                 <div class="d-flex align-items-center gap-2 mb-3">
                   <span class="advisor-status-glow-pill <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'online' : 'offline' %> advisor-status-badge" id="dash-advisor-status-badge">
                     <span class="status-indicator-dot <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'online' : 'offline' %>"></span>
-                    <span class="advisor-status-text full-text"><%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'Life Advisor Online Now' : 'Life Advisor Offline' %></span>
+                    <span class="advisor-status-text full-text"><%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'Ashu Is Online Now' : 'Ashu Is Offline' %></span>
                   </span>
                   <span class="badge rounded-pill px-3 py-1.5 small text-white-50" style="background: rgba(255, 255, 255, 0.08);">
                     <i class="bi bi-patch-check-fill text-warning me-1"></i> Certified Guidance
                   </span>
                 </div>
 
-                <h3 class="display-6 fw-extrabold text-white mb-2" style="letter-spacing: -0.5px;">Speak With Your Life Advisor</h3>
+                <h3 class="display-6 fw-extrabold text-white mb-2" style="letter-spacing: -0.5px;">Talk With Ashu</h3>
                 <p class="text-white-50 small mb-4" style="max-width: 520px; line-height: 1.7; font-size: 0.95rem;">
-                  Navigating relationship crossroads, heavy thoughts, career pressure, or personal dilemmas? Connect 1-on-1 with an experienced Life Advisor for clarity, compassion, and direction.
+                  Navigating relationship crossroads, heavy thoughts, career pressure, or personal dilemmas? Connect 1-on-1 to Talk With Ashu for clarity, compassion, and direction.
                 </p>
 
                 <!-- Sound Wave & Available Talk Time Bar -->
@@ -96,23 +96,35 @@
                     <span class="soundwave-bar"></span>
                   </div>
                   <span class="text-white-50 small">
-                    Available Time: <strong class="text-white"><span class="simulated-balance"><%= user.credits %></span> minutes</strong>
+                    Available: <strong class="text-white"><span class="simulated-balance"><%= user.credits %></span> Points</strong>
+                    (<%= user.credits %>m Voice / <%= Math.floor(user.credits / 2) %>m Video)
                   </span>
                 </div>
               </div>
 
               <div class="col-lg-4 text-center text-lg-end" id="dash-call-btn-container">
                 <% if (user.credits >= 1) { %>
-                  <a href="/user/call" class="btn btn-brand btn-lg rounded-pill px-4 py-3.5 shadow-lg w-100 app-tap-active btn-start-call <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? '' : 'btn-advisor-offline' %>" id="dash-start-call-btn" style="font-size: 1.1rem;">
-                    <i class="bi bi-telephone-fill me-2"></i> Call Life Advisor
-                  </a>
+                  <div class="d-flex flex-column gap-2">
+                    <a href="/user/call?type=voice" class="btn btn-brand btn-lg rounded-pill px-4 py-3 shadow-lg w-100 app-tap-active btn-start-call <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? '' : 'btn-advisor-offline' %>" id="dash-start-call-btn" style="font-size: 1.05rem;">
+                      <i class="bi bi-telephone-fill me-2"></i> Voice Call <small class="text-white-50 ms-1">(1 pt/min)</small>
+                    </a>
+                    <% if (user.credits >= 2) { %>
+                      <a href="/user/call?type=video" class="btn btn-outline-light btn-lg rounded-pill px-4 py-2.5 shadow-sm w-100 app-tap-active btn-start-call <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? '' : 'btn-advisor-offline' %>" id="dash-start-video-btn" style="font-size: 0.98rem; border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.12);">
+                        <i class="bi bi-camera-video-fill me-2 text-warning"></i> Video Call <small class="text-white-50 ms-1">(2 pts/min)</small>
+                      </a>
+                    <% } else { %>
+                      <a href="/user/buy-credits?lowCredits=true" class="btn btn-outline-light btn-lg rounded-pill px-4 py-2.5 shadow-sm w-100 app-tap-active" style="font-size: 0.95rem; border-color: rgba(255,255,255,0.3); opacity: 0.85;" title="Video call requires minimum 2 points">
+                        <i class="bi bi-camera-video me-2"></i> Video Call <small class="text-white-50 ms-1">(Need 2 pts)</small>
+                      </a>
+                    <% } %>
+                  </div>
                 <% } else { %>
                   <a href="/user/buy-credits?lowCredits=true" class="btn btn-warning btn-lg rounded-pill px-4 py-3.5 shadow-lg w-100 app-tap-active" title="Recharge required to talk" style="font-size: 1.1rem;">
-                    <i class="bi bi-coin me-2"></i> Add Credits to Call
+                    <i class="bi bi-coin me-2"></i> Add Points to Call
                   </a>
                 <% } %>
                 <small class="text-white-50 d-block mt-2 text-center text-lg-end" style="font-size: 0.75rem;">
-                  1 Credit = 1 Minute • Pure Audio Privacy
+                  Voice: 1 pt/min • Video: 2 pts/min • Encrypted
                 </small>
               </div>
             </div>
@@ -157,15 +169,15 @@
                   </div>
                   <div class="d-flex align-items-baseline gap-2">
                     <h2 class="display-6 fw-extrabold text-primary mb-0"><span class="simulated-balance"><%= user.credits %></span></h2>
-                    <span class="text-muted fw-semibold">Credits</span>
+                    <span class="text-muted fw-semibold">Points</span>
                   </div>
                   <p class="text-muted small mt-2 mb-0">
-                    Allows approximately <strong><span class="simulated-balance"><%= user.credits %></span> minutes</strong> of live voice conversation with your Life Advisor.
+                    Allows approximately <strong><span class="simulated-balance"><%= user.credits %></span> minutes</strong> of live voice conversation to Talk With Ashu.
                   </p>
                 </div>
                 <div class="mt-3 pt-3 border-top">
                   <a href="/user/buy-credits" class="btn btn-outline-brand btn-sm rounded-pill w-100 py-2.5 fw-semibold app-tap-active">
-                    <i class="bi bi-plus-circle-fill me-1"></i> Quick Recharge Balance
+                    <i class="bi bi-plus-circle-fill me-1"></i> Quick Recharge Points
                   </a>
                 </div>
               </div>
@@ -201,7 +213,7 @@
             <div class="p-3.5 px-4 d-flex align-items-center justify-content-between border-bottom bg-white">
               <div>
                 <h5 class="fw-bold mb-0 text-dark">Recent Consultations</h5>
-                <small class="text-muted">Previous talks with your Life Advisor</small>
+                <small class="text-muted">Previous talks with Ashu</small>
               </div>
               <a href="/user/call-history" class="small fw-semibold text-primary text-decoration-none">View All</a>
             </div>
@@ -212,19 +224,19 @@
                   <i class="bi bi-telephone-heart text-muted fs-4"></i>
                 </div>
                 <h6 class="fw-bold text-dark mb-1">No Consultations Yet</h6>
-                <p class="text-muted small mb-0">Whenever you're ready, tap "Call Life Advisor" to begin.</p>
+                <p class="text-muted small mb-0">Whenever you're ready, tap "Talk With Ashu" to begin.</p>
               </div>
             <% } else { %>
               <div class="app-list-group border-0 rounded-0">
                 <% calls.slice(0, 5).forEach(call => { %>
                   <% 
                     let badgeClass = "bg-success-subtle text-success";
-                    let iconClass = "bi-telephone-inbound-fill text-success";
+                    let iconClass = call.callType === "Video" ? "bi-camera-video-fill text-purple" : "bi-telephone-inbound-fill text-success";
                     if (call.status === "Cancelled" || call.status === "Missed" || call.status === "Rejected") {
                       badgeClass = "bg-warning-subtle text-warning";
-                      iconClass = "bi-telephone-x-fill text-warning";
+                      iconClass = call.callType === "Video" ? "bi-camera-video-off text-warning" : "bi-telephone-x-fill text-warning";
                     }
-                    if (call.status === "Failed" || (call.status && call.status.includes("No Credits"))) {
+                    if (call.status === "Failed" || (call.status && (call.status.includes("No Points") || call.status.includes("No Credits")))) {
                       badgeClass = "bg-danger-subtle text-danger";
                       iconClass = "bi-exclamation-circle-fill text-danger";
                     }
@@ -235,7 +247,12 @@
                         <i class="bi <%= iconClass %>"></i>
                       </div>
                       <div>
-                        <strong class="d-block text-dark small"><%= call.receiverName || 'Life Advisor' %></strong>
+                        <div class="d-flex align-items-center gap-1.5">
+                          <strong class="text-dark small"><%= call.receiverName || 'Talk With Ashu' %></strong>
+                          <span class="badge <%= call.callType === 'Video' ? 'bg-purple-subtle text-purple' : 'bg-light text-muted border' %> rounded-pill px-1.5 py-0.5" style="font-size: 0.68rem;">
+                            <%= call.callType === 'Video' ? 'Video' : 'Voice' %>
+                          </span>
+                        </div>
                         <small class="text-muted">
                           <%= call.date ? call.date.toISOString().split('T')[0] : '' %> • <%= call.time %>
                         </small>
@@ -243,7 +260,7 @@
                     </div>
                     <div class="text-end">
                       <span class="badge <%= badgeClass %> rounded-pill px-2.5 py-1 small mb-1 d-inline-block"><%= call.status %></span>
-                      <small class="d-block text-muted font-monospace"><%= call.duration %> (<%= call.credits %> cr)</small>
+                      <small class="d-block text-muted font-monospace"><%= call.duration %> (<%= call.credits %> pts)</small>
                     </div>
                   </div>
                 <% }) %>

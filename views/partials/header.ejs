@@ -3,7 +3,7 @@
   <div class="container">
     <a class="navbar-brand d-flex align-items-center" href="/">
       <i class="bi bi-heart-pulse-fill text-primary-pink me-2" style="font-size: 1.5rem; color: #E91E8F;"></i>
-      <span class="brand-text text-uppercase">Friend</span>
+      <span class="brand-text text-uppercase">Talk With Ashu</span>
     </a>
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -29,9 +29,9 @@
         </li>
       </ul>
       <div class="d-flex align-items-center gap-3">
-        <div class="d-none d-sm-flex align-items-center gap-1.5 px-3 py-1.5 rounded-pill bg-light border small" title="Live Advisor Availability">
+        <div class="d-none d-sm-flex align-items-center gap-1.5 px-3 py-1.5 rounded-pill bg-light border small" title="Live Availability">
           <span class="status-indicator-dot <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'online' : 'offline' %> me-1"></span>
-          <span class="text-muted small">Life Advisor:</span>
+          <span class="text-muted small">Talk With Ashu:</span>
           <strong class="advisor-status-text <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'text-success' : 'text-secondary' %>">
             <%= typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline ? 'Online' : 'Offline' %>
           </strong>

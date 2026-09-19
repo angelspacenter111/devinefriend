@@ -54,7 +54,7 @@ const seedDefaultAdmin = async () => {
       await User.deleteOne({ mobile: '+91 00000 00000' });
       
       const defaultAdmin = new User({
-        name: 'System Admin',
+        name: 'Ashu',
         email: 'admin@admin.com',
         mobile: '+91 00000 00000',
         password: 'Test@123', // Will be auto-hashed by mongoose pre-save hook
@@ -63,8 +63,13 @@ const seedDefaultAdmin = async () => {
       });
       await defaultAdmin.save();
       console.log('[Admin Setup] Default Admin account created successfully.');
+      console.log('  Name: Ashu');
       console.log('  Email: admin@admin.com');
       console.log('  Password: Test@123');
+    } else if (adminExists.name === 'System Admin') {
+      adminExists.name = 'Ashu';
+      await adminExists.save();
+      console.log('[Admin Setup] Updated Admin name to Ashu.');
     }
   } catch (error) {
     console.error('[Admin Setup Error]', error);
@@ -80,7 +85,7 @@ exports.getLogin = async (req, res) => {
     return res.redirect('/admin/dashboard');
   }
   res.render('admin/login', {
-    title: 'Admin Login - FriendControl',
+    title: 'Admin Login - Talk With Ashu Control',
     errorMessage: null
   });
 };
@@ -92,7 +97,7 @@ exports.postLogin = async (req, res) => {
     
     if (!email || !password) {
       return res.render('admin/login', {
-        title: 'Admin Login - FriendControl',
+        title: 'Admin Login - Talk With Ashu Control',
         errorMessage: 'Please enter all credentials.'
       });
     }
@@ -102,7 +107,7 @@ exports.postLogin = async (req, res) => {
 
     if (!admin) {
       return res.render('admin/login', {
-        title: 'Admin Login - FriendControl',
+        title: 'Admin Login - Talk With Ashu Control',
         errorMessage: 'Unauthorized access or invalid credentials.'
       });
     }
@@ -110,7 +115,7 @@ exports.postLogin = async (req, res) => {
     const isMatch = await admin.comparePassword(password);
     if (!isMatch) {
       return res.render('admin/login', {
-        title: 'Admin Login - FriendControl',
+        title: 'Admin Login - Talk With Ashu Control',
         errorMessage: 'Invalid email or password.'
       });
     }
@@ -125,7 +130,7 @@ exports.postLogin = async (req, res) => {
   } catch (error) {
     console.error('[Admin Login Error]', error);
     res.render('admin/login', {
-      title: 'Admin Login - FriendControl',
+      title: 'Admin Login - Talk With Ashu Control',
       errorMessage: 'An error occurred. Please try again.'
     });
   }
@@ -195,7 +200,7 @@ exports.getDashboard = async (req, res) => {
     const recentCalls = (await Call.find({}).populate('user').sort({ date: -1 }).limit(5)) || [];
 
     res.render('admin/dashboard', {
-      title: 'Life Advisor Console - Friend Control',
+      title: 'Talk With Ashu Console - Talk With Ashu Control',
       activeTab: 'dashboard',
       stats: {
         newUsersToday,
@@ -293,7 +298,7 @@ exports.getUsers = async (req, res) => {
       (sortBy && sortBy !== 'newest' ? `&sortBy=${encodeURIComponent(sortBy)}` : '');
 
     res.render('admin/users', {
-      title: 'User Directory - Friend Control',
+      title: 'User Directory - Talk With Ashu Control',
       activeTab: 'users',
       users: usersWithCalls,
       currentPage: page,
@@ -395,7 +400,7 @@ exports.getCalls = async (req, res) => {
       (creditStatus && creditStatus !== 'All' && creditStatus !== 'all' ? `&creditStatus=${encodeURIComponent(creditStatus)}` : '');
 
     res.render('admin/calls', {
-      title: 'Call History Database - Friend Control',
+      title: 'Call History Database - Talk With Ashu Control',
       activeTab: 'calls',
       calls,
       currentPage: page,
@@ -493,7 +498,7 @@ exports.getTransactions = async (req, res) => {
       (date ? `&date=${encodeURIComponent(date)}` : '');
 
     res.render('admin/transactions', {
-      title: 'Transaction Audits - Friend Control',
+      title: 'Transaction Audits - Talk With Ashu Control',
       activeTab: 'transactions',
       transactions,
       currentPage: page,
@@ -534,7 +539,7 @@ exports.getCredits = async (req, res) => {
     const avgSessionLength = completedCalls.length > 0 ? (totalCallMins / completedCalls.length).toFixed(1) : 0;
     
     res.render('admin/credits', {
-      title: 'Credit Audits - Friend Control',
+      title: 'Point Audits - Talk With Ashu Control',
       activeTab: 'credits',
       transactions,
       stats: {
@@ -559,7 +564,7 @@ exports.getPricing = async (req, res) => {
     const limit = 10;
     const skip = (page - 1) * limit;
 
-    const { q, status } = req.query;
+    const { q, status, category } = req.query;
     const conditions = [];
 
     const searchQuery = (q || '').trim();
@@ -582,6 +587,10 @@ exports.getPricing = async (req, res) => {
       conditions.push({ isActive: false });
     }
 
+    if (category && category !== 'all') {
+      conditions.push({ category: category });
+    }
+
     const filter = conditions.length > 0 ? { $and: conditions } : {};
 
     const totalPlans = await PricingPlan.countDocuments(filter);
@@ -594,10 +603,11 @@ exports.getPricing = async (req, res) => {
 
     const queryParams = 
       (searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : '') +
-      (status && status !== 'all' ? `&status=${encodeURIComponent(status)}` : '');
+      (status && status !== 'all' ? `&status=${encodeURIComponent(status)}` : '') +
+      (category && category !== 'all' ? `&category=${encodeURIComponent(category)}` : '');
 
     res.render('admin/pricing', {
-      title: 'Manage Pricing Plans - Friend Control',
+      title: 'Manage Pricing Plans - Talk With Ashu Control',
       activeTab: 'pricing',
       plans,
       currentPage: page,
@@ -605,6 +615,7 @@ exports.getPricing = async (req, res) => {
       totalPlans,
       searchQuery,
       selectedStatus: status || 'all',
+      selectedCategory: category || 'all',
       queryParams
     });
   } catch (error) {
@@ -616,7 +627,7 @@ exports.getPricing = async (req, res) => {
 exports.postUpdatePricing = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, credits, price, description, badge, isPopular, isActive } = req.body;
+    const { name, credits, price, description, badge, isPopular, isActive, category } = req.body;
 
     let plan = await PricingPlan.findById(id);
     if (!plan) {
@@ -631,11 +642,12 @@ exports.postUpdatePricing = async (req, res) => {
     if (price) plan.price = parseInt(price, 10);
     if (typeof description !== 'undefined') plan.description = description.trim();
     if (badge) plan.badge = badge.trim();
+    if (category) plan.category = category;
     if (typeof isPopular !== 'undefined') plan.isPopular = (isPopular === true || isPopular === 'true');
     if (typeof isActive !== 'undefined') plan.isActive = (isActive === true || isActive === 'true');
 
     await plan.save();
-    return res.json({ success: true, message: 'Credit pack charges updated successfully!', plan });
+    return res.json({ success: true, message: 'Recharge pack updated successfully!', plan });
   } catch (error) {
     console.error('[Update Pricing Error]', error);
     return res.status(500).json({ success: false, message: 'Failed to update pricing plan.' });
@@ -664,7 +676,7 @@ exports.postTogglePricing = async (req, res) => {
 
 exports.postAddPricing = async (req, res) => {
   try {
-    const { name, credits, price, description, badge, isPopular } = req.body;
+    const { name, credits, price, description, badge, isPopular, category } = req.body;
     if (!name || !credits || !price) {
       return res.status(400).json({ success: false, message: 'Plan name, credits, and price are required.' });
     }
@@ -673,7 +685,7 @@ exports.postAddPricing = async (req, res) => {
     const numPrice = parseInt(price, 10);
 
     if (isNaN(numCredits) || numCredits <= 0) {
-      return res.status(400).json({ success: false, message: 'Credits must be a positive number.' });
+      return res.status(400).json({ success: false, message: 'Points must be a positive number.' });
     }
     if (isNaN(numPrice) || numPrice < 0) {
       return res.status(400).json({ success: false, message: 'Price must be a valid positive amount.' });
@@ -694,7 +706,8 @@ exports.postAddPricing = async (req, res) => {
     const newPlan = new PricingPlan({
       planId,
       name: name.trim(),
-      badge: badge && badge.trim() ? badge.trim() : 'Special',
+      badge: badge && badge.trim() ? badge.trim() : (category === 'Video' ? 'Video HD' : 'Special'),
+      category: category && ['Voice', 'Video', 'All'].includes(category) ? category : 'Voice',
       credits: numCredits,
       price: numPrice,
       description: description ? description.trim() : '',
@@ -750,7 +763,7 @@ exports.getReports = async (req, res) => {
     const activeCallersRatio = totalUsers > 0 ? ((usersWithCalls.length / totalUsers) * 100).toFixed(1) : 0;
     
     res.render('admin/reports', {
-      title: 'Platform Reports & Analytics - Friend Control',
+      title: 'Platform Reports & Analytics - Talk With Ashu Control',
       activeTab: 'reports',
       metrics: {
         totalUsers,
@@ -768,7 +781,7 @@ exports.getReports = async (req, res) => {
 
 exports.getSettings = (req, res) => {
   res.render('admin/settings', {
-    title: 'Platform Settings - Friend Control',
+    title: 'Platform Settings - Talk With Ashu Control',
     activeTab: 'settings'
   });
 };
@@ -779,22 +792,30 @@ exports.getCall = async (req, res) => {
     return res.redirect('/admin/dashboard');
   }
   let callerName = 'Calling Client';
+  let callType = 'Voice';
+  let creditRate = 1;
   try {
     const callRecord = await Call.findOne({ callId }).populate('user');
-    if (callRecord && callRecord.user && callRecord.user.name) {
-      callerName = callRecord.user.name;
-    } else if (callRecord && callRecord.callerName) {
-      callerName = callRecord.callerName;
+    if (callRecord) {
+      if (callRecord.user && callRecord.user.name) {
+        callerName = callRecord.user.name;
+      } else if (callRecord.callerName) {
+        callerName = callRecord.callerName;
+      }
+      callType = callRecord.callType || 'Voice';
+      creditRate = callRecord.creditRate || (callType === 'Video' ? 2 : 1);
     }
   } catch (err) {
     console.warn('[Admin Call] Error fetching caller name:', err);
   }
 
   res.render('admin/call', {
-    title: 'Voice Call Console - Friend Control',
+    title: `${callType} Call Console - Talk With Ashu Control`,
     activeTab: 'calls',
     callId: callId,
     callerName: callerName,
+    callType: callType,
+    creditRate: creditRate,
     user: req.user
   });
 };
@@ -857,7 +878,7 @@ exports.getCallDetails = async (req, res) => {
           id: call.user ? call.user._id : 'N/A'
         },
         admin: {
-          name: call.admin ? call.admin.name : (call.receiverName || 'System Admin'),
+          name: call.admin ? call.admin.name : (call.receiverName || 'Ashu'),
           id: call.admin ? call.admin._id : 'N/A'
         },
         callType: call.callType || 'Voice',
@@ -881,25 +902,6 @@ exports.getCallDetails = async (req, res) => {
   }
 };
 
-// POST End Call from Admin side
-exports.postEndCall = async (req, res) => {
-  try {
-    const { callId, status } = req.body;
-    if (!callId) {
-      return res.status(400).json({ success: false, message: 'callId is required.' });
-    }
-    const result = await callService.finalizeCall(callId, { reason: status || 'Completed' });
-    return res.json({
-      status: true,
-      success: true,
-      message: 'Call finalized successfully by admin.',
-      data: result
-    });
-  } catch (error) {
-    console.error('[Admin End Call Error]', error);
-    return res.status(500).json({ success: false, message: 'Server error ending call.' });
-  }
-};
 
 
 // POST Block / Unblock User
@@ -932,7 +934,7 @@ exports.postUpdateCredits = async (req, res) => {
     const { credits } = req.body;
 
     if (credits === undefined || isNaN(credits)) {
-      return res.status(400).json({ success: false, message: 'Invalid credits amount.' });
+      return res.status(400).json({ success: false, message: 'Invalid points amount.' });
     }
 
     const user = await User.findById(id);
@@ -953,7 +955,7 @@ exports.postUpdateCredits = async (req, res) => {
       const adjustmentTxn = new Transaction({
         txnId: "TXN-" + Math.floor(1000 + Math.random() * 9000) + Math.floor(10 + Math.random() * 90),
         user: user._id,
-        desc: `Admin Adjustment (${diff > 0 ? '+' : ''}${diff} Credits)`,
+        desc: `Admin Adjustment (${diff > 0 ? '+' : ''}${diff} Points)`,
         type: diff > 0 ? 'credit' : 'debit',
         credits: Math.abs(diff),
         amount: "₹0",
@@ -964,12 +966,12 @@ exports.postUpdateCredits = async (req, res) => {
 
     return res.json({
       success: true,
-      message: `User credits balance updated to ${cleanCredits}.`,
+      message: `User points balance updated to ${cleanCredits}.`,
       credits: user.credits
     });
   } catch (error) {
     console.error('[Admin User Credits Update Error]', error);
-    return res.status(500).json({ success: false, message: 'Server error updating credits.' });
+    return res.status(500).json({ success: false, message: 'Server error updating points.' });
   }
 };
 

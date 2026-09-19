@@ -73,7 +73,7 @@ async function createOrder({ userId, packageId }) {
 
   const plan = await PricingPlan.findOne(planQuery);
   if (!plan) {
-    const err = new Error('Invalid or inactive credit package selected');
+    const err = new Error('Invalid or inactive point package selected');
     err.status = 404;
     throw err;
   }
@@ -124,7 +124,7 @@ async function createOrder({ userId, packageId }) {
     keyId: process.env.RAZORPAY_KEY_ID,
     packageName: plan.name,
     credits: plan.credits,
-    description: `${plan.credits} Credits - ${plan.name}`
+    description: `${plan.credits} Points - ${plan.name}`
   };
 }
 
@@ -271,7 +271,7 @@ async function fulfillPaymentIdempotent({
   const txnDoc = new Transaction({
     txnId: generateTxnId(),
     user: lockedPayment.user,
-    desc: `Credit Recharge (${lockedPayment.credits} Credits - ${lockedPayment.packageName})`,
+    desc: `Point Recharge (${lockedPayment.credits} Points - ${lockedPayment.packageName})`,
     type: 'credit',
     credits: lockedPayment.credits,
     amount: `₹${lockedPayment.amount.toLocaleString('en-IN')}`,
@@ -288,7 +288,7 @@ async function fulfillPaymentIdempotent({
   return {
     success: true,
     alreadyProcessed: false,
-    message: `Payment successful! Added ${lockedPayment.credits} credits to your account.`,
+    message: `Payment successful! Added ${lockedPayment.credits} points to your account.`,
     credits: updatedUser.credits,
     paymentTransaction: lockedPayment
   };

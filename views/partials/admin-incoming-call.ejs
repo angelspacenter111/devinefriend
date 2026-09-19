@@ -3,15 +3,20 @@
   <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
     <div class="modal-content rounded-4 border-0 shadow-lg text-center p-4">
       <div class="modal-body py-4">
-        <div class="call-circle-avatar mb-4" style="width: 100px; height: 100px; margin: 0 auto; position: relative;">
+        <div class="call-circle-avatar mb-3" style="width: 100px; height: 100px; margin: 0 auto; position: relative;">
           <div class="call-pulse-animation"></div>
           <div class="call-pulse-animation-2"></div>
-          <div class="rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 100%; height: 100%; font-size: 2.2rem; background: var(--brand-gradient, linear-gradient(135deg, #1769E0 0%, #E91E8F 100%));">
-            <i class="bi bi-telephone-inbound-fill"></i>
+          <div class="rounded-circle d-flex align-items-center justify-content-center text-white" id="modal-call-icon-bg" style="width: 100%; height: 100%; font-size: 2.2rem; background: var(--brand-gradient, linear-gradient(135deg, #1769E0 0%, #E91E8F 100%));">
+            <i class="bi bi-telephone-inbound-fill" id="modal-call-icon"></i>
           </div>
         </div>
-        <h4 class="fw-bold mb-2">Incoming Consultation Call</h4>
-        <p class="text-muted small">Client <strong id="modal-caller-name">User</strong> is requesting a 1-on-1 Life Guidance consultation.</p>
+        <div class="mb-2">
+          <span class="badge rounded-pill px-3 py-1.5" id="modal-call-type-badge" style="background: rgba(23,105,224,0.1); color: #1769E0; font-size: 0.8rem;">
+            Voice Call (1 Pt/min)
+          </span>
+        </div>
+        <h4 class="fw-bold mb-1" id="modal-call-title">Incoming Call</h4>
+        <p class="text-muted small mb-0">Client <strong id="modal-caller-name">User</strong> is requesting to Talk With Ashu.</p>
       </div>
       <div class="d-flex gap-2 justify-content-center mt-3">
         <button type="button" class="btn btn-outline-danger px-4 py-2.5 rounded-pill" id="btn-incoming-decline">Decline</button>
@@ -26,6 +31,7 @@
     let adminSocket = null;
     let activeCallId = null;
     let activeCallerId = null;
+    let activeCallType = 'Voice';
     let isProcessingAction = false;
 
     function getIncomingModalInstance() {
@@ -54,7 +60,7 @@
         console.log(`[Admin Signaling] Emitting admin-join. Socket ID: ${adminSocket.id}`);
         adminSocket.emit('admin-join', {
           adminId: (window.sessionUser && window.sessionUser.id) || null,
-          name: (window.sessionUser && window.sessionUser.name) || 'Life Advisor'
+          name: (window.sessionUser && window.sessionUser.name) || 'Ashu'
         });
       }
     }
@@ -91,15 +97,38 @@
 
         activeCallId = data.callId;
         activeCallerId = data.callerId || '';
+        activeCallType = data.callType || 'Voice';
         isProcessingAction = false;
 
+        const isVideo = activeCallType === 'Video';
         const callerNameEl = document.getElementById('modal-caller-name');
         if (callerNameEl) {
           callerNameEl.innerText = data.callerName || 'Companion User';
         }
 
+        const typeBadge = document.getElementById('modal-call-type-badge');
+        const callTitle = document.getElementById('modal-call-title');
+        const callIcon = document.getElementById('modal-call-icon');
+
+        if (typeBadge) {
+          if (isVideo) {
+            typeBadge.className = 'badge rounded-pill px-3 py-1.5 bg-purple-subtle text-purple border border-purple-subtle';
+            typeBadge.innerHTML = '<i class="bi bi-camera-video-fill me-1"></i> Video Call (2 Pts/min)';
+          } else {
+            typeBadge.className = 'badge rounded-pill px-3 py-1.5 bg-primary-subtle text-primary border border-primary-subtle';
+            typeBadge.innerHTML = '<i class="bi bi-telephone-fill me-1"></i> Voice Call (1 Pt/min)';
+          }
+        }
+        if (callTitle) {
+          callTitle.innerText = isVideo ? 'Incoming Video Call' : 'Incoming Voice Call';
+        }
+        if (callIcon) {
+          callIcon.className = isVideo ? 'bi bi-camera-video-fill' : 'bi bi-telephone-inbound-fill';
+        }
+
         // Persist in localStorage for /admin/call
         localStorage.setItem("active_call_id", data.callId);
+        localStorage.setItem("active_call_type", activeCallType);
         if (data.callerId) localStorage.setItem("webrtc_caller_id", data.callerId);
         if (data.callerName) localStorage.setItem("webrtc_caller_name", data.callerName);
 
@@ -155,7 +184,8 @@
 
           const targetCallId = activeCallId;
           const targetCallerId = activeCallerId || '';
-          window.location.href = `/admin/call?callId=${encodeURIComponent(targetCallId)}&callerId=${encodeURIComponent(targetCallerId)}`;
+          const targetCallType = activeCallType || 'Voice';
+          window.location.href = `/admin/call?callId=${encodeURIComponent(targetCallId)}&callerId=${encodeURIComponent(targetCallerId)}&type=${encodeURIComponent(targetCallType.toLowerCase())}`;
         });
       }
 

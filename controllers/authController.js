@@ -6,7 +6,7 @@ exports.getLogin = (req, res) => {
     return res.redirect(req.session.role === 'admin' ? '/admin/dashboard' : '/user/dashboard');
   }
   res.render('login', {
-    title: 'Login - Friend',
+    title: 'Login - Talk With Ashu',
     errorMessage: null
   });
 };
@@ -16,14 +16,14 @@ exports.getRegister = (req, res) => {
     return res.redirect(req.session.role === 'admin' ? '/admin/dashboard' : '/user/dashboard');
   }
   res.render('register', {
-    title: 'Create Account - Friend',
+    title: 'Create Account - Talk With Ashu',
     errorMessage: null
   });
 };
 
 exports.getForgotPassword = (req, res) => {
   res.render('forgot-password', {
-    title: 'Recover Password - Friend'
+    title: 'Recover Password - Talk With Ashu'
   });
 };
 
@@ -34,7 +34,7 @@ exports.postLogin = async (req, res) => {
     
     if (!mobile || !password) {
       return res.render('login', {
-        title: 'Login - Friend',
+        title: 'Login - Talk With Ashu',
         errorMessage: 'Please enter all required fields.'
       });
     }
@@ -44,7 +44,7 @@ exports.postLogin = async (req, res) => {
 
     if (!user) {
       return res.render('login', {
-        title: 'Login - Friend',
+        title: 'Login - Talk With Ashu',
         errorMessage: 'Invalid mobile number or password.'
       });
     }
@@ -52,14 +52,14 @@ exports.postLogin = async (req, res) => {
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.render('login', {
-        title: 'Login - Friend',
+        title: 'Login - Talk With Ashu',
         errorMessage: 'Invalid mobile number or password.'
       });
     }
 
     if (user.isBlocked) {
       return res.render('login', {
-        title: 'Login - Friend',
+        title: 'Login - Talk With Ashu',
         errorMessage: 'Your account is suspended. Please contact customer support.'
       });
     }
@@ -75,7 +75,7 @@ exports.postLogin = async (req, res) => {
   } catch (error) {
     console.error('[Login Error]', error);
     res.render('login', {
-      title: 'Login - Friend',
+      title: 'Login - Talk With Ashu',
       errorMessage: 'An error occurred during login. Please try again.'
     });
   }
@@ -88,7 +88,7 @@ exports.postRegister = async (req, res) => {
 
     if (!name || !mobile || !password) {
       return res.render('register', {
-        title: 'Create Account - Friend',
+        title: 'Create Account - Talk With Ashu',
         errorMessage: 'Please fill all required fields.'
       });
     }
@@ -99,7 +99,7 @@ exports.postRegister = async (req, res) => {
     const userExists = await User.findOne({ mobile: cleanMobile });
     if (userExists) {
       return res.render('register', {
-        title: 'Create Account - Friend',
+        title: 'Create Account - Talk With Ashu',
         errorMessage: 'Mobile number is already registered.'
       });
     }
@@ -117,7 +117,7 @@ exports.postRegister = async (req, res) => {
     const welcomeTxn = new Transaction({
       txnId: "TXN-" + Math.floor(1000 + Math.random() * 9000) + Math.floor(10 + Math.random() * 90),
       user: savedUser._id,
-      desc: "Welcome Bonus (25 Free Credits)",
+      desc: "Welcome Bonus (25 Free Points)",
       type: "credit",
       credits: 25,
       amount: "₹0",
@@ -133,7 +133,7 @@ exports.postRegister = async (req, res) => {
   } catch (error) {
     console.error('[Registration Error]', error);
     res.render('register', {
-      title: 'Create Account - Friend',
+      title: 'Create Account - Talk With Ashu',
       errorMessage: 'An error occurred during registration. Please try again.'
     });
   }

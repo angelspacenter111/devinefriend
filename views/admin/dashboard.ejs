@@ -15,7 +15,7 @@
       <!-- Desktop Header Panel (Visible on Desktop) -->
       <header class="header-panel shadow-sm d-none d-lg-flex">
         <div class="d-flex align-items-center gap-3">
-          <h4 class="mb-0 fw-bold text-dark">Life Advisor Operational Console</h4>
+          <h4 class="mb-0 fw-bold text-dark">Talk With Ashu Operational Console</h4>
         </div>
         
         <div class="d-flex align-items-center gap-3">
@@ -34,7 +34,7 @@
 
           <a href="/admin/settings" class="btn btn-light d-flex align-items-center gap-2 border rounded-pill py-1.5 px-3">
             <i class="bi bi-shield-lock-fill text-primary"></i>
-            <span class="fw-semibold text-dark small">Admin</span>
+            <span class="fw-semibold text-dark small">Ashu</span>
           </a>
 
           <a href="/admin/logout" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 d-flex align-items-center gap-1.5 fw-semibold" title="Logout">
@@ -48,7 +48,7 @@
       <main class="main-content-inner">
         <div class="app-container">
 
-          <!-- 1. HERO EARNINGS CARD: TODAY'S REVENUE & CREDITS USAGE -->
+          <!-- 1. HERO EARNINGS CARD: TODAY'S REVENUE & POINTS USAGE -->
           <div class="admin-earning-hero-card">
             <div class="row align-items-center g-4 position-relative z-3">
               <div class="col-lg-8">
@@ -74,8 +74,8 @@
                   <div class="hero-divider d-none d-sm-block"></div>
 
                   <div class="hero-stat-box">
-                    <div class="hero-stat-value text-warning"><%= ((typeof stats !== 'undefined' && stats && stats.creditsUsedToday) || 0) %> <span class="fs-4 fw-normal text-white-50">credits</span></div>
-                    <span class="hero-stat-caption text-white-50">Consultation Credits Used</span>
+                    <div class="hero-stat-value text-warning"><%= ((typeof stats !== 'undefined' && stats && stats.creditsUsedToday) || 0) %> <span class="fs-4 fw-normal text-white-50">points</span></div>
+                    <span class="hero-stat-caption text-white-50">Consultation Points Used</span>
                   </div>
                 </div>
 
@@ -128,17 +128,17 @@
               </div>
             </div>
 
-            <!-- Credits Consumed Today -->
+            <!-- Points Consumed Today -->
             <div class="col-6 col-lg-3">
               <div class="admin-metric-card">
                 <div>
                   <div class="d-flex justify-content-between align-items-start mb-2">
-                    <span class="admin-metric-label">Credits Used</span>
+                    <span class="admin-metric-label">Points Used</span>
                     <div class="admin-metric-icon bg-warning-subtle text-warning-emphasis">
                       <i class="bi bi-coin"></i>
                     </div>
                   </div>
-                  <div class="admin-metric-value text-dark"><%= stats.creditsUsedToday %> <span class="fs-6 text-muted fw-normal">cr</span></div>
+                  <div class="admin-metric-value text-dark"><%= stats.creditsUsedToday %> <span class="fs-6 text-muted fw-normal">pts</span></div>
                 </div>
                 <div class="mt-2 pt-2 border-top">
                   <span class="badge bg-warning-subtle text-warning-emphasis rounded-pill px-2.5 py-1 fw-semibold small">
@@ -168,7 +168,7 @@
               </div>
             </div>
 
-            <!-- Credits Bought Today -->
+            <!-- Points Bought Today -->
             <div class="col-6 col-lg-3">
               <div class="admin-metric-card">
                 <div>
@@ -178,7 +178,7 @@
                       <i class="bi bi-wallet2"></i>
                     </div>
                   </div>
-                  <div class="admin-metric-value text-dark"><%= stats.creditsToday %> <span class="fs-6 text-muted fw-normal">cr</span></div>
+                  <div class="admin-metric-value text-dark"><%= stats.creditsToday %> <span class="fs-6 text-muted fw-normal">pts</span></div>
                 </div>
                 <div class="mt-2 pt-2 border-top">
                   <span class="badge bg-purple-subtle text-purple rounded-pill px-2.5 py-1 fw-semibold small">
@@ -239,8 +239,8 @@
                   </span>
                   <span class="badge bg-light text-muted border rounded-pill px-2.5 py-1 small">Today</span>
                 </div>
-                <h5 class="fw-bold mb-1 mt-2 text-dark">Today's Client Credit Consumption</h5>
-                <p class="text-muted small mb-0">Total <strong><%= stats.creditsUsedToday %> Credits</strong> (<%= stats.minsToday %> mins) used by clients today, generating approx <strong>₹<%= ((typeof stats !== 'undefined' && stats && stats.todayRevenue) || 0).toLocaleString('en-IN') %></strong> revenue inflow.</p>
+                <h5 class="fw-bold mb-1 mt-2 text-dark">Today's Client Point Consumption</h5>
+                <p class="text-muted small mb-0">Total <strong><%= stats.creditsUsedToday %> Points</strong> (<%= stats.minsToday %> mins) used by clients today, generating approx <strong>₹<%= ((typeof stats !== 'undefined' && stats && stats.todayRevenue) || 0).toLocaleString('en-IN') %></strong> revenue inflow.</p>
               </div>
               <a href="/admin/calls" class="btn btn-sm btn-outline-brand rounded-pill px-3">
                 <i class="bi bi-telephone-inbound me-1"></i> Filter Calls
@@ -254,7 +254,7 @@
                     <tr>
                       <th>Client Name</th>
                       <th>Mobile Number</th>
-                      <th>Credits Consumed</th>
+                      <th>Points Consumed</th>
                       <th>Talk Duration</th>
                       <th>Calls Today</th>
                       <th>Action</th>
@@ -272,7 +272,7 @@
                           </div>
                         </td>
                         <td><span class="font-monospace text-muted"><%= item.mobile || 'N/A' %></span></td>
-                        <td><span class="badge bg-purple-subtle text-purple px-3 py-1.5 rounded-pill fw-bold"><i class="bi bi-coin me-1"></i><%= item.creditsUsed %> cr consumed</span></td>
+                        <td><span class="badge bg-purple-subtle text-purple px-3 py-1.5 rounded-pill fw-bold"><i class="bi bi-coin me-1"></i><%= item.creditsUsed %> pts consumed</span></td>
                         <td><span class="fw-semibold text-dark"><%= item.totalDurationMins %> mins</span></td>
                         <td><span class="badge bg-light text-dark border rounded-pill px-2.5 py-1"><%= item.callsCount %> calls</span></td>
                         <td>
@@ -288,7 +288,7 @@
             <% } else { %>
               <div class="text-center py-4 px-3 bg-light rounded-4 border border-dashed">
                 <i class="bi bi-chat-square-dots text-muted fs-3 d-block mb-1"></i>
-                <p class="text-muted small mb-0">No client has consumed consultation credits today yet.</p>
+                <p class="text-muted small mb-0">No client has consumed consultation points today yet.</p>
               </div>
             <% } %>
           </div>
@@ -314,7 +314,7 @@
                       <% 
                         let badgeClass = "bg-success-subtle text-success";
                         if (call.status === "Cancelled" || call.status === "Missed" || call.status === "Rejected") badgeClass = "bg-warning-subtle text-warning";
-                        if (call.status === "Failed" || (call.status && call.status.includes("No Credits"))) badgeClass = "bg-danger-subtle text-danger";
+                        if (call.status === "Failed" || (call.status && (call.status.includes("No Points") || call.status.includes("No Credits")))) badgeClass = "bg-danger-subtle text-danger";
                         const clientName = (call.user && call.user.name) ? call.user.name : (call.callerName || 'Client');
                       %>
                       <div class="app-list-item">
@@ -329,7 +329,7 @@
                         </div>
                         <div class="text-end">
                           <span class="badge <%= badgeClass %> rounded-pill px-2.5 py-1 small mb-1 d-inline-block"><%= call.status %></span>
-                          <small class="d-block text-muted font-monospace"><%= call.duration %> (<%= call.credits %> cr)</small>
+                          <small class="d-block text-muted font-monospace"><%= call.duration %> (<%= call.credits %> pts)</small>
                         </div>
                       </div>
                     <% }) %>
@@ -364,7 +364,7 @@
                           </div>
                         </div>
                         <div class="text-end">
-                          <span class="badge bg-primary-subtle text-primary rounded-pill px-2.5 py-1 small"><%= u.credits %> cr</span>
+                          <span class="badge bg-primary-subtle text-primary rounded-pill px-2.5 py-1 small"><%= u.credits %> pts</span>
                         </div>
                       </div>
                     <% }) %>

@@ -1,15 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <%- include('../partials/head') %>
-<body class="call-wrapper" style="overflow: hidden; background: #0F172A;">
+<body class="call-wrapper <%= typeof callType !== 'undefined' && callType === 'Video' ? 'video-call-active' : '' %>" style="overflow: hidden; background: #0F172A;">
   <!-- Active engine activator element for custom.js -->
   <div id="call-screen-trigger"></div>
 
-  <!-- Native Mobile Full-Screen Audio Call Interface -->
-  <div class="native-call-screen">
+  <% const isVideo = typeof callType !== 'undefined' && callType === 'Video'; %>
+
+  <!-- Native Mobile Full-Screen Call Interface -->
+  <div class="native-call-screen <%= isVideo ? 'video-mode' : '' %>">
     
+    <!-- If Video Call: Video Elements Layer -->
+    <% if (isVideo) { %>
+      <div class="video-stage-wrapper" id="videoStageWrapper">
+        <video id="remoteVideo" autoplay playsinline class="remote-video-element"></video>
+        <div class="local-pip-container" id="localPipContainer">
+          <video id="localVideo" autoplay playsinline muted class="local-video-element"></video>
+          <button type="button" class="btn btn-sm btn-dark rounded-circle local-flip-btn" id="flip-camera-btn" onclick="flipCamera()" title="Flip Camera">
+            <i class="bi bi-arrow-repeat"></i>
+          </button>
+        </div>
+      </div>
+    <% } %>
+
     <!-- Top Header Bar -->
-    <div class="call-header-bar">
+    <div class="call-header-bar <%= isVideo ? 'video-overlay-header' : '' %>">
       <div class="d-flex align-items-center gap-2">
         <a href="/user/dashboard" class="btn btn-outline-light btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.15);" title="Return to Dashboard">
           <i class="bi bi-chevron-down fs-6"></i>
@@ -17,6 +32,11 @@
         <span class="badge rounded-pill px-3 py-1.5 text-white-50 small font-monospace" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.1);">
           ID: <%= typeof call !== 'undefined' && call ? call.callId : '' %>
         </span>
+        <% if (isVideo) { %>
+          <span class="badge bg-purple-subtle text-purple border border-purple-subtle rounded-pill px-2.5 py-1 small">
+            <i class="bi bi-camera-video-fill me-1"></i> Video (2 pts/min)
+          </span>
+        <% } %>
       </div>
 
       <div>
@@ -26,23 +46,23 @@
       </div>
     </div>
 
-    <!-- Center Stage: Life Advisor Avatar, Waves & Timer -->
-    <div class="call-center-stage">
+    <!-- Center Stage: Avatar, Waves & Timer -->
+    <div class="call-center-stage <%= isVideo ? 'video-center-overlay' : '' %>" id="callCenterStage">
       <div class="call-meta-info mb-4">
         <div class="badge rounded-pill px-3 py-1 small text-white-50 mb-2" style="background: rgba(255, 255, 255, 0.08);">
-          <i class="bi bi-patch-check-fill text-warning me-1"></i> Personal Life Advisor
+          <i class="bi bi-patch-check-fill text-warning me-1"></i> Talk With Ashu
         </div>
-        <h2><%= typeof call !== 'undefined' && call && call.receiverName ? call.receiverName : 'Life Advisor' %></h2>
-        <p>Private 1-on-1 Audio Consultation</p>
+        <h2><%= typeof call !== 'undefined' && call && call.receiverName ? call.receiverName : 'Talk With Ashu' %></h2>
+        <p><%= isVideo ? 'Private 1-on-1 Video Consultation' : 'Private 1-on-1 Audio Consultation' %></p>
       </div>
 
       <!-- Pulsing Radial Sound Wave Rings -->
-      <div class="call-avatar-container">
+      <div class="call-avatar-container" id="callAvatarContainer">
         <div class="call-avatar-ring-pulse"></div>
         <div class="call-avatar-ring-pulse"></div>
         <div class="call-avatar-ring-pulse"></div>
-        <div class="call-avatar-inner">
-          <i class="bi bi-person-heart"></i>
+        <div class="call-avatar-inner" style="<%= isVideo ? 'background: linear-gradient(135deg, #7B4DCE 0%, #E91E8F 100%);' : '' %>">
+          <i class="bi <%= isVideo ? 'bi-camera-video' : 'bi-person-heart' %>"></i>
         </div>
       </div>
 
@@ -61,21 +81,21 @@
         <span class="soundwave-bar" style="background: #1769E0;"></span>
       </div>
 
-      <!-- Real-time Credit Counters -->
+      <!-- Real-time Point Counters -->
       <div class="call-credits-badge-group">
         <div class="call-credits-badge">
           <i class="bi bi-stopwatch text-warning me-1"></i>
-          Used: <strong id="call-credits-used">0</strong> cr
+          Used: <strong id="call-credits-used">0</strong> pts
         </div>
         <div class="call-credits-badge">
           <i class="bi bi-coin text-primary-blue me-1"></i>
-          Remaining: <strong id="call-credits-remaining" class="simulated-balance"><%= user.credits %></strong> cr
+          Remaining: <strong id="call-credits-remaining" class="simulated-balance"><%= user.credits %></strong> pts
         </div>
       </div>
     </div>
 
     <!-- Bottom Controls Area -->
-    <div class="text-center" id="call-screen-footer-container">
+    <div class="text-center <%= isVideo ? 'video-overlay-footer' : '' %>" id="call-screen-footer-container">
       
       <!-- Active Call Dialpad Controls (Visible when connected) -->
       <div class="call-actions-bar d-none" id="call-active-controls">
@@ -83,6 +103,13 @@
           <i class="bi bi-mic-fill"></i>
           <small class="d-block" style="font-size: 0.65rem; margin-top: 2px;">Mute</small>
         </button>
+
+        <% if (isVideo) { %>
+          <button class="call-ctrl-btn app-tap-active" id="camera-toggle-btn" onclick="toggleLocalVideo()" title="Camera On / Off">
+            <i class="bi bi-camera-video-fill"></i>
+            <small class="d-block" style="font-size: 0.65rem; margin-top: 2px;">Camera</small>
+          </button>
+        <% } %>
 
         <button class="call-ctrl-btn end-btn end-call app-tap-active" id="call-end-btn" title="End Call">
           <i class="bi bi-telephone-x-fill"></i>
@@ -104,7 +131,7 @@
       <!-- Privacy & Security Guarantee -->
       <div class="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill text-white-50 small" style="background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.1);">
         <i class="bi bi-shield-lock-fill text-success"></i>
-        <span>Encrypted 1-on-1 audio • Not recorded • Strict Privacy</span>
+        <span>Encrypted 1-on-1 <%= isVideo ? 'video' : 'audio' %> • Not recorded • Strict Privacy</span>
       </div>
     </div>
 
@@ -112,6 +139,102 @@
 
   <!-- Hidden remote audio element for WebRTC -->
   <audio id="remoteAudio" autoplay></audio>
+
+  <!-- Video call layout CSS -->
+  <style>
+    .video-mode {
+      position: relative;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .video-stage-wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      background: #000;
+    }
+    .remote-video-element {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      background: #0f172a;
+    }
+    .local-pip-container {
+      position: absolute;
+      top: 72px;
+      right: 16px;
+      width: 110px;
+      height: 155px;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      z-index: 15;
+      background: #1e293b;
+    }
+    @media (min-width: 768px) {
+      .local-pip-container {
+        width: 160px;
+        height: 220px;
+        top: 80px;
+        right: 24px;
+      }
+    }
+    .local-video-element {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+    .local-flip-btn {
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      background: rgba(0,0,0,0.65);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .video-overlay-header {
+      position: relative;
+      z-index: 20;
+      background: linear-gradient(180deg, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0) 100%);
+    }
+    .video-overlay-footer {
+      position: relative;
+      z-index: 20;
+      background: linear-gradient(0deg, rgba(15,23,42,0.9) 0%, rgba(15,23,42,0) 100%);
+    }
+    .video-center-overlay {
+      position: relative;
+      z-index: 10;
+      transition: opacity 0.3s ease;
+    }
+    .video-call-active.connected .video-center-overlay .call-avatar-container,
+    .video-call-active.connected .video-center-overlay .soundwave-visualizer {
+      display: none !important;
+    }
+    .video-call-active.connected .video-center-overlay .call-live-timer {
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(8px);
+      padding: 4px 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.2);
+      display: inline-block;
+    }
+  </style>
 
   <!-- Scripts -->
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -124,6 +247,8 @@
       credits: <%= user.credits %>
     };
     window.activeCallId = "<%= typeof call !== 'undefined' && call ? call.callId : '' %>";
+    window.callType = "<%= typeof callType !== 'undefined' ? callType : 'Voice' %>";
+    window.creditRate = <%= typeof creditRate !== 'undefined' ? creditRate : 1 %>;
     window.isCaller = true;
   </script>
   <script src="/socket.io/socket.io.js"></script>
