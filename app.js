@@ -7,12 +7,14 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const http = require('http');
+const cors = require('cors');
 const mongoose = require('mongoose');
 const { Server } = require('socket.io');
 const session = require('express-session');
 const { MongoStore } = require('connect-mongo');
 const connectDB = require('./config/db');
 const callService = require('./services/callService');
+const apiRoutes = require('./API');
 
 const PORT = process.env.PORT || 3000;
 
@@ -23,7 +25,15 @@ async function startServer() {
 
     const app = express();
     const server = http.createServer(app);
-    const io = new Server(server);
+    const io = new Server(server, {
+      cors: {
+        origin: '*',
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+      }
+    });
+
+    // Enable Cross-Origin Resource Sharing (for React Native and Mobile apps)
+    app.use(cors());
 
     // Set EJS as View Engine
     app.set('view engine', 'ejs');
@@ -77,6 +87,9 @@ async function startServer() {
     const userRoutes = require('./routes/userRoutes');
     const adminRoutes = require('./routes/adminRoutes');
     const paymentRoutes = require('./routes/paymentRoutes');
+
+    // Mount API Routes for React Native Mobile Application
+    app.use('/api', apiRoutes);
 
     // Mount MVC Routers
     app.use('/', publicRoutes);
@@ -313,9 +326,11 @@ async function startServer() {
       });
     });
 
-    // Start Server Listen
-    server.listen(PORT, () => {
-      console.log(`[Friend Server] WebRTC enabled server running successfully at http://localhost:${PORT}`);
+    // Start Server Listen (bind to 0.0.0.0 to accept LAN connections from mobile devices)
+    server.listen(PORT, '0.0.0.0', () => {
+      console.log(`[Friend Server] WebRTC server running successfully:`);
+      console.log(`  - Local:   http://localhost:${PORT}`);
+      console.log(`  - Network: http://192.168.0.102:${PORT}`);
       console.log(`[Friend Status] Press CTRL+C to stop the process.`);
     });
   } catch (error) {
