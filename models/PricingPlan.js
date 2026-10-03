@@ -20,6 +20,11 @@ const pricingPlanSchema = new mongoose.Schema({
     type: String,
     default: 'Standard'
   },
+  category: {
+    type: String,
+    enum: ['Voice', 'Video', 'All'],
+    default: 'Voice'
+  },
   credits: {
     type: Number,
     required: true,

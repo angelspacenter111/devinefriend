@@ -605,6 +605,16 @@ body.app-mode {
   overflow: hidden;
 }
 
+.native-call-screen.video-mode {
+  padding: 0 !important;
+  margin: 0 !important;
+  background: #000000 !important;
+  display: block !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+}
+
 .call-header-bar {
   display: flex;
   align-items: center;
