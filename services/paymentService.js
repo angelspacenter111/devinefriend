@@ -1,29 +1,25 @@
 const crypto = require('crypto');
 const mongoose = require('mongoose');
-const Razorpay = require('razorpay');
+const Stripe = require('stripe');
 const User = require('../models/User');
 const PricingPlan = require('../models/PricingPlan');
 const PaymentTransaction = require('../models/PaymentTransaction');
 const Transaction = require('../models/Transaction');
 
 /**
- * Get or initialize Razorpay SDK client instance
+ * Get or initialize Stripe SDK client instance
  */
-function getRazorpayInstance() {
-  const key_id = process.env.RAZORPAY_KEY_ID;
-  const key_secret = process.env.RAZORPAY_KEY_SECRET;
+function getStripeInstance() {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
 
-  if (!key_id || !key_secret || key_id.includes('placeholder') || key_secret.includes('placeholder')) {
-    const error = new Error('Razorpay TEST credentials not configured in .env. Please set your real RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.');
-    error.code = 'RAZORPAY_CONFIG_MISSING';
+  if (!secretKey || secretKey.includes('placeholder')) {
+    const error = new Error('Stripe credentials not configured in .env. Please set STRIPE_SECRET_KEY.');
+    error.code = 'STRIPE_CONFIG_MISSING';
     error.status = 500;
     throw error;
   }
 
-  return new Razorpay({
-    key_id,
-    key_secret
-  });
+  return new Stripe(secretKey);
 }
 
 /**
@@ -46,9 +42,9 @@ function generateTxnId() {
 }
 
 /**
- * 1. Create a Razorpay Order from trusted backend PricingPlan
+ * 1. Create a Stripe Checkout Session from trusted backend PricingPlan
  */
-async function createOrder({ userId, packageId }) {
+async function createOrder({ userId, packageId, returnBaseUrl = 'http://localhost:3000' }) {
   if (!userId) {
     const err = new Error('User ID is required');
     err.status = 401;
@@ -58,6 +54,13 @@ async function createOrder({ userId, packageId }) {
   if (!packageId) {
     const err = new Error('Package ID is required');
     err.status = 400;
+    throw err;
+  }
+
+  const user = await User.findById(userId);
+  if (!user) {
+    const err = new Error('User not found');
+    err.status = 404;
     throw err;
   }
 
@@ -78,24 +81,50 @@ async function createOrder({ userId, packageId }) {
     throw err;
   }
 
-  const razorpay = getRazorpayInstance();
+  // Stripe accounts based in UAE (AE) require minimum 200 fils (~2.00 AED = ~₹53 INR)
+  if (plan.price < 53) {
+    const err = new Error(`Stripe account policy requires a minimum transaction value of 2.00 AED (~₹53 INR). This pack is ₹${plan.price}. Please select or update this pack to at least ₹55.`);
+    err.status = 400;
+    throw err;
+  }
+
+  const stripe = getStripeInstance();
   const amountPaise = Math.round(plan.price * 100);
   const receipt = generateReceipt();
 
-  const options = {
-    amount: amountPaise,
-    currency: 'INR',
-    receipt: receipt,
-    notes: {
+  // Create Stripe Checkout Session
+  const sessionConfig = {
+    mode: 'payment',
+    line_items: [
+      {
+        price_data: {
+          currency: 'inr',
+          product_data: {
+            name: plan.name,
+            description: `${plan.credits} Coins - Talk With Ashu`
+          },
+          unit_amount: amountPaise
+        },
+        quantity: 1
+      }
+    ],
+    metadata: {
       userId: userId.toString(),
       packageId: plan._id.toString(),
       planCode: plan.planId,
       packageName: plan.name,
       credits: plan.credits.toString()
-    }
+    },
+    client_reference_id: userId.toString(),
+    success_url: `${returnBaseUrl}/user/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${returnBaseUrl}/user/buy-credits?cancelled=true`
   };
 
-  const razorpayOrder = await razorpay.orders.create(options);
+  if (user.email && user.email.includes('@')) {
+    sessionConfig.customer_email = user.email;
+  }
+
+  const session = await stripe.checkout.sessions.create(sessionConfig);
 
   // Record initial PaymentTransaction in DB
   const paymentTxn = new PaymentTransaction({
@@ -107,10 +136,11 @@ async function createOrder({ userId, packageId }) {
     amount: plan.price,
     amountPaise: amountPaise,
     currency: 'INR',
-    razorpayOrderId: razorpayOrder.id,
+    gateway: 'stripe',
+    stripeSessionId: session.id,
     status: 'CREATED',
     receipt: receipt,
-    notes: options.notes,
+    notes: sessionConfig.metadata,
     source: 'frontend'
   });
 
@@ -118,10 +148,12 @@ async function createOrder({ userId, packageId }) {
 
   return {
     success: true,
-    orderId: razorpayOrder.id,
-    amount: razorpayOrder.amount,
-    currency: razorpayOrder.currency,
-    keyId: process.env.RAZORPAY_KEY_ID,
+    orderId: session.id,
+    sessionId: session.id,
+    checkoutUrl: session.url,
+    amount: amountPaise,
+    currency: 'INR',
+    publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
     packageName: plan.name,
     credits: plan.credits,
     description: `${plan.credits} Coins - ${plan.name}`
@@ -129,87 +161,51 @@ async function createOrder({ userId, packageId }) {
 }
 
 /**
- * 2. Cryptographically verify Razorpay Payment Signature
- */
-function verifySignature({ razorpayOrderId, razorpayPaymentId, razorpaySignature }) {
-  if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
-    return false;
-  }
-
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
-  if (!keySecret) {
-    throw new Error('Razorpay Key Secret is not configured');
-  }
-
-  const body = `${razorpayOrderId}|${razorpayPaymentId}`;
-  const expectedSignature = crypto
-    .createHmac('sha256', keySecret)
-    .update(body)
-    .digest('hex');
-
-  return expectedSignature === razorpaySignature;
-}
-
-/**
- * 3. Idempotently fulfill payment and credit user account
+ * 2. Idempotently fulfill payment and credit user account
  */
 async function fulfillPaymentIdempotent({
-  razorpayOrderId,
-  razorpayPaymentId,
-  razorpaySignature = null,
+  stripeSessionId,
+  stripePaymentIntentId = null,
   userId = null,
   source = 'frontend'
 }) {
-  if (!razorpayOrderId) {
-    const err = new Error('razorpay_order_id is required');
-    err.status = 400;
-    throw err;
-  }
-
-  if (!razorpayPaymentId) {
-    const err = new Error('razorpay_payment_id is required');
+  if (!stripeSessionId && !stripePaymentIntentId) {
+    const err = new Error('stripeSessionId or stripePaymentIntentId is required');
     err.status = 400;
     throw err;
   }
 
   // Lookup payment transaction
-  const paymentTxn = await PaymentTransaction.findOne({ razorpayOrderId });
+  const query = {};
+  if (stripeSessionId) {
+    query.stripeSessionId = stripeSessionId;
+  } else if (stripePaymentIntentId) {
+    query.stripePaymentIntentId = stripePaymentIntentId;
+  }
+
+  let paymentTxn = await PaymentTransaction.findOne(query);
+
+  // If not found and session ID provided, fallback to finding via notes/metadata
+  if (!paymentTxn && stripeSessionId) {
+    paymentTxn = await PaymentTransaction.findOne({
+      $or: [
+        { stripeSessionId },
+        { 'notes.sessionId': stripeSessionId }
+      ]
+    });
+  }
+
   if (!paymentTxn) {
-    const err = new Error('Payment order record not found');
+    const err = new Error('Payment record not found for this Stripe transaction');
     err.status = 404;
     throw err;
   }
 
   // If userId provided, ensure the order belongs to this user
   if (userId && paymentTxn.user.toString() !== userId.toString()) {
-    const err = new Error('Unauthorized: This payment order does not belong to your account');
+    const err = new Error('Unauthorized: This payment does not belong to your account');
     err.status = 403;
     throw err;
-  }
-
-  // Signature check if signature provided (frontend verify flow)
-  if (razorpaySignature) {
-    const isSignatureValid = verifySignature({
-      razorpayOrderId,
-      razorpayPaymentId,
-      razorpaySignature
-    });
-
-    if (!isSignatureValid) {
-      await PaymentTransaction.findOneAndUpdate(
-        { razorpayOrderId },
-        {
-          $set: {
-            status: 'FAILED',
-            failureReason: 'Signature verification mismatch',
-            razorpayPaymentId
-          }
-        }
-      );
-      const err = new Error('Invalid Razorpay signature verification failed');
-      err.status = 400;
-      throw err;
-    }
   }
 
   // Idempotency: check if already fulfilled
@@ -227,14 +223,13 @@ async function fulfillPaymentIdempotent({
   // Atomic state lock: Transition from !CAPTURED to CAPTURED
   const lockedPayment = await PaymentTransaction.findOneAndUpdate(
     {
-      razorpayOrderId: razorpayOrderId,
+      _id: paymentTxn._id,
       status: { $ne: 'CAPTURED' }
     },
     {
       $set: {
         status: 'CAPTURED',
-        razorpayPaymentId: razorpayPaymentId,
-        razorpaySignature: razorpaySignature || paymentTxn.razorpaySignature,
+        stripePaymentIntentId: stripePaymentIntentId || paymentTxn.stripePaymentIntentId,
         source: source,
         paidAt: new Date()
       }
@@ -279,7 +274,7 @@ async function fulfillPaymentIdempotent({
     balanceBefore: balanceBefore,
     balanceAfter: balanceAfter,
     referenceType: 'PAYMENT',
-    referenceId: razorpayPaymentId,
+    referenceId: stripePaymentIntentId || stripeSessionId || lockedPayment.stripeSessionId,
     paymentTransaction: lockedPayment._id
   });
 
@@ -295,80 +290,119 @@ async function fulfillPaymentIdempotent({
 }
 
 /**
- * 4. Process Razorpay Webhook Event
+ * 3. Verify Stripe Checkout Session and fulfill
+ */
+async function verifySession({ sessionId, userId = null, source = 'redirect' }) {
+  if (!sessionId) {
+    const err = new Error('sessionId is required');
+    err.status = 400;
+    throw err;
+  }
+
+  const stripe = getStripeInstance();
+  const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+  if (!session) {
+    const err = new Error('Stripe session not found');
+    err.status = 404;
+    throw err;
+  }
+
+  if (session.payment_status !== 'paid') {
+    const err = new Error(`Payment is not paid (status: ${session.payment_status})`);
+    err.status = 400;
+    throw err;
+  }
+
+  const paymentIntentId = typeof session.payment_intent === 'string'
+    ? session.payment_intent
+    : session.payment_intent?.id;
+
+  return await fulfillPaymentIdempotent({
+    stripeSessionId: session.id,
+    stripePaymentIntentId: paymentIntentId,
+    userId,
+    source
+  });
+}
+
+/**
+ * 4. Process Stripe Webhook Event
  */
 async function processWebhook({ rawBody, webhookSignature }) {
-  if (!rawBody || !webhookSignature) {
-    const err = new Error('Missing raw body or webhook signature header');
+  if (!rawBody) {
+    const err = new Error('Missing raw request body');
     err.status = 400;
     throw err;
   }
 
-  const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
-  if (!webhookSecret) {
-    const err = new Error('RAZORPAY_WEBHOOK_SECRET is not configured');
-    err.status = 500;
-    throw err;
-  }
-
-  // Validate webhook cryptographic signature
-  const expectedSignature = crypto
-    .createHmac('sha256', webhookSecret)
-    .update(rawBody)
-    .digest('hex');
-
-  if (expectedSignature !== webhookSignature) {
-    const err = new Error('Webhook signature mismatch');
-    err.status = 400;
-    throw err;
-  }
+  const stripe = getStripeInstance();
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   let event;
-  try {
-    event = JSON.parse(rawBody.toString('utf8'));
-  } catch (e) {
-    const err = new Error('Invalid webhook JSON payload');
-    err.status = 400;
-    throw err;
+  if (webhookSecret && webhookSignature) {
+    try {
+      event = stripe.webhooks.constructEvent(rawBody, webhookSignature, webhookSecret);
+    } catch (err) {
+      console.error('[Stripe Webhook Signature Verification Error]:', err.message);
+      const error = new Error(`Webhook signature verification failed: ${err.message}`);
+      error.status = 400;
+      throw error;
+    }
+  } else {
+    // In local dev without configured STRIPE_WEBHOOK_SECRET, parse JSON
+    try {
+      event = JSON.parse(rawBody.toString('utf8'));
+    } catch (e) {
+      const err = new Error('Invalid webhook JSON payload');
+      err.status = 400;
+      throw err;
+    }
   }
 
-  const eventName = event.event;
+  const eventType = event.type;
+  console.log('[Stripe Webhook Received]:', eventType);
 
-  if (eventName === 'payment.captured' || eventName === 'order.paid') {
-    const paymentEntity = event.payload?.payment?.entity;
-    const razorpayOrderId = paymentEntity?.order_id || event.payload?.order?.entity?.id;
-    const razorpayPaymentId = paymentEntity?.id;
+  if (eventType === 'checkout.session.completed' || eventType === 'checkout.session.async_payment_succeeded') {
+    const session = event.data?.object;
+    if (session && session.payment_status === 'paid') {
+      const paymentIntentId = typeof session.payment_intent === 'string'
+        ? session.payment_intent
+        : session.payment_intent?.id;
 
-    if (razorpayOrderId && razorpayPaymentId) {
       const result = await fulfillPaymentIdempotent({
-        razorpayOrderId,
-        razorpayPaymentId,
+        stripeSessionId: session.id,
+        stripePaymentIntentId: paymentIntentId,
         source: 'webhook'
       });
-      return { status: 'ok', event: eventName, result };
+      return { status: 'ok', event: eventType, result };
     }
-  } else if (eventName === 'payment.failed') {
-    const paymentEntity = event.payload?.payment?.entity;
-    const razorpayOrderId = paymentEntity?.order_id;
-    const razorpayPaymentId = paymentEntity?.id;
-    const failureReason = paymentEntity?.error_description || 'Payment failed';
-
-    if (razorpayOrderId) {
+  } else if (eventType === 'payment_intent.succeeded') {
+    const paymentIntent = event.data?.object;
+    if (paymentIntent) {
+      const result = await fulfillPaymentIdempotent({
+        stripePaymentIntentId: paymentIntent.id,
+        source: 'webhook'
+      });
+      return { status: 'ok', event: eventType, result };
+    }
+  } else if (eventType === 'payment_intent.payment_failed') {
+    const paymentIntent = event.data?.object;
+    if (paymentIntent) {
       await PaymentTransaction.findOneAndUpdate(
-        { razorpayOrderId, status: { $ne: 'CAPTURED' } },
+        { stripePaymentIntentId: paymentIntent.id, status: { $ne: 'CAPTURED' } },
         {
           $set: {
             status: 'FAILED',
-            razorpayPaymentId,
-            failureReason
+            failureReason: paymentIntent.last_payment_error?.message || 'Payment failed'
           }
         }
       );
     }
-    return { status: 'ok', event: eventName, message: 'Payment failure recorded' };
+    return { status: 'ok', event: eventType, message: 'Payment failure recorded' };
   }
 
-  return { status: 'ok', event: eventName, ignored: true };
+  return { status: 'ok', event: eventType, ignored: true };
 }
 
 /**
@@ -390,11 +424,11 @@ async function getUserCreditTransactions(userId, limit = 30) {
 }
 
 module.exports = {
+  getStripeInstance,
   createOrder,
-  verifySignature,
+  verifySession,
   fulfillPaymentIdempotent,
   processWebhook,
   getUserPaymentHistory,
-  getUserCreditTransactions,
-  getRazorpayInstance
+  getUserCreditTransactions
 };

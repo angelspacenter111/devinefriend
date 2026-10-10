@@ -110,7 +110,7 @@ exports.getTransactions = async (req, res) => {
 exports.createOrder = async (req, res) => {
   try {
     const user = req.user;
-    const { planId } = req.body;
+    const { planId, returnBaseUrl } = req.body;
 
     if (!planId) {
       return res.status(400).json({ success: false, message: 'planId is required.' });
@@ -121,17 +121,29 @@ exports.createOrder = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Selected plan not found or inactive.' });
     }
 
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+    const host = req.get('host') || 'localhost:3000';
+    const baseUrl = returnBaseUrl || `${protocol}://${host}`;
+
     const result = await paymentService.createOrder({
       userId: user._id,
-      planId: plan.planId,
-      amount: plan.price,
-      credits: plan.credits
+      packageId: plan.planId,
+      returnBaseUrl: baseUrl
     });
 
     return res.json({
       success: true,
-      order: result.order,
-      keyId: result.keyId,
+      order: {
+        id: result.orderId,
+        sessionId: result.sessionId,
+        url: result.checkoutUrl,
+        amount: result.amount,
+        currency: result.currency
+      },
+      sessionId: result.sessionId,
+      checkoutUrl: result.checkoutUrl,
+      keyId: result.publishableKey,
+      publishableKey: result.publishableKey,
       plan: {
         planId: plan.planId,
         name: plan.name,
@@ -152,28 +164,37 @@ exports.createOrder = async (req, res) => {
 exports.verifyPayment = async (req, res) => {
   try {
     const user = req.user;
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    const { sessionId, stripe_session_id, razorpay_order_id, razorpay_payment_id } = req.body;
 
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    const targetSessionId = sessionId || stripe_session_id || razorpay_order_id;
+
+    if (!targetSessionId) {
       return res.status(400).json({
         success: false,
-        message: 'Missing payment verification credentials.'
+        message: 'Missing payment session ID for verification.'
       });
     }
 
-    const verificationResult = await paymentService.verifyPayment({
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature,
-      userId: user._id
-    });
+    let verificationResult;
+    if (targetSessionId.startsWith('cs_')) {
+      verificationResult = await paymentService.verifySession({
+        sessionId: targetSessionId,
+        userId: user._id
+      });
+    } else {
+      verificationResult = await paymentService.fulfillPaymentIdempotent({
+        stripeSessionId: targetSessionId,
+        stripePaymentIntentId: razorpay_payment_id || null,
+        userId: user._id
+      });
+    }
 
     const updatedUser = await User.findById(user._id);
 
     return res.json({
       success: true,
       message: 'Payment verified successfully. Credits added to your account.',
-      creditsAdded: verificationResult.creditsAdded || 0,
+      creditsAdded: verificationResult.paymentTransaction?.credits || 0,
       newBalance: updatedUser.credits
     });
   } catch (error) {

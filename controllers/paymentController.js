@@ -4,11 +4,11 @@ const User = require('../models/User');
 
 /**
  * POST /api/payments/create-order
- * Initiates Razorpay Order from trusted backend PricingPlan
+ * Initiates Stripe Checkout Session from trusted backend PricingPlan
  */
 exports.createOrder = async (req, res) => {
   try {
-    const { packageId } = req.body;
+    const { packageId, returnBaseUrl } = req.body;
     const userId = req.user._id;
 
     // Reject order creation if Ashu (admin) is not online
@@ -27,13 +27,22 @@ exports.createOrder = async (req, res) => {
       });
     }
 
-    const orderData = await paymentService.createOrder({ userId, packageId });
+    // Determine host base URL for redirect if not provided
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+    const host = req.get('host') || 'localhost:3000';
+    const baseUrl = returnBaseUrl || `${protocol}://${host}`;
+
+    const orderData = await paymentService.createOrder({
+      userId,
+      packageId,
+      returnBaseUrl: baseUrl
+    });
 
     return res.status(200).json(orderData);
   } catch (error) {
-    const errorMsg = error.error?.description || error.description || error.message || 'Failed to create payment order';
+    const errorMsg = error.message || 'Failed to create payment session';
     console.error('[PaymentController] createOrder Error:', errorMsg);
-    const status = error.status || error.statusCode || (error.code === 'RAZORPAY_CONFIG_MISSING' ? 500 : 400);
+    const status = error.status || (error.code === 'STRIPE_CONFIG_MISSING' ? 500 : 400);
     return res.status(status).json({
       success: false,
       message: errorMsg
@@ -43,32 +52,44 @@ exports.createOrder = async (req, res) => {
 
 /**
  * POST /api/payments/verify
- * Securely verifies Razorpay payment signature and idempotently credits user account
+ * Securely verifies Stripe Checkout Session / payment and idempotently credits user account
  */
 exports.verifyPayment = async (req, res) => {
   try {
     const {
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature
+      sessionId,
+      stripe_session_id,
+      stripePaymentIntentId,
+      razorpay_order_id // handled gracefully if legacy client
     } = req.body;
 
     const userId = req.user._id;
+    const targetSessionId = sessionId || stripe_session_id || razorpay_order_id;
 
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    if (!targetSessionId && !stripePaymentIntentId) {
       return res.status(400).json({
         success: false,
-        message: 'razorpay_order_id, razorpay_payment_id, and razorpay_signature are required'
+        message: 'sessionId or stripePaymentIntentId is required for verification'
       });
     }
 
-    const result = await paymentService.fulfillPaymentIdempotent({
-      razorpayOrderId: razorpay_order_id,
-      razorpayPaymentId: razorpay_payment_id,
-      razorpaySignature: razorpay_signature,
-      userId,
-      source: 'frontend'
-    });
+    let result;
+    if (targetSessionId && targetSessionId.startsWith('cs_')) {
+      // Stripe checkout session verification
+      result = await paymentService.verifySession({
+        sessionId: targetSessionId,
+        userId,
+        source: 'frontend'
+      });
+    } else {
+      // Fallback fulfillment via session or payment intent id
+      result = await paymentService.fulfillPaymentIdempotent({
+        stripeSessionId: targetSessionId,
+        stripePaymentIntentId,
+        userId,
+        source: 'frontend'
+      });
+    }
 
     return res.status(200).json({
       success: true,
@@ -77,9 +98,9 @@ exports.verifyPayment = async (req, res) => {
       credits: result.credits
     });
   } catch (error) {
-    const errorMsg = error.error?.description || error.description || error.message || 'Payment verification failed';
+    const errorMsg = error.message || 'Payment verification failed';
     console.error('[PaymentController] verifyPayment Error:', errorMsg);
-    const status = error.status || error.statusCode || 400;
+    const status = error.status || 400;
     return res.status(status).json({
       success: false,
       message: errorMsg
@@ -89,16 +110,16 @@ exports.verifyPayment = async (req, res) => {
 
 /**
  * POST /api/payments/webhook
- * Handles incoming Razorpay webhooks with raw body HMAC signature verification
+ * Handles incoming Stripe webhooks with raw body cryptographic signature verification
  */
 exports.handleWebhook = async (req, res) => {
   try {
-    const webhookSignature = req.headers['x-razorpay-signature'];
+    const webhookSignature = req.headers['stripe-signature'] || req.headers['x-stripe-signature'];
     const rawBody = req.rawBody;
 
-    if (!rawBody || !webhookSignature) {
+    if (!rawBody) {
       return res.status(400).json({
-        error: 'Missing raw body or X-Razorpay-Signature header'
+        error: 'Missing raw request body for webhook verification'
       });
     }
 

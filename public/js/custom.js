@@ -136,7 +136,7 @@ $(document).ready(function () {
     }, 4000);
   }
 
-  // 3. Purchase Credits Razorpay Checkout & Verification handler
+  // 3. Purchase Credits Stripe Checkout handler
   $(".btn-buy-credits").on("click", function (e) {
     e.preventDefault();
     const $btn = $(this);
@@ -160,95 +160,34 @@ $(document).ready(function () {
       return;
     }
 
-    if (typeof Razorpay === "undefined") {
-      showToast("Payment gateway is initializing. Please refresh the page.", "warning");
-      return;
-    }
-
     // Show processing loader
     const origText = $btn.html();
-    $btn.html('<span class="spinner-border spinner-border-sm me-2" role="status"></span>Connecting...').prop("disabled", true);
+    $btn.html('<span class="spinner-border spinner-border-sm me-2" role="status"></span>Connecting to Stripe...').prop("disabled", true);
 
-    // Step 1: Call secure backend endpoint to create trusted Razorpay Order
+    // Step 1: Call secure backend endpoint to create trusted Stripe Checkout Session
     $.ajax({
       url: '/api/payments/create-order',
       method: 'POST',
       contentType: 'application/json',
       data: JSON.stringify({ packageId: planId }),
       success: function (res) {
-        if (!res.success || !res.orderId) {
+        if (!res.success || (!res.checkoutUrl && !res.sessionId)) {
           $btn.html(origText).prop("disabled", false);
           showToast(res.message || "Failed to initiate payment.", "danger");
           return;
         }
 
-        // Step 2: Open Razorpay Checkout Modal
-        const options = {
-          key: res.keyId,
-          amount: res.amount,
-          currency: res.currency || "INR",
-          name: "Talk With Ashu",
-          description: res.description || "Voice Call Coins",
-          order_id: res.orderId,
-          prefill: {
-            name: (window.sessionUser && window.sessionUser.name) ? window.sessionUser.name : "",
-            contact: (window.sessionUser && window.sessionUser.mobile) ? window.sessionUser.mobile : "",
-            email: (window.sessionUser && window.sessionUser.email) ? window.sessionUser.email : ""
-          },
-          theme: {
-            color: "#7B4DCE"
-          },
-          modal: {
-            ondismiss: function () {
-              $btn.html(origText).prop("disabled", false);
-              showToast("Payment cancelled. Coins were not charged.", "warning");
-            }
-          },
-          handler: function (response) {
-            // Step 3: Frontend receives signature and sends to backend for verification
-            $btn.html('<span class="spinner-border spinner-border-sm me-2" role="status"></span>Verifying payment...').prop("disabled", true);
-
-            $.ajax({
-              url: '/api/payments/verify',
-              method: 'POST',
-              contentType: 'application/json',
-              data: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature
-              }),
-              success: function (verifyRes) {
-                $btn.html(origText).prop("disabled", false);
-                if (verifyRes.success) {
-                  if (window.sessionUser) {
-                    window.sessionUser.credits = verifyRes.credits;
-                  }
-                  $(".simulated-balance").text(verifyRes.credits);
-                  showToast(verifyRes.message || `Payment verified! You now have ${verifyRes.credits} coins.`, "success");
-
-                  setTimeout(() => {
-                    location.reload();
-                  }, 1200);
-                } else {
-                  showToast(verifyRes.message || "Payment verification failed.", "danger");
-                }
-              },
-              error: function (xhr) {
-                $btn.html(origText).prop("disabled", false);
-                const errMsg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : "Error verifying payment with server.";
-                showToast(errMsg, "danger");
-              }
-            });
-          }
-        };
-
-        const rzp = new Razorpay(options);
-        rzp.on('payment.failed', function (response) {
+        // Step 2: Redirect to Stripe Hosted Checkout
+        $btn.html('<span class="spinner-border spinner-border-sm me-2" role="status"></span>Redirecting to Stripe...');
+        if (res.checkoutUrl) {
+          window.location.href = res.checkoutUrl;
+        } else if (res.sessionId && typeof Stripe !== "undefined" && res.publishableKey) {
+          const stripe = Stripe(res.publishableKey);
+          stripe.redirectToCheckout({ sessionId: res.sessionId });
+        } else {
           $btn.html(origText).prop("disabled", false);
-          const reason = (response.error && response.error.description) ? response.error.description : "Payment failed. Please retry.";
-          showToast(reason, "danger");
-        });
-        rzp.open();
+          showToast("Checkout URL not returned by server.", "danger");
+        }
       },
       error: function (xhr) {
         $btn.html(origText).prop("disabled", false);
@@ -262,7 +201,14 @@ $(document).ready(function () {
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get("callFinished") === "true") {
     showToast("Call ended. Call history and wallet logs updated successfully.", "success");
-    // Clean URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+  if (urlParams.get("rechargeSuccess") === "true") {
+    showToast("Recharge successful! Your coins have been added to your wallet.", "success");
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+  if (urlParams.get("cancelled") === "true") {
+    showToast("Recharge was cancelled. No charges were made.", "warning");
     window.history.replaceState({}, document.title, window.location.pathname);
   }
 

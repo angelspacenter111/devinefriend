@@ -69,7 +69,7 @@ Authorization: Bearer <your_jwt_token>
   - Returns transaction logs (credits added, call debits).
 - **`POST /api/wallet/create-order`** (Protected):
   - Body: `{ "planId": "PLAN-5503" }`
-  - Generates Razorpay payment order.
+  - Generates Stripe Checkout Session (`sessionId`, `checkoutUrl`).
 - **`POST /api/wallet/verify-payment`** (Protected):
-  - Body: `{ "razorpay_order_id": "...", "razorpay_payment_id": "...", "razorpay_signature": "..." }`
-  - Validates HMAC signature and credits user balance.
+  - Body: `{ "sessionId": "cs_..." }`
+  - Verifies payment status and credits user balance.

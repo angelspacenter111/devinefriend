@@ -174,8 +174,8 @@
   <!-- Mobile Bottom Navigation Bar -->
   <%- include('../partials/app-bottom-nav') %>
 
-  <!-- Razorpay Official Checkout SDK -->
-  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <!-- Stripe Official Checkout SDK -->
+  <script src="https://js.stripe.com/v3/"></script>
 
   <!-- Shared JavaScript Scripts -->
   <%- include('../partials/scripts') %>
@@ -183,6 +183,11 @@
     if (new URLSearchParams(window.location.search).get('lowCredits') === 'true' || new URLSearchParams(window.location.search).get('insufficient') === 'true') {
       const alertEl = document.getElementById('low-credits-alert');
       if (alertEl) alertEl.classList.remove('d-none');
+    }
+    if (new URLSearchParams(window.location.search).get('cancelled') === 'true') {
+      if (typeof showToast === 'function') {
+        showToast("Recharge cancelled. No charges were made.", "warning");
+      }
     }
 
     // Category filter pills

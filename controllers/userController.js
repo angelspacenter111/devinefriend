@@ -141,7 +141,7 @@ exports.getBuyCredits = async (req, res) => {
 exports.postBuyCredits = async (req, res) => {
   return res.status(400).json({
     success: false,
-    message: 'Direct coin modification is disabled. All coin purchases must be processed through Razorpay Checkout.'
+    message: 'Direct coin modification is disabled. All coin purchases must be processed through Stripe Checkout.'
   });
 };
 
@@ -314,8 +314,98 @@ exports.getCallHistory = async (req, res) => {
   }
 };
 
-exports.getTransactions = (req, res) => {
-  res.redirect('/user/wallet');
+exports.getPaymentSuccess = async (req, res) => {
+  try {
+    const sessionId = req.query.session_id;
+    if (!sessionId) {
+      return res.redirect('/user/wallet');
+    }
+
+    try {
+      const paymentService = require('../services/paymentService');
+      await paymentService.verifySession({
+        sessionId,
+        userId: req.user._id,
+        source: 'redirect'
+      });
+    } catch (verifyErr) {
+      console.warn('[Payment Success Verification Note]:', verifyErr.message);
+    }
+
+    return res.redirect('/user/wallet?rechargeSuccess=true');
+  } catch (error) {
+    console.error('[Payment Success Error]:', error);
+    return res.redirect('/user/wallet');
+  }
+};
+
+exports.getTransactions = async (req, res) => {
+  try {
+    const user = req.user;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = 10;
+    const skip = (page - 1) * limit;
+
+    const { type, date, q } = req.query;
+    const conditions = [{ user: user._id }];
+
+    if (type && ['credit', 'debit'].includes(type.toLowerCase())) {
+      conditions.push({ type: type.toLowerCase() });
+    }
+
+    if (date && date.trim() !== '') {
+      const parts = date.trim().split('-');
+      if (parts.length === 3) {
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        const start = new Date(year, month, day, 0, 0, 0, 0);
+        const end = new Date(year, month, day, 23, 59, 59, 999);
+        conditions.push({ date: { $gte: start, $lte: end } });
+      }
+    }
+
+    if (q && q.trim() !== '') {
+      const safeSearch = escapeRegex(q.trim());
+      const searchRegex = new RegExp(safeSearch, 'i');
+      conditions.push({
+        $or: [{ txnId: searchRegex }, { desc: searchRegex }]
+      });
+    }
+
+    const filter = conditions.length > 0 ? { $and: conditions } : { user: user._id };
+
+    const totalTransactions = await Transaction.countDocuments(filter);
+    const totalPages = Math.ceil(totalTransactions / limit) || 1;
+
+    const [transactions, payments] = await Promise.all([
+      Transaction.find(filter).sort({ date: -1, createdAt: -1 }).skip(skip).limit(limit),
+      PaymentTransaction.find({ user: user._id }).sort({ createdAt: -1 }).limit(10)
+    ]);
+
+    const queryParams =
+      (q ? `&q=${encodeURIComponent(q)}` : '') +
+      (type && type !== 'all' ? `&type=${encodeURIComponent(type)}` : '') +
+      (date ? `&date=${encodeURIComponent(date)}` : '');
+
+    res.render('user/transactions', {
+      title: 'Transaction History - Talk With Ashu',
+      activeTab: 'transactions',
+      user,
+      transactions,
+      payments,
+      currentPage: page,
+      totalPages,
+      totalTransactions,
+      searchQuery: q || '',
+      selectedType: type || 'all',
+      selectedDate: date || '',
+      queryParams
+    });
+  } catch (error) {
+    console.error('[User Transactions Error]:', error);
+    res.redirect('/user/wallet');
+  }
 };
 
 exports.getProfile = (req, res) => {

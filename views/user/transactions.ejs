@@ -196,12 +196,12 @@
             </div>
           </div>
 
-          <!-- Razorpay Payment History Card -->
+          <!-- Stripe Payment History Card -->
           <div class="app-card p-0 overflow-hidden mb-4">
             <div class="p-3.5 px-4 d-flex align-items-center justify-content-between border-bottom bg-white">
               <div class="d-flex align-items-center gap-2">
                 <i class="bi bi-credit-card text-primary fs-5"></i>
-                <h5 class="fw-bold mb-0 text-dark">Razorpay Payment History</h5>
+                <h5 class="fw-bold mb-0 text-dark">Stripe Payment History</h5>
               </div>
               <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1 small">Test / Live Orders</span>
             </div>
@@ -211,7 +211,7 @@
                 <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mb-3" style="width: 56px; height: 56px;">
                   <i class="bi bi-wallet-fill text-muted fs-4"></i>
                 </div>
-                <h6 class="fw-bold text-dark mb-1">No Razorpay Payments Yet</h6>
+                <h6 class="fw-bold text-dark mb-1">No Payments Yet</h6>
                 <p class="text-muted small mb-0">Completed online payment records will be logged here.</p>
               </div>
             <% } else { %>
@@ -222,6 +222,8 @@
                   <%
                     const isSuccess = p.status === 'CAPTURED';
                     const statusBadgeClass = isSuccess ? 'bg-success-subtle text-success' : (p.status === 'FAILED' ? 'bg-danger-subtle text-danger' : 'bg-warning-subtle text-warning');
+                    const orderRef = p.stripeSessionId || p.razorpayOrderId || p._id;
+                    const payRef = p.stripePaymentIntentId || p.razorpayPaymentId;
                   %>
                   <div class="app-list-item">
                     <div class="d-flex align-items-center">
@@ -231,11 +233,11 @@
                       <div>
                         <strong class="d-block text-dark small"><%= p.packageName %> (<%= p.credits %> Coins)</strong>
                         <small class="text-muted font-monospace d-block" style="font-size: 0.72rem;">
-                          Order: <%= p.razorpayOrderId %>
+                          Ref: <%= orderRef %>
                         </small>
-                        <% if (p.razorpayPaymentId) { %>
+                        <% if (payRef) { %>
                           <small class="text-muted font-monospace d-block" style="font-size: 0.72rem;">
-                            Pay ID: <%= p.razorpayPaymentId %>
+                            Pay ID: <%= payRef %>
                           </small>
                         <% } %>
                         <small class="text-muted" style="font-size: 0.72rem;">
@@ -262,8 +264,8 @@
                       <th>Package</th>
                       <th>Coins</th>
                       <th>Amount</th>
-                      <th>Razorpay Order ID</th>
-                      <th>Razorpay Payment ID</th>
+                      <th>Stripe Session / Order ID</th>
+                      <th>Payment Intent / Pay ID</th>
                       <th>Status</th>
                     </tr>
                   </thead>
@@ -272,16 +274,18 @@
                       <%
                         const isSuccess = p.status === 'CAPTURED';
                         const statusBadgeClass = isSuccess ? 'bg-success-subtle text-success' : (p.status === 'FAILED' ? 'bg-danger-subtle text-danger' : 'bg-warning-subtle text-warning');
+                        const orderRef = p.stripeSessionId || p.razorpayOrderId || p._id;
+                        const payRef = p.stripePaymentIntentId || p.razorpayPaymentId;
                       %>
                       <tr>
                         <td><%= p.createdAt ? p.createdAt.toISOString().split('T')[0] : '' %></td>
                         <td><span class="fw-bold text-dark"><%= p.packageName %></span></td>
                         <td><span class="text-purple fw-bold">+<%= p.credits %> coins</span></td>
                         <td><span class="fw-bold text-dark">₹<%= p.amount.toLocaleString('en-IN') %></span></td>
-                        <td><span class="font-monospace small text-muted"><%= p.razorpayOrderId %></span></td>
+                        <td><span class="font-monospace small text-muted"><%= orderRef %></span></td>
                         <td>
-                          <% if (p.razorpayPaymentId) { %>
-                            <span class="font-monospace small text-dark"><%= p.razorpayPaymentId %></span>
+                          <% if (payRef) { %>
+                            <span class="font-monospace small text-dark"><%= payRef %></span>
                           <% } else { %>
                             <span class="text-muted small">—</span>
                           <% } %>

@@ -42,23 +42,41 @@ const paymentTransactionSchema = new mongoose.Schema({
     uppercase: true,
     trim: true
   },
+  gateway: {
+    type: String,
+    enum: ['stripe', 'razorpay'],
+    default: 'stripe'
+  },
+  // Stripe Identifiers
+  stripeSessionId: {
+    type: String,
+    sparse: true,
+    index: true,
+    trim: true
+  },
+  stripePaymentIntentId: {
+    type: String,
+    sparse: true,
+    index: true,
+    trim: true
+  },
+  stripeCustomerId: {
+    type: String,
+    trim: true
+  },
+  // Legacy Razorpay Identifiers (retained for backward compatibility)
   razorpayOrderId: {
     type: String,
-    required: true,
-    unique: true,
     index: true,
     trim: true
   },
   razorpayPaymentId: {
     type: String,
-    default: null,
     index: true,
-    sparse: true,
     trim: true
   },
   razorpaySignature: {
-    type: String,
-    default: null
+    type: String
   },
   status: {
     type: String,
@@ -80,7 +98,7 @@ const paymentTransactionSchema = new mongoose.Schema({
   },
   source: {
     type: String,
-    enum: ['frontend', 'webhook', 'system'],
+    enum: ['frontend', 'webhook', 'redirect', 'system'],
     default: 'frontend'
   },
   paidAt: {

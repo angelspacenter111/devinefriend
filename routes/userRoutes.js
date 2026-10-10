@@ -15,6 +15,7 @@ router.get('/dashboard', userController.getDashboard);
 router.get('/wallet', userController.getWallet);
 router.get('/buy-credits', userController.getBuyCredits);
 router.post('/buy-credits', userController.postBuyCredits);
+router.get('/payment-success', userController.getPaymentSuccess);
 
 router.get('/call', userController.getCall);
 router.post('/end-call', userController.postEndCall);
