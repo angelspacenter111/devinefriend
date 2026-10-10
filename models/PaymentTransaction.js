@@ -31,14 +31,17 @@ const paymentTransactionSchema = new mongoose.Schema({
     required: true,
     min: 1
   },
+  amountFils: {
+    type: Number,
+    min: 200
+  },
   amountPaise: {
     type: Number,
-    required: true,
-    min: 100
+    default: null
   },
   currency: {
     type: String,
-    default: 'INR',
+    default: 'AED',
     uppercase: true,
     trim: true
   },

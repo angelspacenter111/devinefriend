@@ -3,6 +3,8 @@
  * Friend MVC
  */
 
+const PricingPlan = require('../models/PricingPlan');
+
 exports.getHome = (req, res) => {
   res.render('index', {
     title: 'Talk With Ashu - Private Voice Companion & Listening Space',
@@ -24,11 +26,22 @@ exports.getSupport = (req, res) => {
   });
 };
 
-exports.getPricing = (req, res) => {
-  res.render('pricing', {
-    title: 'Pricing & Wallet Coins - Talk With Ashu',
-    activeTab: 'pricing'
-  });
+exports.getPricing = async (req, res) => {
+  try {
+    const plans = await PricingPlan.find({ isActive: true }).sort({ order: 1, credits: 1 });
+    res.render('pricing', {
+      title: 'Pricing & Wallet Coins - Talk With Ashu',
+      activeTab: 'pricing',
+      plans
+    });
+  } catch (error) {
+    console.error('[Public Pricing Error]', error);
+    res.render('pricing', {
+      title: 'Pricing & Wallet Coins - Talk With Ashu',
+      activeTab: 'pricing',
+      plans: []
+    });
+  }
 };
 
 exports.getFaq = (req, res) => {

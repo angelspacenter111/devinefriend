@@ -22,9 +22,9 @@
         <div
           class="d-none d-sm-inline-flex align-items-center gap-1.5 px-3 py-1.5 rounded-pill bg-success-subtle border border-success-subtle text-success small fw-bold"
           title="Today's Total Income">
-          <i class="bi bi-currency-rupee"></i>
+          <span style="font-size: 0.72rem; font-weight: 800;">AED</span>
           <span>
-            <%= Number(stats.todayRevenue).toLocaleString('en-IN') %>
+            <%= Number(stats.todayRevenue).toLocaleString('en-US') %>
           </span>
           <small class="text-muted fw-normal" style="font-size: 0.72rem;">Today</small>
         </div>

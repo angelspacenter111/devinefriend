@@ -140,7 +140,7 @@ const seedDatabase = async () => {
         const isCredit = Math.random() > 0.4; // 60% chance recharge, 40% call debit
         if (isCredit) {
           const creditsPacks = [10, 20, 50];
-          const prices = { 10: "₹299", 20: "₹499", 50: "₹999" };
+          const prices = { 10: "AED 25", 20: "AED 50", 50: "AED 99" };
           const pack = getRandomElement(creditsPacks);
           
           txnsToInsert.push({
@@ -164,7 +164,7 @@ const seedDatabase = async () => {
             desc: `Call Charges (${tempCallId})`,
             type: "debit",
             credits: getRandomNumber(2, 15),
-            amount: "₹0",
+            amount: "AED 0",
             status: "Completed"
           });
         }

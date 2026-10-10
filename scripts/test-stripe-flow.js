@@ -60,7 +60,7 @@ async function runTests() {
         order: 99
       });
     }
-    assert(testPlan && testPlan.planId, `Test pricing plan ready: ${testPlan.name} (₹${testPlan.price})`);
+    assert(testPlan && testPlan.planId, `Test pricing plan ready: ${testPlan.name} (AED ${testPlan.price})`);
 
     // 3. Create Stripe Checkout Order
     console.log('\nTEST 3: Create Stripe Checkout Session (Order)');
@@ -73,7 +73,8 @@ async function runTests() {
     assert(orderResult.success === true, 'Order created successfully');
     assert(typeof orderResult.sessionId === 'string' && orderResult.sessionId.startsWith('cs_'), `Valid Stripe session ID returned: ${orderResult.sessionId}`);
     assert(typeof orderResult.checkoutUrl === 'string' && orderResult.checkoutUrl.includes('stripe.com'), `Valid Stripe checkout URL generated: ${orderResult.checkoutUrl.slice(0, 50)}...`);
-    assert(orderResult.amount === 19900, 'Amount correctly calculated in paise (₹199 = 19900 paise)');
+    assert(orderResult.amount === 19900, 'Amount correctly calculated in fils (AED 199 = 19900 fils)');
+    assert(orderResult.currency === 'AED', 'Currency is AED');
     assert(orderResult.credits === 15, 'Correct credits recorded');
 
     // Verify DB record for PaymentTransaction

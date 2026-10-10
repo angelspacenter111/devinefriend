@@ -81,15 +81,15 @@ async function createOrder({ userId, packageId, returnBaseUrl = 'http://localhos
     throw err;
   }
 
-  // Stripe accounts based in UAE (AE) require minimum 200 fils (~2.00 AED = ~₹53 INR)
-  if (plan.price < 53) {
-    const err = new Error(`Stripe account policy requires a minimum transaction value of 2.00 AED (~₹53 INR). This pack is ₹${plan.price}. Please select or update this pack to at least ₹55.`);
+  // Stripe accounts require minimum 2.00 AED (200 fils)
+  if (plan.price < 2) {
+    const err = new Error(`Stripe requires a minimum transaction value of 2.00 AED. This pack is AED ${plan.price}. Please select or update this pack to at least 2 AED.`);
     err.status = 400;
     throw err;
   }
 
   const stripe = getStripeInstance();
-  const amountPaise = Math.round(plan.price * 100);
+  const amountFils = Math.round(plan.price * 100);
   const receipt = generateReceipt();
 
   // Create Stripe Checkout Session
@@ -98,12 +98,12 @@ async function createOrder({ userId, packageId, returnBaseUrl = 'http://localhos
     line_items: [
       {
         price_data: {
-          currency: 'inr',
+          currency: 'aed',
           product_data: {
             name: plan.name,
             description: `${plan.credits} Coins - Talk With Ashu`
           },
-          unit_amount: amountPaise
+          unit_amount: amountFils
         },
         quantity: 1
       }
@@ -134,8 +134,8 @@ async function createOrder({ userId, packageId, returnBaseUrl = 'http://localhos
     packageName: plan.name,
     credits: plan.credits,
     amount: plan.price,
-    amountPaise: amountPaise,
-    currency: 'INR',
+    amountFils: amountFils,
+    currency: 'AED',
     gateway: 'stripe',
     stripeSessionId: session.id,
     status: 'CREATED',
@@ -151,8 +151,8 @@ async function createOrder({ userId, packageId, returnBaseUrl = 'http://localhos
     orderId: session.id,
     sessionId: session.id,
     checkoutUrl: session.url,
-    amount: amountPaise,
-    currency: 'INR',
+    amount: amountFils,
+    currency: 'AED',
     publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
     packageName: plan.name,
     credits: plan.credits,
@@ -269,7 +269,7 @@ async function fulfillPaymentIdempotent({
     desc: `Coin Recharge (${lockedPayment.credits} Coins - ${lockedPayment.packageName})`,
     type: 'credit',
     credits: lockedPayment.credits,
-    amount: `₹${lockedPayment.amount.toLocaleString('en-IN')}`,
+    amount: `AED ${lockedPayment.amount.toLocaleString('en-US')}`,
     status: 'Successful',
     balanceBefore: balanceBefore,
     balanceAfter: balanceAfter,

@@ -329,7 +329,7 @@ async function finalizeCall(callId, { reason = 'Completed', forcedEndTime = null
         desc: `Call Charges (${lockedCall.callId})`,
         type: 'debit',
         credits: actualDeduction,
-        amount: '₹0',
+        amount: 'AED 0',
         status: 'Completed',
         callId: lockedCall.callId,
         call: lockedCall._id,

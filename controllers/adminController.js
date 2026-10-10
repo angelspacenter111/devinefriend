@@ -12,11 +12,11 @@ const escapeRegex = (string) => {
 
 // Default pricing plans seed configuration
 const defaultPlans = [
-  { planId: 'PLAN-5501', name: 'Starter Pack', badge: 'Starter', credits: 5, price: 149, description: 'Quick initial check-in or brief conversation.', order: 1, isPopular: false, isActive: true },
-  { planId: 'PLAN-5502', name: 'Bridge Pack', badge: 'Bridge', credits: 10, price: 299, description: 'Talk through an immediate worry or stressor.', order: 2, isPopular: false, isActive: true },
-  { planId: 'PLAN-5503', name: 'Comfort Pack', badge: 'Comfort', credits: 25, price: 599, description: 'Ample time to speak calmly, reflect and breathe.', order: 3, isPopular: true, isActive: true },
-  { planId: 'PLAN-5504', name: 'Deep Listen', badge: 'Deep Listen', credits: 50, price: 1199, description: 'Ideal for multiple in-depth conversation sessions.', order: 4, isPopular: false, isActive: true },
-  { planId: 'PLAN-5505', name: 'Best Value', badge: 'Best Value', credits: 100, price: 2199, description: 'Maximum savings for regular check-in support.', order: 5, isPopular: false, isActive: true }
+  { planId: 'PLAN-5501', name: 'Starter Pack', badge: 'Starter', credits: 5, price: 15, description: 'Quick initial check-in or brief conversation.', order: 1, isPopular: false, isActive: true },
+  { planId: 'PLAN-5502', name: 'Bridge Pack', badge: 'Bridge', credits: 10, price: 25, description: 'Talk through an immediate worry or stressor.', order: 2, isPopular: false, isActive: true },
+  { planId: 'PLAN-5503', name: 'Comfort Pack', badge: 'Comfort', credits: 25, price: 50, description: 'Ample time to speak calmly, reflect and breathe.', order: 3, isPopular: true, isActive: true },
+  { planId: 'PLAN-5504', name: 'Deep Listen', badge: 'Deep Listen', credits: 50, price: 99, description: 'Ideal for multiple in-depth conversation sessions.', order: 4, isPopular: false, isActive: true },
+  { planId: 'PLAN-5505', name: 'Best Value', badge: 'Best Value', credits: 100, price: 189, description: 'Maximum savings for regular check-in support.', order: 5, isPopular: false, isActive: true }
 ];
 
 const getOrSeedPricingPlans = async () => {
@@ -958,7 +958,7 @@ exports.postUpdateCredits = async (req, res) => {
         desc: `Admin Adjustment (${diff > 0 ? '+' : ''}${diff} Coins)`,
         type: diff > 0 ? 'credit' : 'debit',
         credits: Math.abs(diff),
-        amount: "₹0",
+        amount: "AED 0",
         status: 'Successful'
       });
       await adjustmentTxn.save();

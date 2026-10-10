@@ -42,22 +42,7 @@ exports.getBalance = async (req, res) => {
 // GET /api/wallet/plans
 exports.getPlans = async (req, res) => {
   try {
-    let plans = await PricingPlan.find({ isActive: true }).sort({ order: 1, credits: 1 });
-    if (!plans || plans.length === 0) {
-      const defaultPlans = [
-        { planId: 'PLAN-5501', name: 'Starter Pack', badge: 'Starter', credits: 5, price: 149, description: 'Quick initial check-in or brief conversation.', isPopular: false, isActive: true, order: 1 },
-        { planId: 'PLAN-5502', name: 'Bridge Pack', badge: 'Bridge', credits: 10, price: 299, description: 'Talk through an immediate worry or stressor.', isPopular: false, isActive: true, order: 2 },
-        { planId: 'PLAN-5503', name: 'Comfort Pack', badge: 'Comfort', credits: 25, price: 599, description: 'Ample time to speak calmly, reflect and breathe.', isPopular: true, isActive: true, order: 3 },
-        { planId: 'PLAN-5504', name: 'Deep Listen Pack', badge: 'Deep Listen', credits: 50, price: 1199, description: 'Ideal for multiple in-depth conversation sessions.', isPopular: false, isActive: true, order: 4 },
-        { planId: 'PLAN-5505', name: 'Best Value Pack', badge: 'Best Value', credits: 2199, description: 'Maximum savings for regular check-in support.', isPopular: false, isActive: true, order: 5 }
-      ];
-      try {
-        await PricingPlan.insertMany(defaultPlans);
-        plans = await PricingPlan.find({ isActive: true }).sort({ order: 1, credits: 1 });
-      } catch (err) {
-        plans = defaultPlans;
-      }
-    }
+    const plans = await PricingPlan.find({ isActive: true }).sort({ order: 1, credits: 1 });
 
     return res.json({
       success: true,

@@ -246,7 +246,7 @@
                       </div>
                     </div>
                     <div class="text-end">
-                      <span class="d-block fw-bold text-dark">₹<%= p.amount.toLocaleString('en-IN') %></span>
+                      <span class="d-block fw-bold text-dark">AED <%= p.amount.toLocaleString('en-US') %></span>
                       <span class="badge <%= statusBadgeClass %> rounded-pill px-2 py-0.5 small" style="font-size: 0.68rem;">
                         <%= p.status %>
                       </span>
@@ -281,7 +281,7 @@
                         <td><%= p.createdAt ? p.createdAt.toISOString().split('T')[0] : '' %></td>
                         <td><span class="fw-bold text-dark"><%= p.packageName %></span></td>
                         <td><span class="text-purple fw-bold">+<%= p.credits %> coins</span></td>
-                        <td><span class="fw-bold text-dark">₹<%= p.amount.toLocaleString('en-IN') %></span></td>
+                        <td><span class="fw-bold text-dark">AED <%= p.amount.toLocaleString('en-US') %></span></td>
                         <td><span class="font-monospace small text-muted"><%= orderRef %></span></td>
                         <td>
                           <% if (payRef) { %>

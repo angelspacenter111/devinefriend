@@ -213,7 +213,7 @@ exports.updateUserCredits = async (req, res) => {
       desc: reason || `Manual Admin Credit Adjustment (${numAmount > 0 ? '+' : ''}${numAmount})`,
       type: numAmount > 0 ? 'credit' : 'debit',
       credits: Math.abs(numAmount),
-      amount: "₹0",
+      amount: "AED 0",
       status: "Successful"
     });
     await txn.save();
@@ -301,19 +301,7 @@ exports.getTransactions = async (req, res) => {
 // GET /api/admin/pricing
 exports.getPricing = async (req, res) => {
   try {
-    let plans = await PricingPlan.find().sort({ order: 1, credits: 1 });
-    if (!plans || plans.length === 0) {
-      const defaultPlans = [
-        { planId: 'PLAN-5501', name: 'Starter Pack', badge: 'Starter', credits: 5, price: 149, description: 'Quick initial check-in.', isPopular: false, isActive: true, order: 1 },
-        { planId: 'PLAN-5502', name: 'Bridge Pack', badge: 'Bridge', credits: 10, price: 299, description: 'Talk through an immediate worry.', isPopular: false, isActive: true, order: 2 },
-        { planId: 'PLAN-5503', name: 'Comfort Pack', badge: 'Comfort', credits: 25, price: 599, description: 'Ample time to speak calmly.', isPopular: true, isActive: true, order: 3 },
-        { planId: 'PLAN-5504', name: 'Deep Listen Pack', badge: 'Deep Listen', credits: 50, price: 1199, description: 'In-depth conversation sessions.', isPopular: false, isActive: true, order: 4 },
-        { planId: 'PLAN-5505', name: 'Best Value Pack', badge: 'Best Value', credits: 2199, description: 'Maximum savings for regular support.', isPopular: false, isActive: true, order: 5 }
-      ];
-      await PricingPlan.insertMany(defaultPlans);
-      plans = await PricingPlan.find().sort({ order: 1, credits: 1 });
-    }
-
+    const plans = await PricingPlan.find().sort({ order: 1, credits: 1 });
     return res.json({ success: true, plans });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Failed to fetch pricing plans.' });

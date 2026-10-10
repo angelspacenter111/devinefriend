@@ -48,7 +48,7 @@
               <div class="col-6 col-sm-4">
                 <div class="p-3 bg-white rounded-3 shadow-sm">
                   <span class="text-muted small d-block">Estimated Price</span>
-                  <span class="fw-extrabold fs-4 text-primary-pink" id="calc-price">₹799</span>
+                  <span class="fw-extrabold fs-4 text-primary-pink" id="calc-price">AED 60</span>
                 </div>
               </div>
             </div>
@@ -69,42 +69,35 @@
       </div>
 
       <div class="row g-4 justify-content-center">
-        <!-- Plan 1 -->
-        <div class="col-md-6 col-lg-3">
-          <div class="card-premium package-card bg-white h-100 text-center p-4">
-            <span class="badge-category mb-3">Starter</span>
-            <h4 class="fw-bold mb-1">5 Coins</h4>
-            <span class="text-muted d-block small mb-3">5 Minutes of Voice Call</span>
-            <div class="package-price mb-3">₹149</div>
-            <p class="text-muted small mb-4">Great for a short check-in, talking through a quick challenge or question.</p>
-            <a href="/login" class="btn btn-outline-brand w-100 py-2.5 mt-auto">Buy Starter Pack</a>
-          </div>
-        </div>
-
-        <!-- Plan 2 -->
-        <div class="col-md-6 col-lg-3">
-          <div class="card-premium package-card popular bg-white h-100 text-center p-4">
-            <div class="popular-banner">Popular</div>
-            <span class="badge-category mb-3 text-purple" style="background-color: #F5F1FF;">Comfort</span>
-            <h4 class="fw-bold mb-1 text-purple">30 Coins</h4>
-            <span class="text-muted d-block small mb-3">30 Minutes of Voice Call</span>
-            <div class="package-price mb-3 text-purple">₹799</div>
-            <p class="text-muted small mb-4">Our most recommended option. Allows for a calm, uninterrupted conversation.</p>
-            <a href="/login" class="btn btn-brand w-100 py-2.5 mt-auto">Buy Comfort Pack</a>
-          </div>
-        </div>
-
-        <!-- Plan 3 -->
-        <div class="col-md-6 col-lg-3">
-          <div class="card-premium package-card bg-white h-100 text-center p-4">
-            <span class="badge-category mb-3">Deep Listen</span>
-            <h4 class="fw-bold mb-1">60 Coins</h4>
-            <span class="text-muted d-block small mb-3">60 Minutes of Voice Call</span>
-            <div class="package-price mb-3">₹1,499</div>
-            <p class="text-muted small mb-4">Ideal for unpacking complex stress and establishing deep conversational steps.</p>
-            <a href="/login" class="btn btn-outline-brand w-100 py-2.5 mt-auto">Buy Deep Pack</a>
-          </div>
-        </div>
+        <% if (typeof plans !== 'undefined' && plans && plans.length > 0) { %>
+          <% plans.forEach(plan => { %>
+            <div class="col-md-6 col-lg-3">
+              <div class="card-premium package-card <%= plan.isPopular ? 'popular' : '' %> bg-white h-100 text-center p-4 position-relative">
+                <% if (plan.isPopular) { %>
+                  <div class="popular-banner">Popular</div>
+                <% } %>
+                <span class="badge-category mb-3 <%= plan.isPopular ? 'text-purple' : '' %>" <%= plan.isPopular ? 'style="background-color: #F5F1FF;"' : '' %>>
+                  <%= plan.badge || (plan.category === 'Video' ? 'Video Pack' : 'Standard') %>
+                </span>
+                <h4 class="fw-bold mb-1 <%= plan.isPopular ? 'text-purple' : '' %>"><%= plan.credits %> Coins</h4>
+                <span class="text-muted d-block small mb-3">
+                  <% if (plan.category === 'Video') { %>
+                    <%= Math.floor(plan.credits / 2) %> Minutes of Video Call
+                  <% } else if (plan.category === 'All') { %>
+                    <%= plan.credits %> Voice or <%= Math.floor(plan.credits / 2) %> Video Mins
+                  <% } else { %>
+                    <%= plan.credits %> Minutes of Voice Call
+                  <% } %>
+                </span>
+                <div class="package-price mb-3 <%= plan.isPopular ? 'text-purple' : '' %>">AED <%= plan.price.toLocaleString('en-US') %></div>
+                <p class="text-muted small mb-4"><%= plan.description || 'Flexible coin pack to connect with Ashu.' %></p>
+                <a href="/login" class="btn <%= plan.isPopular ? 'btn-brand' : 'btn-outline-brand' %> w-100 py-2.5 mt-auto">Buy <%= plan.name %></a>
+              </div>
+            </div>
+          <% }); %>
+        <% } else { %>
+          <div class="col-12 text-center py-4 text-muted">No pricing packages currently available.</div>
+        <% } %>
       </div>
     </div>
   </section>
@@ -119,14 +112,14 @@
         $("#calc-credits").text(mins);
         
         let cost = 0;
-        if (mins == 5) cost = 149;
-        else if (mins == 10) cost = 299;
-        else if (mins == 30) cost = 799;
-        else if (mins == 60) cost = 1499;
+        if (mins == 5) cost = 15;
+        else if (mins == 10) cost = 25;
+        else if (mins == 30) cost = 60;
+        else if (mins == 60) cost = 120;
         else {
-          cost = Math.round((mins * 25) * 0.95);
+          cost = Math.round(mins * 2);
         }
-        $("#calc-price").text("₹" + cost.toLocaleString());
+        $("#calc-price").text("AED " + cost.toLocaleString());
       });
     });
   </script>

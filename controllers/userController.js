@@ -88,41 +88,7 @@ exports.getWallet = async (req, res) => {
 
 exports.getBuyCredits = async (req, res) => {
   try {
-    let plans = await PricingPlan.find({ isActive: true }).sort({ order: 1, credits: 1 });
-    if (!plans || plans.length === 0) {
-      const defaultPlans = [
-        { planId: 'PLAN-5501', name: 'Starter Pack', badge: 'Starter', category: 'Voice', credits: 5, price: 149, description: 'Quick initial check-in or brief conversation.', isPopular: false, isActive: true, order: 1 },
-        { planId: 'PLAN-5502', name: 'Bridge Pack', badge: 'Bridge', category: 'Voice', credits: 10, price: 299, description: 'Talk through an immediate worry or stressor.', isPopular: false, isActive: true, order: 2 },
-        { planId: 'PLAN-5503', name: 'Comfort Pack', badge: 'Comfort', category: 'Voice', credits: 25, price: 599, description: 'Ample time to speak calmly, reflect and breathe.', isPopular: true, isActive: true, order: 3 },
-        { planId: 'PLAN-5504', name: 'Deep Listen Pack', badge: 'Deep Listen', category: 'Voice', credits: 50, price: 1199, description: 'Ideal for multiple in-depth conversation sessions.', isPopular: false, isActive: true, order: 4 },
-        { planId: 'PLAN-5505', name: 'Best Value Pack', badge: 'Best Value', category: 'Voice', credits: 100, price: 2199, description: 'Maximum savings for regular check-in support.', isPopular: false, isActive: true, order: 5 },
-        { planId: 'PLAN-6601', name: 'Starter Video Pack', badge: 'Video HD', category: 'Video', credits: 20, price: 499, description: '10 Minutes of face-to-face private video consultation.', isPopular: false, isActive: true, order: 6 },
-        { planId: 'PLAN-6602', name: 'Comfort Video Pack', badge: 'Popular Video', category: 'Video', credits: 50, price: 1099, description: '25 Minutes of in-depth video consultation to Talk With Ashu.', isPopular: true, isActive: true, order: 7 },
-        { planId: 'PLAN-6603', name: 'Executive Video Pack', badge: 'Best Video', category: 'Video', credits: 100, price: 1999, description: '50 Minutes of high-definition video check-ins.', isPopular: false, isActive: true, order: 8 }
-      ];
-      try {
-        await PricingPlan.insertMany(defaultPlans);
-        plans = await PricingPlan.find({ isActive: true }).sort({ order: 1, credits: 1 });
-      } catch (err) {
-        plans = defaultPlans;
-      }
-    } else {
-      // If plans exist, ensure video packs are also seeded if missing
-      const hasVideoPlan = await PricingPlan.findOne({ category: 'Video' });
-      if (!hasVideoPlan) {
-        const defaultVideoPlans = [
-          { planId: 'PLAN-6601', name: 'Starter Video Pack', badge: 'Video HD', category: 'Video', credits: 20, price: 499, description: '10 Minutes of face-to-face private video consultation.', isPopular: false, isActive: true, order: 6 },
-          { planId: 'PLAN-6602', name: 'Comfort Video Pack', badge: 'Popular Video', category: 'Video', credits: 50, price: 1099, description: '25 Minutes of in-depth video consultation to Talk With Ashu.', isPopular: true, isActive: true, order: 7 },
-          { planId: 'PLAN-6603', name: 'Executive Video Pack', badge: 'Best Video', category: 'Video', credits: 100, price: 1999, description: '50 Minutes of high-definition video check-ins.', isPopular: false, isActive: true, order: 8 }
-        ];
-        try {
-          await PricingPlan.insertMany(defaultVideoPlans);
-          plans = await PricingPlan.find({ isActive: true }).sort({ order: 1, credits: 1 });
-        } catch (e) {
-          console.warn('[Seed Video Plans Warning]', e.message);
-        }
-      }
-    }
+    const plans = await PricingPlan.find({ isActive: true }).sort({ order: 1, credits: 1 });
 
     res.render('user/buy-credits', {
       title: 'Buy Coins - Talk With Ashu',

@@ -120,7 +120,7 @@ exports.postRegister = async (req, res) => {
       desc: "Welcome Bonus (25 Free Coins)",
       type: "credit",
       credits: 25,
-      amount: "₹0",
+      amount: "AED 0",
       status: "Successful"
     });
     await welcomeTxn.save();

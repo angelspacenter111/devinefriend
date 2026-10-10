@@ -24,7 +24,7 @@
             <i class="bi bi-cash-stack text-success fs-5"></i>
             <div>
               <small class="text-muted d-block lh-1" style="font-size: 0.68rem; text-transform: uppercase; font-weight: 700;">Today's Income</small>
-              <strong class="text-success fs-6">₹<%= ((typeof stats !== 'undefined' && stats && stats.todayRevenue) || 0).toLocaleString('en-IN') %></strong>
+              <strong class="text-success fs-6">AED <%= ((typeof stats !== 'undefined' && stats && stats.todayRevenue) || 0).toLocaleString('en-US') %></strong>
             </div>
           </div>
 
@@ -67,7 +67,7 @@
                 <!-- Stat Values (Desktop bold side-by-side, mobile stacked) -->
                 <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-3 gap-md-4 mb-3">
                   <div class="hero-stat-box">
-                    <div class="hero-stat-value text-white">₹<%= ((typeof stats !== 'undefined' && stats && stats.todayRevenue) || 0).toLocaleString('en-IN') %></div>
+                    <div class="hero-stat-value text-white">AED <%= ((typeof stats !== 'undefined' && stats && stats.todayRevenue) || 0).toLocaleString('en-US') %></div>
                     <span class="hero-stat-caption text-white-50">Net Revenue Inflow</span>
                   </div>
 
@@ -118,7 +118,7 @@
                       <i class="bi bi-cash-stack"></i>
                     </div>
                   </div>
-                  <div class="admin-metric-value text-success">₹<%= ((typeof stats !== 'undefined' && stats && stats.todayRevenue) || 0).toLocaleString('en-IN') %></div>
+                  <div class="admin-metric-value text-success">AED <%= ((typeof stats !== 'undefined' && stats && stats.todayRevenue) || 0).toLocaleString('en-US') %></div>
                 </div>
                 <div class="mt-2 pt-2 border-top">
                   <span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1 fw-semibold small">
@@ -219,11 +219,11 @@
             <div class="col-sm-4">
               <div class="app-card mb-0 p-3.5 p-md-4 d-flex align-items-center gap-3">
                 <div class="rounded-3 bg-success-subtle text-success p-3 fs-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
-                  <i class="bi bi-currency-rupee"></i>
+                  <i class="bi bi-cash-stack"></i>
                 </div>
                 <div>
                   <span class="text-muted small d-block fw-medium">All-Time Net Revenue</span>
-                  <h4 class="fw-extrabold text-success mb-0">₹<%= ((typeof stats !== 'undefined' && stats && stats.totalRevenue) || 0).toLocaleString('en-IN') %></h4>
+                  <h4 class="fw-extrabold text-success mb-0">AED <%= ((typeof stats !== 'undefined' && stats && stats.totalRevenue) || 0).toLocaleString('en-US') %></h4>
                 </div>
               </div>
             </div>
@@ -240,7 +240,7 @@
                   <span class="badge bg-light text-muted border rounded-pill px-2.5 py-1 small">Today</span>
                 </div>
                 <h5 class="fw-bold mb-1 mt-2 text-dark">Today's Client Coin Consumption</h5>
-                <p class="text-muted small mb-0">Total <strong><%= stats.creditsUsedToday %> Coins</strong> (<%= stats.minsToday %> mins) used by clients today, generating approx <strong>₹<%= ((typeof stats !== 'undefined' && stats && stats.todayRevenue) || 0).toLocaleString('en-IN') %></strong> revenue inflow.</p>
+                <p class="text-muted small mb-0">Total <strong><%= stats.creditsUsedToday %> Coins</strong> (<%= stats.minsToday %> mins) used by clients today, generating approx <strong>AED <%= ((typeof stats !== 'undefined' && stats && stats.todayRevenue) || 0).toLocaleString('en-US') %></strong> revenue inflow.</p>
               </div>
               <a href="/admin/calls" class="btn btn-sm btn-outline-brand rounded-pill px-3">
                 <i class="bi bi-telephone-inbound me-1"></i> Filter Calls

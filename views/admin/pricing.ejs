@@ -114,7 +114,7 @@
                               (<%= plan.category === 'Video' ? Math.floor(plan.credits / 2) + ' Video Mins' : plan.credits + ' Voice Mins' %>)
                             </span>
                           </div>
-                          <div class="fs-4 fw-extrabold text-primary">₹<%= plan.price.toLocaleString('en-IN') %></div>
+                          <div class="fs-4 fw-extrabold text-primary">AED <%= plan.price.toLocaleString('en-US') %></div>
                         </div>
 
                         <% if (plan.description) { %>
@@ -168,7 +168,7 @@
                     <th>Category</th>
                     <th>Coins Value</th>
                     <th>Call Duration</th>
-                    <th>Price Pack (₹)</th>
+                    <th>Price Pack (AED)</th>
                     <th>Status</th>
                     <th>Actions</th>
                   </tr>
@@ -212,7 +212,7 @@
                             <small class="text-muted d-block" style="font-size: 0.72rem;">(1 coin/min)</small>
                           <% } %>
                         </td>
-                        <td><strong class="fs-6 text-dark">₹<%= plan.price.toLocaleString('en-IN') %></strong></td>
+                        <td><strong class="fs-6 text-dark">AED <%= plan.price.toLocaleString('en-US') %></strong></td>
                         <td>
                           <span class="badge <%= plan.isActive ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary' %> rounded-pill px-2.5 py-1.5 btn-admin-toggle-plan" data-id="<%= plan._id %>" style="cursor: pointer;" title="Click to toggle status">
                             <i class="bi <%= plan.isActive ? 'bi-check-circle-fill' : 'bi-dash-circle-fill' %> me-1"></i><%= plan.isActive ? 'Active' : 'Disabled' %>
@@ -311,7 +311,7 @@
                 <input type="number" id="add_plan_credits" class="form-control form-control-custom" placeholder="e.g. 30" min="1" required>
               </div>
               <div class="col-6">
-                <label class="form-label form-label-custom">Price (₹) <span class="text-danger">*</span></label>
+                <label class="form-label form-label-custom">Price (AED) <span class="text-danger">*</span></label>
                 <input type="number" id="add_plan_price" class="form-control form-control-custom" placeholder="e.g. 749" min="1" required>
               </div>
             </div>
@@ -372,7 +372,7 @@
                 <input type="number" id="edit_plan_credits" class="form-control form-control-custom" min="1" required>
               </div>
               <div class="col-6">
-                <label class="form-label form-label-custom">Price (₹) <span class="text-danger">*</span></label>
+                <label class="form-label form-label-custom">Price (AED) <span class="text-danger">*</span></label>
                 <input type="number" id="edit_plan_price" class="form-control form-control-custom" min="1" required>
               </div>
             </div>
