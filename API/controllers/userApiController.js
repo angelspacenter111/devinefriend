@@ -140,3 +140,27 @@ exports.changePassword = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Failed to change password.' });
   }
 };
+
+// POST /api/user/push-token
+exports.updatePushToken = async (req, res) => {
+  try {
+    const user = req.user;
+    const { pushToken } = req.body;
+
+    if (!pushToken) {
+      return res.status(400).json({ success: false, message: 'pushToken is required.' });
+    }
+
+    user.pushToken = pushToken.trim();
+    await user.save();
+
+    console.log(`[Push Notification] Updated push token for user: ${user.name} (${user.role})`);
+    return res.json({
+      success: true,
+      message: 'Push token registered successfully.'
+    });
+  } catch (error) {
+    console.error('[API Update Push Token Error]', error);
+    return res.status(500).json({ success: false, message: 'Failed to update push token.' });
+  }
+};

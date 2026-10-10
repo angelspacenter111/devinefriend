@@ -14,6 +14,7 @@ const session = require('express-session');
 const { MongoStore } = require('connect-mongo');
 const connectDB = require('./config/db');
 const callService = require('./services/callService');
+const pushNotificationService = require('./services/pushNotificationService');
 const apiRoutes = require('./API');
 
 const PORT = process.env.PORT || 3000;
@@ -149,6 +150,16 @@ async function startServer() {
 
         // Notify all active admin monitors of incoming call request
         io.to('admins').emit('incoming-call-alert', {
+          callId: data.callId,
+          callerId: socket.id,
+          callerName: data.userName,
+          callType: socket.callType,
+          userId: data.userId,
+          roomId: roomId
+        });
+
+        // Trigger High-Priority Call Push Notification to wake up closed/background mobile devices
+        pushNotificationService.sendIncomingCallAlert({
           callId: data.callId,
           callerId: socket.id,
           callerName: data.userName,
@@ -294,6 +305,7 @@ async function startServer() {
         // Notify admins if call was cancelled or missed before answer
         if (reason === 'Cancelled' || reason === 'Missed') {
           io.to('admins').emit('call-cancelled', { callId, reason });
+          if (callId) pushNotificationService.sendCallCancelledAlert(callId);
         }
 
         socket.to(roomId).emit('peer-disconnected', { callId, reason });

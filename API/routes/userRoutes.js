@@ -9,5 +9,6 @@ router.get('/dashboard', userApiController.getDashboard);
 router.get('/profile', userApiController.getProfile);
 router.put('/profile', userApiController.updateProfile);
 router.post('/change-password', userApiController.changePassword);
+router.post('/push-token', userApiController.updatePushToken);
 
 module.exports = router;
