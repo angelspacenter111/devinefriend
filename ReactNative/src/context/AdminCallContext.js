@@ -15,6 +15,7 @@ export const AdminCallProvider = ({ children }) => {
   const [incomingCall, setIncomingCall] = useState(null); // { callId, callerId, callerName, userId, roomId }
   const [activeCall, setActiveCall] = useState(null);     // { callId, callerName, roomId, startTime }
   const [callDuration, setCallDuration] = useState(0);    // duration in seconds
+  const [callPhase, setCallPhase] = useState('idle');     // 'idle' | 'incoming' | 'connecting' | 'connected' | 'ended'
   const [callStatusText, setCallStatusText] = useState('Connecting...');
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(true);
@@ -70,6 +71,7 @@ export const AdminCallProvider = ({ children }) => {
       onConnectionStateChange: (state) => {
         console.log('[AdminCallContext] WebRTC connectionState:', state);
         if (state === 'connected') {
+          setCallPhase('connected');
           setCallStatusText('In Conversation');
           startTimer();
           socketService.emit('call-connected', {
@@ -78,6 +80,7 @@ export const AdminCallProvider = ({ children }) => {
         } else if (state === 'disconnected' || state === 'failed') {
           setCallStatusText('Connection Interrupted');
         } else if (state === 'closed') {
+          setCallPhase('ended');
           setCallStatusText('Call Ended');
         }
       }
@@ -121,10 +124,11 @@ export const AdminCallProvider = ({ children }) => {
       // Notify caller device that advisor phone is ringing (WhatsApp style ringback)
       socketService.emit('client-ringing', { callId: data.callId });
 
+      setCallPhase('incoming');
       setIncomingCall({
         callId: data.callId,
         callerId: data.callerId,
-        callerName: data.callerName || 'Guest User',
+        callerName: data.callerName || 'Friend Member',
         userId: data.userId,
         roomId: data.roomId || data.callId,
         callType: data.callType || 'Voice'
@@ -146,6 +150,7 @@ export const AdminCallProvider = ({ children }) => {
       stopRinging();
       cleanupWebRTC();
       setIncomingCall(null);
+      setCallPhase('idle');
     };
 
     // 5. Peer disconnected during call
@@ -156,6 +161,7 @@ export const AdminCallProvider = ({ children }) => {
 
     // 6. WebRTC call active notification from server
     const handleCallActive = (data) => {
+      setCallPhase('connected');
       setCallStatusText('In Conversation');
       startTimer();
     };
@@ -232,11 +238,11 @@ export const AdminCallProvider = ({ children }) => {
     socketService.on('receive-offer', handleReceiveOffer);
     socketService.on('receive-candidate', handleReceiveCandidate);
 
-    // 9. Listen for Push Notifications when app is woken up from background / closed
+    // 9. Listen for Push Notifications when app is woken up from background / running
     const notifReceivedSub = Notifications.addNotificationReceivedListener((notification) => {
       const data = notification?.request?.content?.data;
       if (data?.type === 'INCOMING_CALL' && !activeCallRef.current) {
-        console.log('[AdminCallContext] Received INCOMING_CALL Push Notification:', data);
+        console.log('[AdminCallContext] Received INCOMING_CALL Push Notification in foreground/background:', data);
         handleIncomingCall(data);
       } else if (data?.type === 'CALL_CANCELLED') {
         handleCallCancelled(data);
@@ -259,6 +265,24 @@ export const AdminCallProvider = ({ children }) => {
         }
       }
     });
+
+    // 11. Check if App was COLD STARTED directly by tapping an incoming call notification while closed
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) {
+        const data = response?.notification?.request?.content?.data;
+        const actionId = response?.actionIdentifier;
+        console.log('[AdminCallContext] Cold start from closed state via Notification:', actionId, data);
+
+        if (data?.type === 'INCOMING_CALL' && !activeCallRef.current) {
+          notificationService.dismissCallNotifications();
+          if (actionId === 'ACCEPT_CALL' || actionId === Notifications.DEFAULT_ACTION_IDENTIFIER) {
+            acceptCall(data);
+          } else if (actionId === 'DECLINE_CALL') {
+            rejectCall(data);
+          }
+        }
+      }
+    }).catch(() => {});
 
     return () => {
       socketService.off('incoming-call-alert', handleIncomingCall);
@@ -311,18 +335,32 @@ export const AdminCallProvider = ({ children }) => {
     setActiveCall(callData);
     activeCallRef.current = callData;
     peerIdRef.current = callData.callerId;
+    setCallPhase('connecting');
     setCallStatusText('Connecting to caller audio...');
 
-    // Make sure socket is connected
-    socketService.connect();
+    // Make sure socket is connected and join room
+    const socket = socketService.connect();
 
-    // Emit admin acceptance to backend server
-    socketService.emit('admin-accept-call', {
-      callId: callData.callId,
-      adminId: user?.id || user?._id,
-      adminName: user?.name || 'Life Advisor',
-      callerId: callData.callerId
-    });
+    const sendAccept = () => {
+      socketService.emit('admin-join', {
+        adminId: user?.id || user?._id,
+        adminName: user?.name || 'Life Advisor',
+        role: 'admin'
+      });
+      socketService.emit('admin-accept-call', {
+        callId: callData.callId,
+        adminId: user?.id || user?._id,
+        adminName: user?.name || 'Life Advisor',
+        callerId: callData.callerId
+      });
+      console.log(`[AdminCallContext] Emitted admin-accept-call for ${callData.callId}`);
+    };
+
+    if (socketService.isConnected && socket && socket.connected) {
+      sendAccept();
+    } else if (socket) {
+      socket.once('connect', sendAccept);
+    }
 
     // Initialize local WebRTC & Microphone right away
     try {
@@ -354,6 +392,7 @@ export const AdminCallProvider = ({ children }) => {
     });
 
     setIncomingCall(null);
+    setCallPhase('idle');
   };
 
   // END ACTIVE CALL
@@ -372,6 +411,7 @@ export const AdminCallProvider = ({ children }) => {
     setActiveCall(null);
     activeCallRef.current = null;
     setCallDuration(0);
+    setCallPhase('idle');
   };
 
   const toggleMute = () => {
@@ -414,6 +454,7 @@ export const AdminCallProvider = ({ children }) => {
         incomingCall,
         activeCall,
         callDuration,
+        callPhase,
         formattedDuration: formatTimer(callDuration),
         callStatusText,
         isMuted,

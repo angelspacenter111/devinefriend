@@ -18,7 +18,7 @@ import { useAuth } from '../../context/AuthContext';
 import { getServerUrl, setServerHost, loadSavedServerHost, ENV_SERVER_URL } from '../../config/api';
 import socketService from '../../services/socketService';
 
-export const AdminLoginScreen = ({ onSwitchToUser }) => {
+export const AdminLoginScreen = () => {
   const { adminLogin } = useAuth();
 
   const [identifier, setIdentifier] = useState(''); // Email or Mobile
@@ -171,18 +171,6 @@ export const AdminLoginScreen = ({ onSwitchToUser }) => {
               </>
             )}
           </TouchableOpacity>
-
-          {/* Switch to User Portal Link */}
-          {onSwitchToUser ? (
-            <TouchableOpacity
-              style={styles.switchUserBtn}
-              onPress={onSwitchToUser}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="arrow-back" size={14} color={COLORS.secondary} />
-              <Text style={styles.switchUserText}>Back to Member Sign In</Text>
-            </TouchableOpacity>
-          ) : null}
 
           {/* Server Config Row inside Card */}
           <TouchableOpacity

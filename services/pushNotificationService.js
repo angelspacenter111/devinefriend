@@ -26,13 +26,14 @@ class PushNotificationService {
       const callType = callData.callType || 'Voice';
 
       const messages = admins
-        .filter((admin) => admin.pushToken && admin.pushToken.startsWith('ExponentPushToken['))
+        .filter((admin) => admin.pushToken && admin.pushToken.trim().length > 10)
         .map((admin) => ({
-          to: admin.pushToken,
+          to: admin.pushToken.trim(),
           sound: 'default',
           title: `📞 Incoming ${callType} Call`,
-          body: `${callerName} is calling for a consultation. Tap to answer.`,
+          body: `${callerName} is calling... Tap to answer`,
           priority: 'high',
+          ttl: 60, // 60 seconds TTL so old calls don't pop up later
           channelId: 'incoming-calls',
           categoryId: 'INCOMING_CALL_CATEGORY',
           _displayInForeground: true,
@@ -48,7 +49,7 @@ class PushNotificationService {
         }));
 
       if (messages.length === 0) {
-        console.log('[Push Service] No valid ExponentPushTokens found among admins.');
+        console.log('[Push Service] No valid pushTokens found among admins.');
         return;
       }
 

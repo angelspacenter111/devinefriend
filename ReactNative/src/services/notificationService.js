@@ -123,8 +123,12 @@ class NotificationService {
   async syncPushTokenWithBackend(token) {
     if (!token) return;
     try {
-      console.log('[NotificationService] Syncing push token with backend /api/user/push-token...');
-      await apiClient.post('/user/push-token', { pushToken: token });
+      console.log('[NotificationService] Syncing admin push token with backend...');
+      try {
+        await apiClient.post('/admin/push-token', { pushToken: token });
+      } catch (adminErr) {
+        await apiClient.post('/user/push-token', { pushToken: token });
+      }
       console.log('[NotificationService] Push token successfully registered on server.');
     } catch (err) {
       console.warn('[NotificationService] Could not register push token on server:', err.message);

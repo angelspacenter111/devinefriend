@@ -18,7 +18,7 @@ import AdminUsersScreen from '../screens/admin/AdminUsersScreen';
 import AdminCallsScreen from '../screens/admin/AdminCallsScreen';
 import AdminMoreScreen from '../screens/admin/AdminMoreScreen';
 
-export const AdminAppNavigator = ({ onSwitchToUserPortal }) => {
+export const AdminAppNavigator = () => {
   const { isAuthenticated, isAdmin, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'users' | 'callcenter' | 'calls' | 'more'
 
@@ -35,7 +35,7 @@ export const AdminAppNavigator = ({ onSwitchToUserPortal }) => {
   if (!isAuthenticated || !isAdmin) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <AdminLoginScreen onSwitchToUser={onSwitchToUserPortal} />
+        <AdminLoginScreen />
       </SafeAreaView>
     );
   }
