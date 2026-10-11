@@ -86,9 +86,9 @@ class PushNotificationService {
       if (!admins || admins.length === 0) return;
 
       const messages = admins
-        .filter((admin) => admin.pushToken && admin.pushToken.startsWith('ExponentPushToken['))
+        .filter((admin) => admin.pushToken && admin.pushToken.trim().length > 10)
         .map((admin) => ({
-          to: admin.pushToken,
+          to: admin.pushToken.trim(),
           priority: 'high',
           data: {
             type: 'CALL_CANCELLED',

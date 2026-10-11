@@ -101,16 +101,33 @@ class NotificationService {
       }
 
       // Fetch Expo Push Token with projectId from app.json
-      const projectId = Constants?.expoConfig?.extra?.eas?.projectId || 'ba4e869c-76a1-4f66-95b0-c79dad48d99e';
-      const tokenResult = await Notifications.getExpoPushTokenAsync({ projectId });
-      this.pushToken = tokenResult.data;
+      const projectId =
+        Constants?.expoConfig?.extra?.eas?.projectId ??
+        Constants?.easConfig?.projectId ??
+        'ba4e869c-76a1-4f66-95b0-c79dad48d99e';
 
-      console.log(`[NotificationService] Expo Push Token obtained: ${this.pushToken}`);
+      let tokenResult = null;
+      try {
+        tokenResult = await Notifications.getExpoPushTokenAsync({ projectId });
+      } catch (tokenErr) {
+        console.warn('[NotificationService] getExpoPushTokenAsync with projectId error, retrying without:', tokenErr.message);
+        try {
+          tokenResult = await Notifications.getExpoPushTokenAsync();
+        } catch (innerErr) {
+          console.warn('[NotificationService] getExpoPushTokenAsync fallback error:', innerErr.message);
+        }
+      }
 
-      // Sync push token with backend server
-      await this.syncPushTokenWithBackend(this.pushToken);
+      if (tokenResult && tokenResult.data) {
+        this.pushToken = tokenResult.data;
+        console.log(`[NotificationService] Expo Push Token obtained: ${this.pushToken}`);
+        
+        // Sync push token with backend server
+        await this.syncPushTokenWithBackend(this.pushToken);
+        return this.pushToken;
+      }
 
-      return this.pushToken;
+      return null;
     } catch (err) {
       console.warn('[NotificationService] Error getting push token:', err.message);
       return null;
@@ -120,18 +137,52 @@ class NotificationService {
   /**
    * Send the obtained push token to backend API for user record
    */
-  async syncPushTokenWithBackend(token) {
+  async syncPushTokenWithBackend(token, adminData = null) {
     if (!token) return;
     try {
       console.log('[NotificationService] Syncing admin push token with backend...');
+      const payload = { pushToken: token };
+      if (adminData && (adminData.id || adminData._id)) {
+        payload.adminId = adminData.id || adminData._id;
+      }
+      if (adminData && adminData.mobile) {
+        payload.mobile = adminData.mobile;
+      }
+
       try {
-        await apiClient.post('/admin/push-token', { pushToken: token });
+        await apiClient.post('/admin/push-token', payload);
       } catch (adminErr) {
-        await apiClient.post('/user/push-token', { pushToken: token });
+        console.log('[NotificationService] /admin/push-token error, falling back to /user/push-token:', adminErr.message);
+        await apiClient.post('/user/push-token', payload);
       }
       console.log('[NotificationService] Push token successfully registered on server.');
     } catch (err) {
       console.warn('[NotificationService] Could not register push token on server:', err.message);
+    }
+  }
+
+  /**
+   * Show local heads-up incoming call alert banner with sound and vibration (when app is in foreground/background)
+   */
+  async showLocalCallNotification(callData) {
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: `📞 Incoming ${callData?.callType || 'Voice'} Call`,
+          body: `${callData?.callerName || 'Member'} is calling... Tap to answer`,
+          sound: 'default',
+          priority: Notifications.AndroidNotificationPriority.MAX,
+          categoryIdentifier: 'INCOMING_CALL_CATEGORY',
+          data: {
+            type: 'INCOMING_CALL',
+            ...callData
+          }
+        },
+        trigger: null
+      });
+      console.log('[NotificationService] Triggered local call ringing notification');
+    } catch (err) {
+      console.warn('[NotificationService] Error showing local notification:', err.message);
     }
   }
 

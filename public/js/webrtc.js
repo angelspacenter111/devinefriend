@@ -58,17 +58,30 @@ let isTerminating = false;
 let ringingTimeoutTimer = null;
 let connectingTimeoutTimer = null;
 
-// STUN server configuration for NAT traversal
+// STUN & TURN server configuration for NAT traversal
 const rtcConfig = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' }
-  ]
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun3.l.google.com:19302' },
+    {
+      urls: [
+        'turn:openrelay.metered.ca:80',
+        'turn:openrelay.metered.ca:443',
+        'turn:openrelay.metered.ca:443?transport=tcp'
+      ],
+      username: 'openrelay',
+      credential: 'openrelay'
+    }
+  ],
+  iceCandidatePoolSize: 10
 };
 
 let localStream = null;
 let peerConnection = null;
 let targetPeerId = null;
+let webIceQueue = [];
 
 let secondsElapsed = 0;
 let callTimerInterval = null;
@@ -163,6 +176,10 @@ function initializeCallerFlow() {
   // Listen for admin to accept call
   socket.off('peer-connected').on('peer-connected', async (data) => {
     if (isTerminalState(currentCallState)) return;
+    if (currentCallState === CallState.ACCEPTED || currentCallState === CallState.CONNECTING || currentCallState === CallState.CONNECTED || currentCallState === CallState.ACTIVE) {
+      console.log("[Socket] Call already accepted or active, ignoring redundant peer-connected event.");
+      return;
+    }
 
     console.log(`[Socket] Ashu accepted call. Peer socket: ${data.adminId}`);
     if (ringingTimeoutTimer) {
@@ -249,6 +266,19 @@ function initializeReceiverFlow() {
       await setupPeerConnection();
       await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
       
+      // Flush any queued ICE candidates
+      if (webIceQueue.length > 0) {
+        console.log(`[WebRTC] Flushing ${webIceQueue.length} queued ICE candidate(s)...`);
+        for (const cand of webIceQueue) {
+          try {
+            await peerConnection.addIceCandidate(new RTCIceCandidate(cand));
+          } catch (candErr) {
+            console.warn("[WebRTC] Error adding queued candidate:", candErr);
+          }
+        }
+        webIceQueue = [];
+      }
+
       const stream = await getMicrophoneAccess();
       if (stream && peerConnection) {
         stream.getTracks().forEach(track => {
@@ -320,21 +350,60 @@ async function setupPeerConnection() {
     }
   };
 
-  // Remote audio & video track reception
+  // Remote audio & video track reception (with fallback for React Native streams)
   peerConnection.ontrack = (event) => {
     console.log(`[WebRTC] Remote track arrived (${event.track ? event.track.kind : 'stream'}).`);
-    if (event.streams && event.streams[0]) {
+    let stream = (event.streams && event.streams[0]);
+    if (!stream && event.track) {
+      stream = new MediaStream([event.track]);
+    }
+
+    if (stream) {
       const remoteAudio = document.getElementById('remoteAudio');
       if (remoteAudio) {
-        remoteAudio.srcObject = event.streams[0];
-        remoteAudio.play().catch(e => console.warn('[WebRTC] Auto-play audio warning:', e));
+        remoteAudio.srcObject = stream;
+        remoteAudio.play().catch(e => {
+          console.warn('[WebRTC] Auto-play audio warning:', e);
+          const resumeAudio = () => {
+            remoteAudio.play().catch(() => {});
+            window.removeEventListener('click', resumeAudio);
+            window.removeEventListener('touchstart', resumeAudio);
+          };
+          window.addEventListener('click', resumeAudio, { once: true });
+          window.addEventListener('touchstart', resumeAudio, { once: true });
+        });
       }
       const remoteVideo = document.getElementById('remoteVideo');
       if (remoteVideo) {
-        remoteVideo.srcObject = event.streams[0];
+        remoteVideo.srcObject = stream;
         remoteVideo.play().catch(e => console.warn('[WebRTC] Auto-play video warning:', e));
       }
     }
+  };
+
+  // Helper: Transition to active connected state idempotently
+  const handleConnectedState = () => {
+    if (currentCallState === CallState.CONNECTED || currentCallState === CallState.ACTIVE) return;
+
+    if (connectingTimeoutTimer) {
+      clearTimeout(connectingTimeoutTimer);
+      connectingTimeoutTimer = null;
+    }
+
+    transitionTo(CallState.CONNECTED);
+    transitionTo(CallState.ACTIVE);
+
+    console.log("[WebRTC] Call successfully established and active!");
+    $("body").addClass("connected");
+    $(".call-status-badge").removeClass("connecting").addClass("connected").text("You're Connected");
+    $(".call-pulse-animation, .call-pulse-animation-2").css("animation-duration", "1.5s");
+    $("#call-cancel-btn-wrapper, #call-cancel-btn").addClass("d-none");
+    $("#call-active-controls").removeClass("d-none");
+
+    // Notify server that call is actively connected
+    socket.emit('call-connected', { callId: currentCallId });
+
+    startActiveCallTimer();
   };
 
   // Connection state changes
@@ -344,25 +413,7 @@ async function setupPeerConnection() {
     console.log(`[WebRTC] Peer Connection State: ${connState}`);
 
     if (connState === 'connected') {
-      if (connectingTimeoutTimer) {
-        clearTimeout(connectingTimeoutTimer);
-        connectingTimeoutTimer = null;
-      }
-
-      transitionTo(CallState.CONNECTED);
-      transitionTo(CallState.ACTIVE);
-
-      console.log("[WebRTC] Call successfully established and active!");
-      $("body").addClass("connected");
-      $(".call-status-badge").removeClass("connecting").addClass("connected").text("You're Connected");
-      $(".call-pulse-animation, .call-pulse-animation-2").css("animation-duration", "1.5s");
-      $("#call-cancel-btn-wrapper, #call-cancel-btn").addClass("d-none");
-      $("#call-active-controls").removeClass("d-none");
-
-      // Notify server that call is actively connected
-      socket.emit('call-connected', { callId: currentCallId });
-
-      startActiveCallTimer();
+      handleConnectedState();
     } else if (connState === 'failed') {
       console.warn("[WebRTC] Peer connection failed.");
       terminateCallSession(secondsElapsed > 0 ? "Completed" : "Failed");
@@ -374,8 +425,12 @@ async function setupPeerConnection() {
 
   peerConnection.oniceconnectionstatechange = () => {
     if (!peerConnection) return;
-    console.log(`[WebRTC] ICE Connection State: ${peerConnection.iceConnectionState}`);
-    if (peerConnection.iceConnectionState === 'failed') {
+    const iceState = peerConnection.iceConnectionState;
+    console.log(`[WebRTC] ICE Connection State: ${iceState}`);
+
+    if (iceState === 'connected' || iceState === 'completed') {
+      handleConnectedState();
+    } else if (iceState === 'failed') {
       console.warn("[WebRTC] ICE failed. Attempting restart...");
       if (typeof peerConnection.restartIce === 'function') {
         peerConnection.restartIce();
@@ -388,8 +443,22 @@ async function setupPeerConnection() {
 socket.off('receive-answer').on('receive-answer', async (data) => {
   if (isTerminalState(currentCallState)) return;
   try {
-    if (peerConnection) {
+    if (peerConnection && data.answer) {
       await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+      console.log("[WebRTC] Set remote description (Answer) successfully.");
+
+      // Flush queued candidates
+      if (webIceQueue.length > 0) {
+        console.log(`[WebRTC] Flushing ${webIceQueue.length} queued ICE candidate(s)...`);
+        for (const cand of webIceQueue) {
+          try {
+            await peerConnection.addIceCandidate(new RTCIceCandidate(cand));
+          } catch (candErr) {
+            console.warn("[WebRTC] Error adding queued ICE candidate:", candErr);
+          }
+        }
+        webIceQueue = [];
+      }
     }
   } catch (err) {
     console.error("[WebRTC Error] Failed to set Remote Description (Answer):", err);
@@ -398,12 +467,18 @@ socket.off('receive-answer').on('receive-answer', async (data) => {
 
 socket.off('receive-candidate').on('receive-candidate', async (data) => {
   if (isTerminalState(currentCallState)) return;
-  if (peerConnection && data.candidate) {
+  if (!data || !data.candidate) return;
+
+  if (peerConnection && peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
     try {
       await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+      console.log("[WebRTC] Added remote ICE candidate from peer.");
     } catch (e) {
       console.error("[WebRTC Error] Failed to add remote ICE candidate:", e);
     }
+  } else {
+    console.log("[WebRTC] Remote description not yet ready, queuing ICE candidate.");
+    webIceQueue.push(data.candidate);
   }
 });
 
@@ -604,6 +679,7 @@ function terminateCallSession(statusType) {
     }
     peerConnection = null;
   }
+  webIceQueue = [];
 
   // Clean local storage state
   localStorage.removeItem('active_call_id');

@@ -6,13 +6,16 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
-  ActivityIndicator
+  ActivityIndicator,
+  Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import { useAdminCall } from '../../context/AdminCallContext';
 import adminService from '../../services/adminService';
+import notificationService from '../../services/notificationService';
+import apiClient from '../../services/api';
 
 export const AdminDashboardScreen = ({ onNavigateTab }) => {
   const { user } = useAuth();
@@ -30,6 +33,25 @@ export const AdminDashboardScreen = ({ onNavigateTab }) => {
   const [recentCalls, setRecentCalls] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isTestingPush, setIsTestingPush] = useState(false);
+
+  const handleTestCallAlert = async () => {
+    setIsTestingPush(true);
+    try {
+      // 1. Ensure push token is active
+      const token = await notificationService.registerForPushNotifications();
+      // 2. Trigger test alert from server
+      await apiClient.post('/admin/test-push');
+      Alert.alert(
+        '📞 Call Ringing Sent!',
+        'A high-priority incoming call notification has been dispatched! Close or minimize the app to verify full ringing, vibration, and WhatsApp-style call alerts.'
+      );
+    } catch (e) {
+      Alert.alert('Notification Test', e.message || 'Could not send test push alert.');
+    } finally {
+      setIsTestingPush(false);
+    }
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -88,6 +110,36 @@ export const AdminDashboardScreen = ({ onNavigateTab }) => {
           onPress={() => toggleOnlinePresence(!isOnline)}
         >
           <Text style={styles.toggleBtnText}>{isOnline ? 'Go Offline' : 'Go Online'}</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Background Call Alerts Card */}
+      <View style={styles.notificationAlertCard}>
+        <View style={styles.notifCardLeft}>
+          <View style={styles.notifIconBadge}>
+            <Ionicons name="notifications" size={18} color="#38bdf8" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.notifTitle}>Background Call Alerts</Text>
+            <Text style={styles.notifSub}>
+              Rings even when app is closed
+            </Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          style={styles.testAlertBtn}
+          onPress={handleTestCallAlert}
+          disabled={isTestingPush}
+          activeOpacity={0.8}
+        >
+          {isTestingPush ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="musical-notes" size={13} color="#fff" style={{ marginRight: 4 }} />
+              <Text style={styles.testAlertBtnText}>Test Ring</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -433,6 +485,55 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     marginTop: 2
+  },
+  notificationAlertCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.25)',
+    padding: 14,
+    borderRadius: 16,
+    marginBottom: 20
+  },
+  notifCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1
+  },
+  notifIconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  notifTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#f8fafc'
+  },
+  notifSub: {
+    fontSize: 11,
+    color: '#94a3b8',
+    marginTop: 2
+  },
+  testAlertBtn: {
+    backgroundColor: '#0284c7',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8
+  },
+  testAlertBtnText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700'
   }
 });
 

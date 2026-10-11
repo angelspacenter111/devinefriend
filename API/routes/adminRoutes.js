@@ -21,8 +21,8 @@ router.get('/pricing', adminApiController.getPricing);
 router.post('/pricing/add', adminApiController.addPricing);
 router.post('/pricing/:id/toggle', adminApiController.togglePricing);
 
-// Push token sync for Admin
-const userApiController = require('../controllers/userApiController');
-router.post('/push-token', userApiController.updatePushToken);
+// Push token sync & testing for Admin
+router.post('/push-token', adminApiController.updatePushToken);
+router.post('/test-push', adminApiController.testPushNotification);
 
 module.exports = router;

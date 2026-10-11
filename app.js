@@ -211,12 +211,16 @@ async function startServer() {
         }
 
         // Notify caller client that peer has connected, trigger WebRTC PeerConnection handshake
-        socket.to(roomId).emit('peer-connected', {
+        const peerConnectedData = {
           callId: data.callId,
           adminId: socket.id,
           adminName: data.adminName || 'Ashu',
           callType: data.callType || socket.callType || 'Voice'
-        });
+        };
+        if (data.callerId && data.callerId !== socket.id) {
+          io.to(data.callerId).emit('peer-connected', peerConnectedData);
+        }
+        socket.to(roomId).emit('peer-connected', peerConnectedData);
       });
 
       // When admin rejects/declines call

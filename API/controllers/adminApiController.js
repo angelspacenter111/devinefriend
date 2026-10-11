@@ -352,3 +352,74 @@ exports.togglePricing = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Failed to toggle plan.' });
   }
 };
+
+// POST /api/admin/push-token
+exports.updatePushToken = async (req, res) => {
+  try {
+    const { pushToken, adminId, mobile } = req.body;
+    if (!pushToken || typeof pushToken !== 'string') {
+      return res.status(400).json({ success: false, message: 'pushToken is required.' });
+    }
+
+    let admin = req.user;
+    if (!admin && adminId) {
+      admin = await User.findById(adminId);
+    }
+    if (!admin && mobile) {
+      admin = await User.findOne({ mobile: mobile.toString().trim() });
+    }
+    if (!admin) {
+      admin = await User.findOne({ role: 'admin' });
+    }
+
+    if (!admin) {
+      return res.status(404).json({ success: false, message: 'Admin user not found.' });
+    }
+
+    admin.pushToken = pushToken.trim();
+    await admin.save();
+
+    console.log(`[Push Notification] Successfully registered push token for Admin: ${admin.name} (${admin.mobile}) -> ${admin.pushToken}`);
+    return res.json({
+      success: true,
+      message: 'Admin push token registered successfully.',
+      pushToken: admin.pushToken
+    });
+  } catch (error) {
+    console.error('[Admin Update Push Token Error]', error);
+    return res.status(500).json({ success: false, message: 'Failed to update push token.' });
+  }
+};
+
+// POST /api/admin/test-push
+exports.testPushNotification = async (req, res) => {
+  try {
+    const pushNotificationService = require('../../services/pushNotificationService');
+    const admin = req.user || await User.findOne({ role: 'admin', pushToken: { $exists: true, $ne: null } });
+
+    if (!admin || !admin.pushToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'No admin device registered with a push token yet. Please open the admin app and allow notifications first.'
+      });
+    }
+
+    await pushNotificationService.sendIncomingCallAlert({
+      callId: 'TEST_' + Date.now(),
+      callerId: 'test_system',
+      callerName: 'Test Member Call',
+      callType: 'Voice',
+      userId: 'test_user',
+      roomId: 'test_room'
+    });
+
+    return res.json({
+      success: true,
+      message: `Test ringing push alert sent to ${admin.name} (${admin.pushToken})`
+    });
+  } catch (error) {
+    console.error('[Admin Test Push Error]', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+

@@ -27,6 +27,7 @@ export const AdminCallProvider = ({ children }) => {
   const peerIdRef = useRef(null);
   const activeCallRef = useRef(null);
   const iceQueueRef = useRef([]);
+  const acquiringMediaRef = useRef(null);
 
   // Keep activeCallRef in sync
   useEffect(() => {
@@ -45,6 +46,44 @@ export const AdminCallProvider = ({ children }) => {
     remoteStreamRef.current = null;
     peerIdRef.current = null;
     iceQueueRef.current = [];
+    acquiringMediaRef.current = null;
+  };
+
+  // Safe single-flight microphone acquisition
+  const acquireMicrophoneStream = async (pc) => {
+    if (localStreamRef.current) {
+      if (pc) webrtcService.addStreamTracks(pc, localStreamRef.current);
+      return localStreamRef.current;
+    }
+
+    if (acquiringMediaRef.current) {
+      const stream = await acquiringMediaRef.current;
+      if (pc && stream) webrtcService.addStreamTracks(pc, stream);
+      return stream;
+    }
+
+    acquiringMediaRef.current = (async () => {
+      try {
+        console.log('[AdminCallContext] Requesting microphone permission & stream...');
+        const stream = await webrtcService.getUserMedia({
+          audio: true,
+          video: false
+        });
+        localStreamRef.current = stream;
+        if (pc) {
+          webrtcService.addStreamTracks(pc, stream);
+        }
+        return stream;
+      } catch (micErr) {
+        console.error('[AdminCallContext] Microphone permission error:', micErr);
+        setCallStatusText('Microphone permission required');
+        throw micErr;
+      } finally {
+        acquiringMediaRef.current = null;
+      }
+    })();
+
+    return acquiringMediaRef.current;
   };
 
   // Helper: Create peer connection and bind callbacks
@@ -134,6 +173,9 @@ export const AdminCallProvider = ({ children }) => {
         callType: data.callType || 'Voice'
       });
 
+      // Show local notification with sound & action buttons (if app is running/background)
+      notificationService.showLocalCallNotification(data);
+
       // Start ringing vibration
       if (Platform.OS !== 'web') {
         try {
@@ -178,20 +220,8 @@ export const AdminCallProvider = ({ children }) => {
           pc = setupPeerConnection(senderId);
         }
 
-        // Capture microphone audio if not already done
-        if (!localStreamRef.current) {
-          try {
-            const stream = await webrtcService.getUserMedia({
-              audio: true,
-              video: false
-            });
-            localStreamRef.current = stream;
-            webrtcService.addStreamTracks(pc, stream);
-          } catch (micErr) {
-            console.error('[AdminCallContext] Microphone permission error:', micErr);
-            setCallStatusText('Microphone permission required');
-          }
-        }
+        // Safely acquire microphone stream (prevents concurrent race conditions)
+        await acquireMicrophoneStream(pc);
 
         // Set remote SDP description (Caller's Offer)
         await webrtcService.setRemoteDescription(pc, data.offer);
@@ -258,10 +288,13 @@ export const AdminCallProvider = ({ children }) => {
       notificationService.dismissCallNotifications();
 
       if (data?.type === 'INCOMING_CALL') {
-        if (actionId === 'ACCEPT_CALL' || actionId === Notifications.DEFAULT_ACTION_IDENTIFIER) {
+        if (actionId === 'ACCEPT_CALL') {
           acceptCall(data);
         } else if (actionId === 'DECLINE_CALL') {
           rejectCall(data);
+        } else {
+          // User clicked notification banner - show full incoming call modal
+          handleIncomingCall(data);
         }
       }
     });
@@ -275,10 +308,13 @@ export const AdminCallProvider = ({ children }) => {
 
         if (data?.type === 'INCOMING_CALL' && !activeCallRef.current) {
           notificationService.dismissCallNotifications();
-          if (actionId === 'ACCEPT_CALL' || actionId === Notifications.DEFAULT_ACTION_IDENTIFIER) {
+          if (actionId === 'ACCEPT_CALL') {
             acceptCall(data);
           } else if (actionId === 'DECLINE_CALL') {
             rejectCall(data);
+          } else {
+            // Tapped notification banner on cold start: show incoming call ringing modal
+            handleIncomingCall(data);
           }
         }
       }
@@ -365,12 +401,7 @@ export const AdminCallProvider = ({ children }) => {
     // Initialize local WebRTC & Microphone right away
     try {
       const pc = setupPeerConnection(callData.callerId);
-      const stream = await webrtcService.getUserMedia({
-        audio: true,
-        video: false
-      });
-      localStreamRef.current = stream;
-      webrtcService.addStreamTracks(pc, stream);
+      await acquireMicrophoneStream(pc);
       console.log('[AdminCallContext] Microphone ready for incoming WebRTC offer');
     } catch (err) {
       console.error('[AdminCallContext] Error acquiring microphone during accept:', err);

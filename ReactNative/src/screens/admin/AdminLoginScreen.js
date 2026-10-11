@@ -17,6 +17,7 @@ import { COLORS } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import { getServerUrl, setServerHost, loadSavedServerHost, ENV_SERVER_URL } from '../../config/api';
 import socketService from '../../services/socketService';
+import notificationService from '../../services/notificationService';
 
 export const AdminLoginScreen = () => {
   const { adminLogin } = useAuth();
@@ -48,7 +49,9 @@ export const AdminLoginScreen = () => {
     setIsLoading(true);
 
     try {
-      await adminLogin(identifier.trim(), password);
+      const res = await adminLogin(identifier.trim(), password);
+      // Immediately register push notifications upon admin authentication
+      notificationService.registerForPushNotifications().catch(() => {});
     } catch (err) {
       setErrorMsg(err.message || 'Admin authentication failed.');
     } finally {
