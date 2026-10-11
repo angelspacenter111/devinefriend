@@ -148,14 +148,9 @@ async function startServer() {
           roomId: roomId
         });
 
-        // Notify caller that call has been initiated
+        // Notify caller that call has been initiated and device is being rung
         socket.emit('call-placed', { callId: data.callId });
-
-        // If advisor is currently online, inform caller immediately that device is ringing
-        const advisorPresence = callService.getAdvisorPresenceInfo();
-        if (advisorPresence && advisorPresence.online) {
-          socket.emit('call-ringing', { callId: data.callId });
-        }
+        socket.emit('call-ringing', { callId: data.callId });
 
         // Notify all active admin monitors of incoming call request
         io.to('admins').emit('incoming-call-alert', {

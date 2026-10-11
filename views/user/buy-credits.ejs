@@ -51,18 +51,6 @@
             </div>
           </div>
 
-          <!-- Ashu Offline Notice (Shown when Ashu is offline) -->
-          <div id="ashu-offline-buy-banner" class="alert alert-danger border-0 rounded-4 mb-3 p-3 shadow-sm <%= (typeof isAdvisorOnline !== 'undefined' && isAdvisorOnline) ? 'd-none' : '' %>" style="background-color: #FFF2F2; border-left: 4px solid #EF4444 !important;">
-            <div class="d-flex align-items-center gap-3">
-              <div class="rounded-circle bg-danger-subtle text-danger d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px; font-size: 1.25rem;">
-                <i class="bi bi-person-slash"></i>
-              </div>
-              <div>
-                <strong class="text-danger d-block">Ashu is Currently Offline</strong>
-                <span class="text-muted small">Coins can only be purchased when Ashu is online and available to talk. You will be able to recharge as soon as Ashu comes online.</span>
-              </div>
-            </div>
-          </div>
 
           <!-- Current Balance Pill Banner -->
           <div class="app-card bg-light border-0 p-3 mb-4 d-flex flex-wrap align-items-center justify-content-between gap-2">
@@ -142,12 +130,8 @@
                       <div class="fs-4 fw-extrabold <%= plan.isPopular || plan.category === 'Video' ? 'text-purple' : 'text-dark' %> mb-3">AED <%= plan.price.toLocaleString('en-US') %></div>
                       <p class="text-muted small mb-3"><%= plan.description || (plan.category === 'Video' ? 'High quality 1-on-1 Video Consultation to Talk With Ashu.' : 'Seamless consultation to Talk With Ashu.') %></p>
                     </div>
-                    <button class="btn <%= (plan.isPopular || plan.category === 'Video') ? 'btn-brand' : 'btn-outline-brand' %> rounded-pill w-100 py-2.5 fw-bold btn-buy-credits <%= (typeof isAdvisorOnline !== 'undefined' && !isAdvisorOnline) ? 'btn-buy-offline' : '' %>" data-plan-id="<%= plan._id %>" data-credits="<%= plan.credits %>" data-price="AED <%= plan.price.toLocaleString('en-US') %>" <%= (typeof isAdvisorOnline !== 'undefined' && !isAdvisorOnline) ? 'style="opacity: 0.7; cursor: not-allowed;"' : '' %>>
-                      <% if (typeof isAdvisorOnline !== 'undefined' && !isAdvisorOnline) { %>
-                        <i class="bi bi-clock me-1"></i> Ashu is Offline
-                      <% } else { %>
-                        Add AED <%= plan.price.toLocaleString('en-US') %>
-                      <% } %>
+                    <button class="btn <%= (plan.isPopular || plan.category === 'Video') ? 'btn-brand' : 'btn-outline-brand' %> rounded-pill w-100 py-2.5 fw-bold btn-buy-credits" data-plan-id="<%= plan._id %>" data-credits="<%= plan.credits %>" data-price="AED <%= plan.price.toLocaleString('en-US') %>">
+                      Add AED <%= plan.price.toLocaleString('en-US') %>
                     </button>
                   </div>
                 </div>

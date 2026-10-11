@@ -24,6 +24,17 @@ $(document).ready(function () {
     const $buyBtns = $(".btn-buy-credits");
     const $offlineBuyBanner = $("#ashu-offline-buy-banner");
 
+    // Calls and coin recharges are ALWAYS enabled (app wakes up on phone via push alerts)
+    $callBtns.removeClass("btn-advisor-offline");
+    if ($offlineBuyBanner.length) {
+      $offlineBuyBanner.addClass("d-none");
+    }
+    $buyBtns.removeClass("btn-buy-offline").css({ opacity: "1", cursor: "pointer" });
+    $buyBtns.each(function() {
+      const price = $(this).data("price");
+      $(this).html(price ? `Add ${price}` : "Add Coins");
+    });
+
     if (isOnline) {
       $dots.removeClass("offline").addClass("online");
       $badges.removeClass("bg-secondary bg-secondary-subtle text-secondary border-secondary-subtle")
@@ -31,22 +42,11 @@ $(document).ready(function () {
       $texts.each(function() {
         const $t = $(this);
         $t.removeClass("text-secondary").addClass("text-success");
-        if ($t.text().trim().includes("Offline") || $t.text().trim().includes("Online")) {
+        if ($t.text().trim().includes("Offline") || $t.text().trim().includes("Online") || $t.text().trim().includes("Available")) {
           $t.text($t.hasClass("full-text") ? "Online Now" : "Online");
         }
       });
-      $callBtns.removeClass("btn-advisor-offline");
       $("#dash-advisor-status-badge .advisor-status-text").text("Online Now");
-
-      // Enable buy buttons and hide offline notice banner
-      if ($offlineBuyBanner.length) {
-        $offlineBuyBanner.addClass("d-none");
-      }
-      $buyBtns.removeClass("btn-buy-offline").css({ opacity: "1", cursor: "pointer" });
-      $buyBtns.each(function() {
-        const price = $(this).data("price");
-        $(this).html(price ? `Add ${price}` : "Add Coins");
-      });
     } else {
       $dots.removeClass("online").addClass("offline");
       $badges.removeClass("bg-success bg-success-subtle text-success border-success-subtle")
@@ -54,21 +54,11 @@ $(document).ready(function () {
       $texts.each(function() {
         const $t = $(this);
         $t.removeClass("text-success").addClass("text-secondary");
-        if ($t.text().trim().includes("Offline") || $t.text().trim().includes("Online")) {
-          $t.text($t.hasClass("full-text") ? "Currently Offline" : "Offline");
+        if ($t.text().trim().includes("Offline") || $t.text().trim().includes("Online") || $t.text().trim().includes("Available")) {
+          $t.text($t.hasClass("full-text") ? "Available on Call" : "Available");
         }
       });
-      $callBtns.addClass("btn-advisor-offline");
-      $("#dash-advisor-status-badge .advisor-status-text").text("Currently Offline");
-
-      // Disable buy buttons and show offline notice banner
-      if ($offlineBuyBanner.length) {
-        $offlineBuyBanner.removeClass("d-none");
-      }
-      $buyBtns.addClass("btn-buy-offline").css({ opacity: "0.7", cursor: "not-allowed" });
-      $buyBtns.each(function() {
-        $(this).html('<i class="bi bi-clock me-1"></i> Ashu is Offline');
-      });
+      $("#dash-advisor-status-badge .advisor-status-text").text("Available on Call");
     }
   }
 
@@ -76,18 +66,6 @@ $(document).ready(function () {
   if (typeof window.isAdvisorOnline !== 'undefined') {
     updateAdvisorStatusUI(window.isAdvisorOnline);
   }
-
-  // Intercept click on Start Voice Call if advisor is offline to show informative modal
-  $(document).on("click", ".btn-start-call.btn-advisor-offline", function(e) {
-    e.preventDefault();
-    const modalEl = document.getElementById('advisorOfflineModal');
-    if (modalEl && typeof bootstrap !== 'undefined') {
-      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-      modal.show();
-    } else {
-      alert("Ashu is currently in consultation or offline. Please wait or try calling again in a moment.");
-    }
-  });
 
   // Connect to live presence channel if not on active WebRTC call screen
   const isCallConsole = window.location.pathname.startsWith('/user/call') || window.location.pathname.startsWith('/admin/call');
@@ -140,19 +118,6 @@ $(document).ready(function () {
   $(".btn-buy-credits").on("click", function (e) {
     e.preventDefault();
     const $btn = $(this);
-
-    // Guard: Ashu must be online to purchase coins
-    if (typeof window.isAdvisorOnline !== 'undefined' && !window.isAdvisorOnline) {
-      const modalEl = document.getElementById('advisorOfflineModal');
-      if (modalEl && typeof bootstrap !== 'undefined') {
-        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-        modal.show();
-      } else {
-        showToast("Ashu is currently offline. Coins can only be purchased when Ashu is online.", "warning");
-      }
-      return;
-    }
-
     const planId = $btn.data("plan-id");
 
     if (!planId) {

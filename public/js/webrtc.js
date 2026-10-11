@@ -162,6 +162,18 @@ function initializeCallerFlow() {
   });
 
   transitionTo(CallState.RINGING, { callId: currentCallId });
+  $(".call-status-badge").html('<span class="status-indicator-dot online me-1"></span> Calling Advisor...');
+
+  // Live ringback acknowledgements
+  socket.off('call-placed').on('call-placed', () => {
+    console.log("[Socket] Call placed on server. Ringing advisor...");
+    $(".call-status-badge").html('<span class="status-indicator-dot online me-1"></span> Ringing Phone...');
+  });
+
+  socket.off('call-ringing').on('call-ringing', () => {
+    console.log("[Socket] Phone is ringing on advisor device...");
+    $(".call-status-badge").html('<span class="status-indicator-dot online me-1"></span> Ringing Phone...');
+  });
 
   // Ringing Timeout: 45 seconds if not answered
   ringingTimeoutTimer = setTimeout(() => {
