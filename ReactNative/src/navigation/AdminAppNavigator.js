@@ -27,6 +27,8 @@ export const AdminAppNavigator = () => {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.secondary} />
         <Text style={styles.loadingText}>Connecting to Admin Console...</Text>
+        <IncomingCallModal />
+        <AdminActiveCallModal />
       </View>
     );
   }
@@ -36,6 +38,8 @@ export const AdminAppNavigator = () => {
     return (
       <SafeAreaView style={styles.safeArea}>
         <AdminLoginScreen />
+        <IncomingCallModal />
+        <AdminActiveCallModal />
       </SafeAreaView>
     );
   }

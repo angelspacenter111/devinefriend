@@ -81,8 +81,13 @@ export const IncomingCallModal = () => {
 
         {/* Center Pulsing Caller Avatar */}
         <View style={styles.centerSection}>
-          <Text style={styles.callerName}>{incomingCall.callerName || 'Friend Member'}</Text>
-          <Text style={styles.ringingSub}>Incoming Voice Call...</Text>
+          <Text style={styles.callerName}>{incomingCall.callerName || 'Member'}</Text>
+          {incomingCall.callerMobile ? (
+            <Text style={styles.callerMobileText}>{incomingCall.callerMobile}</Text>
+          ) : null}
+          <Text style={styles.ringingSub}>
+            Incoming {incomingCall.callType || 'Voice'} Call...
+          </Text>
 
           <View style={styles.wavesContainer}>
             {/* Outer Green Wave */}
@@ -127,7 +132,7 @@ export const IncomingCallModal = () => {
             <View style={styles.actionBtnCol}>
               <TouchableOpacity
                 style={styles.declineBtn}
-                onPress={rejectCall}
+                onPress={() => rejectCall(incomingCall)}
                 activeOpacity={0.8}
               >
                 <Ionicons name="call" size={32} color="#fff" style={styles.declineIcon} />
@@ -139,7 +144,7 @@ export const IncomingCallModal = () => {
             <View style={styles.actionBtnCol}>
               <TouchableOpacity
                 style={styles.acceptBtn}
-                onPress={acceptCall}
+                onPress={() => acceptCall(incomingCall)}
                 activeOpacity={0.8}
               >
                 <Ionicons name="call" size={34} color="#fff" />
@@ -149,7 +154,7 @@ export const IncomingCallModal = () => {
           </View>
 
           <Text style={styles.helperText}>
-            Tap Accept to connect two-way audio with the caller
+            Tap Accept to connect two-way audio with {incomingCall.callerName || 'the caller'}
           </Text>
         </View>
       </View>
@@ -199,6 +204,13 @@ const styles = StyleSheet.create({
     color: '#e9edef',
     textAlign: 'center',
     letterSpacing: 0.4
+  },
+  callerMobileText: {
+    fontSize: 14,
+    color: '#8696a0',
+    marginTop: 4,
+    textAlign: 'center',
+    fontWeight: '500'
   },
   ringingSub: {
     fontSize: 15,

@@ -166,21 +166,24 @@ class NotificationService {
    */
   async showLocalCallNotification(callData) {
     try {
+      const callerName = callData?.callerName || 'Member';
       await Notifications.scheduleNotificationAsync({
         content: {
           title: `📞 Incoming ${callData?.callType || 'Voice'} Call`,
-          body: `${callData?.callerName || 'Member'} is calling... Tap to answer`,
+          body: `${callerName} is calling... Tap to answer`,
           sound: 'default',
           priority: Notifications.AndroidNotificationPriority.MAX,
           categoryIdentifier: 'INCOMING_CALL_CATEGORY',
+          channelId: 'incoming-calls',
           data: {
             type: 'INCOMING_CALL',
-            ...callData
+            ...callData,
+            callerName
           }
         },
         trigger: null
       });
-      console.log('[NotificationService] Triggered local call ringing notification');
+      console.log(`[NotificationService] Triggered local call ringing notification for: ${callerName}`);
     } catch (err) {
       console.warn('[NotificationService] Error showing local notification:', err.message);
     }

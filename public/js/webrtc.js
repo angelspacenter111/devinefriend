@@ -353,7 +353,7 @@ async function setupPeerConnection() {
 
   // Local ICE candidate forwarding
   peerConnection.onicecandidate = (event) => {
-    if (event.candidate && targetPeerId && !isTerminalState(currentCallState)) {
+    if (event.candidate && !isTerminalState(currentCallState)) {
       socket.emit('send-candidate', {
         candidate: event.candidate,
         targetId: targetPeerId,
@@ -456,6 +456,10 @@ socket.off('receive-answer').on('receive-answer', async (data) => {
   if (isTerminalState(currentCallState)) return;
   try {
     if (peerConnection && data.answer) {
+      if (peerConnection.signalingState !== 'have-local-offer') {
+        console.log(`[WebRTC] Skipping duplicate answer, current signalingState: ${peerConnection.signalingState}`);
+        return;
+      }
       await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
       console.log("[WebRTC] Set remote description (Answer) successfully.");
 

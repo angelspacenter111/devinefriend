@@ -39,12 +39,15 @@ export const AdminActiveCallModal = () => {
             <Ionicons name="lock-closed" size={13} color="#25d366" />
             <Text style={styles.securityText}>End-to-end encrypted</Text>
           </View>
-          <Text style={styles.callTypeLabel}>WhatsApp Voice Call</Text>
+          <Text style={styles.callTypeLabel}>WhatsApp {activeCall.callType || 'Voice'} Call</Text>
         </View>
 
         {/* Center Caller Info & Timer */}
         <View style={styles.centerSection}>
-          <Text style={styles.callerName}>{activeCall.callerName || 'Friend Member'}</Text>
+          <Text style={styles.callerName}>{activeCall.callerName || 'Member'}</Text>
+          {activeCall.callerMobile ? (
+            <Text style={styles.callerMobileText}>{activeCall.callerMobile}</Text>
+          ) : null}
           <Text style={styles.timer}>{formattedDuration || '00:00'}</Text>
 
           <View style={styles.avatarCircle}>
@@ -163,6 +166,13 @@ const styles = StyleSheet.create({
     color: '#e9edef',
     textAlign: 'center',
     letterSpacing: 0.4
+  },
+  callerMobileText: {
+    fontSize: 14,
+    color: '#8696a0',
+    marginTop: 4,
+    textAlign: 'center',
+    fontWeight: '500'
   },
   timer: {
     fontSize: 22,

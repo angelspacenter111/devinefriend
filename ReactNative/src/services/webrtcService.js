@@ -132,15 +132,23 @@ export const webrtcService = {
   },
 
   /**
-   * Attach local stream tracks to the peer connection
+   * Attach local stream tracks to the peer connection safely without duplicates
    */
   addStreamTracks: (pc, stream) => {
     if (!pc || !stream) return;
     try {
+      const existingSenders = typeof pc.getSenders === 'function' ? pc.getSenders() : [];
       stream.getTracks().forEach((track) => {
         try {
-          pc.addTrack(track, stream);
-          console.log('[WebRTC Service] Added local track to peer connection:', track.kind);
+          const alreadyAdded = existingSenders.some(
+            (s) => s.track && (s.track.id === track.id || s.track.kind === track.kind)
+          );
+          if (!alreadyAdded) {
+            pc.addTrack(track, stream);
+            console.log('[WebRTC Service] Added local track to peer connection:', track.kind);
+          } else {
+            console.log('[WebRTC Service] Track already attached to peer connection:', track.kind);
+          }
         } catch (trackErr) {
           console.warn('[WebRTC Service] Track add warning:', trackErr.message);
         }

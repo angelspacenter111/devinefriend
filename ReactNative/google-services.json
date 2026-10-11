@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "125761193017",
+    "project_id": "devinefriend-6272c",
+    "storage_bucket": "devinefriend-6272c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:125761193017:android:db64c44d549351fa8f79e8",
+        "android_client_info": {
+          "package_name": "com.dhyey.ReactNative"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBJRwu7w5PuIqkqJc-__qHJYEAl9v2vIq0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

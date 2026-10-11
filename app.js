@@ -130,19 +130,44 @@ async function startServer() {
       });
 
       // When user joins calling screen
-      socket.on('join-call-room', (data) => {
+      socket.on('join-call-room', async (data) => {
         const roomId = data.callId || 'call_room';
         socket.join(roomId);
         socket.callId = data.callId;
         socket.userId = data.userId;
-        socket.userName = data.userName;
         socket.callType = data.callType || 'Voice';
         socket.role = 'user';
+
+        // 1. Resolve real caller name with 100% database accuracy
+        let callerName = data.userName;
+        let callerMobile = '';
+        try {
+          const Call = require('./models/Call');
+          const User = require('./models/User');
+          const callDoc = await Call.findOne({ callId: data.callId }).populate('user');
+          if (callDoc) {
+            callerName = (callDoc.user && callDoc.user.name) || callDoc.callerName || callerName;
+            callerMobile = (callDoc.user && callDoc.user.mobile) || '';
+          } else if (data.userId) {
+            const userDoc = await User.findById(data.userId);
+            if (userDoc) {
+              callerName = userDoc.name || callerName;
+              callerMobile = userDoc.mobile || '';
+            }
+          }
+        } catch (dbErr) {
+          console.error('[join-call-room] DB lookup error:', dbErr.message);
+        }
+
+        if (!callerName || callerName === 'Caller' || callerName.trim() === '') {
+          callerName = 'Client Member';
+        }
+        socket.userName = callerName;
 
         callService.logStructured('CALL_INCOMING', {
           callId: data.callId,
           userId: data.userId,
-          userName: data.userName,
+          userName: callerName,
           callType: socket.callType,
           socketId: socket.id,
           roomId: roomId
@@ -152,25 +177,21 @@ async function startServer() {
         socket.emit('call-placed', { callId: data.callId });
         socket.emit('call-ringing', { callId: data.callId });
 
-        // Notify all active admin monitors of incoming call request
-        io.to('admins').emit('incoming-call-alert', {
+        const incomingAlertData = {
           callId: data.callId,
           callerId: socket.id,
-          callerName: data.userName,
+          callerName: callerName,
+          callerMobile: callerMobile,
           callType: socket.callType,
           userId: data.userId,
           roomId: roomId
-        });
+        };
+
+        // Notify all active admin monitors of incoming call request
+        io.to('admins').emit('incoming-call-alert', incomingAlertData);
 
         // Trigger High-Priority Call Push Notification to wake up closed/background mobile devices
-        pushNotificationService.sendIncomingCallAlert({
-          callId: data.callId,
-          callerId: socket.id,
-          callerName: data.userName,
-          callType: socket.callType,
-          userId: data.userId,
-          roomId: roomId
-        });
+        pushNotificationService.sendIncomingCallAlert(incomingAlertData);
       });
 
       // Acknowledge incoming call is ringing on client device (WhatsApp style ringback)
@@ -186,10 +207,23 @@ async function startServer() {
         socket.callId = data.callId;
         socket.role = 'admin';
 
+        // Fetch verified caller details from database
+        let callerName = '';
+        let callerMobile = '';
+        try {
+          const Call = require('./models/Call');
+          const callDoc = await Call.findOne({ callId: data.callId }).populate('user');
+          if (callDoc) {
+            callerName = (callDoc.user && callDoc.user.name) || callDoc.callerName || '';
+            callerMobile = (callDoc.user && callDoc.user.mobile) || '';
+          }
+        } catch (e) {}
+
         callService.logStructured('CALL_ACCEPTED', {
           callId: data.callId,
           adminId: data.adminId,
           adminName: data.adminName,
+          callerName: callerName,
           callType: data.callType || socket.callType,
           socketId: socket.id
         });
@@ -210,12 +244,23 @@ async function startServer() {
           callId: data.callId,
           adminId: socket.id,
           adminName: data.adminName || 'Ashu',
+          callerName: callerName,
+          callerMobile: callerMobile,
           callType: data.callType || socket.callType || 'Voice'
         };
-        if (data.callerId && data.callerId !== socket.id) {
+
+        if (data.callerId && io.sockets.sockets.has(data.callerId)) {
           io.to(data.callerId).emit('peer-connected', peerConnectedData);
         }
         socket.to(roomId).emit('peer-connected', peerConnectedData);
+
+        // Acknowledge back to accepting admin socket with verified caller details
+        socket.emit('call-accepted-ack', {
+          callId: data.callId,
+          callerName: callerName,
+          callerMobile: callerMobile,
+          roomId: roomId
+        });
       });
 
       // When admin rejects/declines call
@@ -265,49 +310,55 @@ async function startServer() {
 
       // Forward WebRTC SDP Offer (Direct socket addressing with room fallback)
       socket.on('send-offer', (data) => {
+        const roomId = data.callId || 'call_room';
         const payload = {
           offer: data.offer,
           senderId: socket.id,
           callId: data.callId
         };
-        if (data.targetId) {
+        let delivered = false;
+        if (data.targetId && io.sockets.sockets.has(data.targetId)) {
           io.to(data.targetId).emit('receive-offer', payload);
-        } else if (data.callId) {
-          socket.to(data.callId).emit('receive-offer', payload);
-        } else {
-          socket.to('call_room').emit('receive-offer', payload);
+          delivered = true;
+        }
+        if (!delivered && roomId) {
+          socket.to(roomId).emit('receive-offer', payload);
         }
       });
 
       // Forward WebRTC SDP Answer (Direct socket addressing with room fallback)
       socket.on('send-answer', (data) => {
+        const roomId = data.callId || 'call_room';
         const payload = {
           answer: data.answer,
           senderId: socket.id,
           callId: data.callId
         };
-        if (data.targetId) {
+        let delivered = false;
+        if (data.targetId && io.sockets.sockets.has(data.targetId)) {
           io.to(data.targetId).emit('receive-answer', payload);
-        } else if (data.callId) {
-          socket.to(data.callId).emit('receive-answer', payload);
-        } else {
-          socket.to('call_room').emit('receive-answer', payload);
+          delivered = true;
+        }
+        if (!delivered && roomId) {
+          socket.to(roomId).emit('receive-answer', payload);
         }
       });
 
       // Forward WebRTC ICE Candidates (Direct socket addressing with room fallback)
       socket.on('send-candidate', (data) => {
+        const roomId = data.callId || 'call_room';
         const payload = {
           candidate: data.candidate,
           senderId: socket.id,
           callId: data.callId
         };
-        if (data.targetId) {
+        let delivered = false;
+        if (data.targetId && io.sockets.sockets.has(data.targetId)) {
           io.to(data.targetId).emit('receive-candidate', payload);
-        } else if (data.callId) {
-          socket.to(data.callId).emit('receive-candidate', payload);
-        } else {
-          socket.to('call_room').emit('receive-candidate', payload);
+          delivered = true;
+        }
+        if (!delivered && roomId) {
+          socket.to(roomId).emit('receive-candidate', payload);
         }
       });
 
