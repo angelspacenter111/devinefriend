@@ -1,0 +1,15 @@
+# EAS Ignore root - anchored with leading slash so it only ignores root backend folders
+/node_modules/
+/API/
+/config/
+/controllers/
+/middleware/
+/models/
+/public/
+/routes/
+/scripts/
+/services/
+/views/
+/uploads/
+/logs/
+/.git/

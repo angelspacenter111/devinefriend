@@ -148,6 +148,15 @@ async function startServer() {
           roomId: roomId
         });
 
+        // Notify caller that call has been initiated
+        socket.emit('call-placed', { callId: data.callId });
+
+        // If advisor is currently online, inform caller immediately that device is ringing
+        const advisorPresence = callService.getAdvisorPresenceInfo();
+        if (advisorPresence && advisorPresence.online) {
+          socket.emit('call-ringing', { callId: data.callId });
+        }
+
         // Notify all active admin monitors of incoming call request
         io.to('admins').emit('incoming-call-alert', {
           callId: data.callId,
@@ -167,6 +176,12 @@ async function startServer() {
           userId: data.userId,
           roomId: roomId
         });
+      });
+
+      // Acknowledge incoming call is ringing on client device (WhatsApp style ringback)
+      socket.on('client-ringing', (data) => {
+        const roomId = (data && data.callId) || socket.callId || 'call_room';
+        socket.to(roomId).emit('call-ringing', { callId: data && data.callId });
       });
 
       // When admin accepts call
@@ -249,28 +264,52 @@ async function startServer() {
         io.to(roomId).emit('call-active', { callId, connectedAt: new Date() });
       });
 
-      // Forward WebRTC SDP Offer
+      // Forward WebRTC SDP Offer (Direct socket addressing with room fallback)
       socket.on('send-offer', (data) => {
-        socket.to(data.targetId).emit('receive-offer', {
+        const payload = {
           offer: data.offer,
-          senderId: socket.id
-        });
+          senderId: socket.id,
+          callId: data.callId
+        };
+        if (data.targetId) {
+          io.to(data.targetId).emit('receive-offer', payload);
+        } else if (data.callId) {
+          socket.to(data.callId).emit('receive-offer', payload);
+        } else {
+          socket.to('call_room').emit('receive-offer', payload);
+        }
       });
 
-      // Forward WebRTC SDP Answer
+      // Forward WebRTC SDP Answer (Direct socket addressing with room fallback)
       socket.on('send-answer', (data) => {
-        socket.to(data.targetId).emit('receive-answer', {
+        const payload = {
           answer: data.answer,
-          senderId: socket.id
-        });
+          senderId: socket.id,
+          callId: data.callId
+        };
+        if (data.targetId) {
+          io.to(data.targetId).emit('receive-answer', payload);
+        } else if (data.callId) {
+          socket.to(data.callId).emit('receive-answer', payload);
+        } else {
+          socket.to('call_room').emit('receive-answer', payload);
+        }
       });
 
-      // Forward WebRTC ICE Candidates
+      // Forward WebRTC ICE Candidates (Direct socket addressing with room fallback)
       socket.on('send-candidate', (data) => {
-        socket.to(data.targetId).emit('receive-candidate', {
+        const payload = {
           candidate: data.candidate,
-          senderId: socket.id
-        });
+          senderId: socket.id,
+          callId: data.callId
+        };
+        if (data.targetId) {
+          io.to(data.targetId).emit('receive-candidate', payload);
+        } else if (data.callId) {
+          socket.to(data.callId).emit('receive-candidate', payload);
+        } else {
+          socket.to('call_room').emit('receive-candidate', payload);
+        }
       });
 
       // Hangup call
