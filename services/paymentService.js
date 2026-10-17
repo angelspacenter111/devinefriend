@@ -19,7 +19,9 @@ function getStripeInstance() {
     throw error;
   }
 
-  return new Stripe(secretKey);
+  return new Stripe(secretKey, {
+    apiVersion: process.env.STRIPE_API_VERSION || '2024-06-20'
+  });
 }
 
 /**
@@ -81,29 +83,34 @@ async function createOrder({ userId, packageId, returnBaseUrl = 'http://localhos
     throw err;
   }
 
-  // Stripe accounts require minimum 2.00 AED (200 fils)
-  if (plan.price < 2) {
-    const err = new Error(`Stripe requires a minimum transaction value of 2.00 AED. This pack is AED ${plan.price}. Please select or update this pack to at least 2 AED.`);
+  const currency = (process.env.STRIPE_CURRENCY || process.env.CURRENCY || 'aed').toLowerCase();
+
+  // Minimum transaction validation depending on currency
+  const minPrice = currency === 'inr' ? 50 : 2;
+  if (plan.price < minPrice) {
+    const err = new Error(`Stripe requires a minimum transaction value of ${minPrice} ${currency.toUpperCase()}. This pack is ${currency.toUpperCase()} ${plan.price}. Please select or update this pack to at least ${minPrice} ${currency.toUpperCase()}.`);
     err.status = 400;
     throw err;
   }
 
   const stripe = getStripeInstance();
-  const amountFils = Math.round(plan.price * 100);
+  const amountSubunits = Math.round(plan.price * 100);
   const receipt = generateReceipt();
 
   // Create Stripe Checkout Session
+  // Explicitly specify payment_method_types: ['card'] to ensure Checkout works even if Dashboard dynamic payment methods are not activated
   const sessionConfig = {
+    payment_method_types: ['card'],
     mode: 'payment',
     line_items: [
       {
         price_data: {
-          currency: 'aed',
+          currency: currency,
           product_data: {
             name: plan.name,
             description: `${plan.credits} Coins - Talk With Ashu`
           },
-          unit_amount: amountFils
+          unit_amount: amountSubunits
         },
         quantity: 1
       }
@@ -124,7 +131,24 @@ async function createOrder({ userId, packageId, returnBaseUrl = 'http://localhos
     sessionConfig.customer_email = user.email;
   }
 
-  const session = await stripe.checkout.sessions.create(sessionConfig);
+  let session;
+  try {
+    session = await stripe.checkout.sessions.create(sessionConfig);
+  } catch (stripeErr) {
+    console.warn('[Stripe Checkout Session Warning]:', stripeErr.message);
+
+    // If Stripe account/API version does not accept explicit payment_method_types, retry with dynamic payment methods
+    if (sessionConfig.payment_method_types && stripeErr.message && stripeErr.message.includes('payment_method_types is no longer supported')) {
+      const fallbackConfig = { ...sessionConfig };
+      delete fallbackConfig.payment_method_types;
+      session = await stripe.checkout.sessions.create(fallbackConfig);
+    } else if (!sessionConfig.payment_method_types && stripeErr.message && stripeErr.message.includes('No valid payment method types')) {
+      const fallbackConfig = { ...sessionConfig, payment_method_types: ['card'] };
+      session = await stripe.checkout.sessions.create(fallbackConfig);
+    } else {
+      throw stripeErr;
+    }
+  }
 
   // Record initial PaymentTransaction in DB
   const paymentTxn = new PaymentTransaction({
@@ -134,8 +158,8 @@ async function createOrder({ userId, packageId, returnBaseUrl = 'http://localhos
     packageName: plan.name,
     credits: plan.credits,
     amount: plan.price,
-    amountFils: amountFils,
-    currency: 'AED',
+    amountFils: amountSubunits,
+    currency: currency.toUpperCase(),
     gateway: 'stripe',
     stripeSessionId: session.id,
     status: 'CREATED',
@@ -151,8 +175,8 @@ async function createOrder({ userId, packageId, returnBaseUrl = 'http://localhos
     orderId: session.id,
     sessionId: session.id,
     checkoutUrl: session.url,
-    amount: amountFils,
-    currency: 'AED',
+    amount: amountSubunits,
+    currency: currency.toUpperCase(),
     publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
     packageName: plan.name,
     credits: plan.credits,
