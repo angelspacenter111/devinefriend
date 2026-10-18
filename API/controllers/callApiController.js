@@ -1,5 +1,6 @@
 const Call = require('../../models/Call');
 const callService = require('../../services/callService');
+const webrtcConfig = require('../../config/webrtcConfig');
 
 const escapeRegex = (string) => {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -76,7 +77,7 @@ exports.initiateCall = async (req, res) => {
 // POST /api/calls/end
 exports.endCall = async (req, res) => {
   try {
-    const { callId, reason } = req.body;
+    const { callId, reason, failureReason, errorCode, failedAtStage, errorDetails } = req.body;
     const user = req.user;
 
     if (!callId) {
@@ -92,7 +93,13 @@ exports.endCall = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Unauthorized access to this call.' });
     }
 
-    const result = await callService.finalizeCall(callId, { reason: reason || 'Completed' });
+    const result = await callService.finalizeCall(callId, {
+      reason: reason || 'Completed',
+      failureReason,
+      errorCode,
+      failedAtStage,
+      errorDetails
+    });
 
     return res.json({
       success: true,
@@ -112,6 +119,49 @@ exports.endCall = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Failed to finalize call.'
+    });
+  }
+};
+
+// POST /api/calls/log-issue
+exports.logCallIssue = async (req, res) => {
+  try {
+    const {
+      callId,
+      eventType,
+      severity,
+      stage,
+      errorName,
+      errorMessage,
+      details,
+      markCallFailed
+    } = req.body;
+
+    const user = req.user;
+
+    const logged = await callService.recordCallLog({
+      callId,
+      userId: user ? user._id : null,
+      role: 'user',
+      eventType: eventType || 'CONNECTION_ISSUE',
+      severity: severity || 'info',
+      stage: stage || 'general',
+      errorName: errorName || '',
+      errorMessage: errorMessage || '',
+      details: details || {},
+      markCallFailed: Boolean(markCallFailed)
+    });
+
+    return res.json({
+      success: true,
+      message: 'Connection issue logged successfully.',
+      logId: logged ? logged._id : null
+    });
+  } catch (error) {
+    console.error('[API Log Call Issue Error]', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to record connection issue log.'
     });
   }
 };
@@ -186,5 +236,19 @@ exports.getCallDetails = async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Server error retrieving call.' });
+  }
+};
+
+// GET /api/calls/ice-servers
+exports.getIceServers = (req, res) => {
+  try {
+    const iceServers = webrtcConfig.getIceServers();
+    return res.json({
+      success: true,
+      iceServers
+    });
+  } catch (error) {
+    console.error('[API ICE Servers Error]', error);
+    return res.status(500).json({ success: false, message: 'Failed to retrieve ICE servers.' });
   }
 };

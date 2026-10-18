@@ -87,6 +87,12 @@
                   </div>
                 </div>
               </div>
+              <% if (latestCall.failureReason) { %>
+                <div class="mt-3 p-2.5 bg-danger-subtle text-danger rounded-3 small d-flex align-items-center gap-2">
+                  <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+                  <span><strong>Connection Issue:</strong> <%= latestCall.failureReason %></span>
+                </div>
+              <% } %>
             </div>
           <% } %>
 
@@ -174,6 +180,11 @@
                     </div>
                     <div class="text-end">
                       <span class="badge <%= badgeClass %> rounded-pill px-2.5 py-1 small mb-1 d-inline-block"><%= call.status %></span>
+                      <% if (call.failureReason) { %>
+                        <small class="d-block text-danger mb-1" style="font-size: 0.72rem;">
+                          <i class="bi bi-info-circle me-0.5"></i><%= call.failureReason %>
+                        </small>
+                      <% } %>
                       <small class="d-block text-muted font-monospace"><%= call.callType === 'Video' ? 'Video • ' : '' %><%= call.duration %> (<%= call.credits %> coins)</small>
                     </div>
                   </div>
@@ -217,7 +228,14 @@
                         <td><%= call.time %></td>
                         <td><span class="fw-semibold"><%= call.duration %></span></td>
                         <td><span class="fw-bold text-purple"><%= call.credits %> Coins</span></td>
-                        <td><span class="badge <%= badgeClass %> rounded-pill px-2.5 py-1.5"><%= call.status %></span></td>
+                        <td>
+                          <span class="badge <%= badgeClass %> rounded-pill px-2.5 py-1.5"><%= call.status %></span>
+                          <% if (call.failureReason) { %>
+                            <small class="d-block text-danger mt-1 text-truncate" style="max-width: 140px; font-size: 0.73rem;" title="<%= call.failureReason %>">
+                              <i class="bi bi-info-circle me-0.5"></i><%= call.failureReason %>
+                            </small>
+                          <% } %>
+                        </td>
                       </tr>
                     <% }) %>
                   </tbody>

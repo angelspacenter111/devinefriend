@@ -239,8 +239,13 @@ export const AdminCallProvider = ({ children }) => {
   };
 
   const handlePeerDisconnected = (data) => {
-    console.log(`[AdminCallContext] Caller hung up.`);
-    endActiveCall('Caller Disconnected');
+    const isExplicit = data && (data.explicit || data.reason === 'Completed' || data.reason === 'Cancelled' || data.reason === 'Missed' || data.reason === 'Rejected' || data.reason === 'User Ended Call' || data.reason === 'Admin Ended Call');
+    if (!isExplicit && data?.reason === 'Disconnected') {
+      console.log(`[AdminCallContext] Caller temporarily disconnected, waiting for reconnect...`);
+      return;
+    }
+    console.log(`[AdminCallContext] Caller explicitly ended the call.`);
+    endActiveCall(data?.reason || 'Caller Disconnected');
   };
 
   const handleCallActive = (data) => {

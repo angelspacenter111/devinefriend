@@ -19,6 +19,7 @@ router.get('/payment-success', userController.getPaymentSuccess);
 
 router.get('/call', userController.getCall);
 router.post('/end-call', userController.postEndCall);
+router.post('/log-call-issue', userController.postLogCallIssue);
 
 router.get('/call-history', userController.getCallHistory);
 router.get('/transactions', userController.getTransactions);

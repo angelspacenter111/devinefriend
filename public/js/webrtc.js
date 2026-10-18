@@ -4,7 +4,7 @@
  */
 
 // Global Socket instance
-const socket = io();
+const socket = io({ transports: ['websocket', 'polling'] });
 
 // Call State Lifecycle Enum
 const CallState = {
@@ -58,23 +58,32 @@ let isTerminating = false;
 let ringingTimeoutTimer = null;
 let connectingTimeoutTimer = null;
 
-// STUN & TURN server configuration for NAT traversal
+// STUN & TURNS (TLS on Port 443) server configuration for UAE / Strict Firewall Traversal
+const defaultIceServers = [
+  // High-priority TLS TURNS relays (Port 443 with TCP & TLS for UAE / strict firewall bypass)
+  {
+    urls: [
+      'turns:openrelay.metered.ca:443?transport=tcp',
+      'turns:openrelay.metered.ca:443',
+      'turn:openrelay.metered.ca:443?transport=tcp',
+      'turn:openrelay.metered.ca:443',
+      'turn:openrelay.metered.ca:80'
+    ],
+    username: 'openrelay',
+    credential: 'openrelay'
+  },
+  // STUN servers for standard networks
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun2.l.google.com:19302' },
+  { urls: 'stun:stun3.l.google.com:19302' },
+  { urls: 'stun:stun.relay.metered.ca:80' }
+];
+
 const rtcConfig = {
-  iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' },
-    { urls: 'stun:stun3.l.google.com:19302' },
-    {
-      urls: [
-        'turn:openrelay.metered.ca:80',
-        'turn:openrelay.metered.ca:443',
-        'turn:openrelay.metered.ca:443?transport=tcp'
-      ],
-      username: 'openrelay',
-      credential: 'openrelay'
-    }
-  ],
+  iceServers: (window.iceServers && Array.isArray(window.iceServers) && window.iceServers.length > 0)
+    ? window.iceServers
+    : defaultIceServers,
   iceCandidatePoolSize: 10
 };
 
@@ -89,7 +98,62 @@ let currentCreditsUsed = 0;
 let callStartTime = null;
 
 // Session user configuration
-const activeUser = window.sessionUser || { name: "Caller", credits: 25 };
+const activeUser = window.sessionUser || { name: "Caller", credits: 5 };
+
+// Function to report granular connection diagnostics & logs to backend
+function reportCallIssue({
+  eventType = 'CONNECTION_ISSUE',
+  severity = 'info',
+  stage = 'general',
+  errorName = '',
+  errorMessage = '',
+  details = {},
+  markCallFailed = false
+} = {}) {
+  const payload = {
+    callId: currentCallId,
+    eventType,
+    severity,
+    stage,
+    errorName,
+    errorMessage,
+    details: {
+      ...details,
+      callState: currentCallState,
+      userAgent: navigator.userAgent,
+      platform: navigator.platform,
+      callType: isVideoCall ? 'Video' : 'Voice'
+    },
+    markCallFailed: Boolean(markCallFailed)
+  };
+
+  console.log(`[Diagnostic Report] [${severity.toUpperCase()}] ${eventType} (${stage}): ${errorMessage || errorName}`);
+
+  // 1. Emit through socket if connected
+  if (socket && socket.connected) {
+    socket.emit('call-issue-log', payload);
+  }
+
+  // 2. Reliable HTTP POST fallback (Ajax / Beacon)
+  const isAdm = (window.isAdminReceiver || $("#webrtc-admin-trigger").length > 0);
+  const endpoint = isAdm ? '/admin/log-call-issue' : '/user/log-call-issue';
+
+  try {
+    if (navigator.sendBeacon && markCallFailed) {
+      const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+      navigator.sendBeacon(endpoint, blob);
+    } else {
+      $.ajax({
+        url: endpoint,
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(payload)
+      });
+    }
+  } catch (e) {
+    // Non-blocking
+  }
+}
 
 // Socket connection diagnostic logging
 socket.on('connect', () => {
@@ -98,13 +162,25 @@ socket.on('connect', () => {
 
 socket.on('connect_error', (error) => {
   console.error("[Socket Error] Connection failed:", error);
+  reportCallIssue({
+    eventType: 'SOCKET_CONNECT_ERROR',
+    severity: 'warn',
+    stage: 'socket_connection',
+    errorName: error.name,
+    errorMessage: `Socket signaling connection error: ${error.message}`
+  });
 });
 
 socket.on('disconnect', (reason) => {
   console.warn(`[Socket Warning] Disconnected from signaling server: ${reason}`);
-  if (currentCallState === CallState.ACTIVE || currentCallState === CallState.CONNECTED) {
-    terminateCallSession("Completed");
-  }
+  reportCallIssue({
+    eventType: 'SOCKET_DISCONNECT',
+    severity: 'warn',
+    stage: 'socket_connection',
+    errorMessage: `Socket disconnected: ${reason}`
+  });
+  // DO NOT terminate active call! WebRTC audio runs on separate P2P/TURN media channels.
+  // Socket.io will automatically reconnect in the background.
 });
 
 $(document).ready(function() {
@@ -164,26 +240,43 @@ function initializeCallerFlow() {
   transitionTo(CallState.RINGING, { callId: currentCallId });
   $(".call-status-badge").html('<span class="status-indicator-dot online me-1"></span> Calling Advisor...');
 
-  // Live ringback acknowledgements
+  // Pre-warm microphone access while phone is ringing so user approves permission before handshake
+  getMicrophoneAccess().catch((e) => {
+    console.log("[WebRTC Pre-warm] Mic access initial request:", e.name || e.message);
+  });
+
+  // Live ringback acknowledgements (ignore if call already connected)
   socket.off('call-placed').on('call-placed', () => {
+    if (currentCallState === CallState.CONNECTED || currentCallState === CallState.ACTIVE) return;
     console.log("[Socket] Call placed on server. Ringing advisor...");
     $(".call-status-badge").html('<span class="status-indicator-dot online me-1"></span> Ringing Phone...');
   });
 
   socket.off('call-ringing').on('call-ringing', () => {
+    if (currentCallState === CallState.CONNECTED || currentCallState === CallState.ACTIVE) return;
     console.log("[Socket] Phone is ringing on advisor device...");
     $(".call-status-badge").html('<span class="status-indicator-dot online me-1"></span> Ringing Phone...');
   });
 
-  // Ringing Timeout: 45 seconds if not answered
+  // Ringing Timeout: 90 seconds generous window for advisor to answer device
   ringingTimeoutTimer = setTimeout(() => {
     if (currentCallState === CallState.RINGING || currentCallState === CallState.OUTGOING) {
-      console.warn("[WebRTC Timeout] Ringing timed out after 45s without answer.");
+      console.warn("[WebRTC Timeout] Ringing timed out after 90s without answer.");
+      reportCallIssue({
+        eventType: 'RINGING_TIMEOUT',
+        severity: 'warn',
+        stage: 'ringing',
+        errorMessage: 'Ringing timed out after 90s without answer from advisor'
+      });
       alert("Ashu is currently busy assisting another member. Please try calling again in a few moments.");
-      socket.emit('hangup', { callId: currentCallId, reason: 'Missed' });
-      terminateCallSession('Missed');
+      socket.emit('hangup', { callId: currentCallId, reason: 'Missed', explicit: true });
+      terminateCallSession('Missed', {
+        failureReason: 'Ringing timed out after 90s without answer',
+        errorCode: 'RINGING_TIMEOUT',
+        failedAtStage: 'ringing'
+      });
     }
-  }, 45000);
+  }, 90000);
 
   // Listen for admin to accept call
   socket.off('peer-connected').on('peer-connected', async (data) => {
@@ -203,14 +296,25 @@ function initializeCallerFlow() {
     targetPeerId = data.adminId;
     callStartTime = Date.now();
 
-    // Start 30s WebRTC Connection Timeout
+    // Start 60s WebRTC Connection Timeout (ample time for TURNS 443 TLS handshake in strict firewalls)
     connectingTimeoutTimer = setTimeout(() => {
       if (currentCallState === CallState.ACCEPTED || currentCallState === CallState.CONNECTING) {
-        console.warn("[WebRTC Timeout] Connection handshake timed out after 30s.");
+        console.warn("[WebRTC Timeout] Connection handshake timed out after 60s.");
+        reportCallIssue({
+          eventType: 'HANDSHAKE_TIMEOUT',
+          severity: 'error',
+          stage: 'handshake',
+          errorMessage: 'WebRTC audio connection timed out after 60s handshake delay',
+          markCallFailed: true
+        });
         alert("Audio connection timed out. Please check your network and try again.");
-        terminateCallSession('Failed');
+        terminateCallSession('Failed', {
+          failureReason: 'Connection timed out after 60s without handshake completion',
+          errorCode: 'HANDSHAKE_TIMEOUT',
+          failedAtStage: 'handshake'
+        });
       }
-    }, 30000);
+    }, 60000);
 
     // Begin negotiations
     await startCallNegotiation(true);
@@ -220,8 +324,18 @@ function initializeCallerFlow() {
   socket.off('call-rejected').on('call-rejected', (data) => {
     console.warn(`[Socket] Call was declined by Ashu:`, data);
     if (ringingTimeoutTimer) clearTimeout(ringingTimeoutTimer);
+    reportCallIssue({
+      eventType: 'CALL_DECLINED',
+      severity: 'warn',
+      stage: 'ringing',
+      errorMessage: 'Call declined by advisor'
+    });
     alert('Your call request was declined by Ashu.');
-    terminateCallSession('Rejected');
+    terminateCallSession('Rejected', {
+      failureReason: 'Declined by advisor',
+      errorCode: 'CALL_DECLINED',
+      failedAtStage: 'ringing'
+    });
   });
 }
 
@@ -259,13 +373,29 @@ function initializeReceiverFlow() {
     socket.once('connect', emitAdminAccept);
   }
 
-  // Start 30s Connection Timeout for Admin
+  // Pre-warm microphone for admin
+  getMicrophoneAccess().catch((e) => {
+    console.log("[WebRTC Pre-warm Admin] Mic access initial request:", e.name || e.message);
+  });
+
+  // Start 60s Connection Timeout for Admin
   connectingTimeoutTimer = setTimeout(() => {
     if (currentCallState === CallState.ACCEPTED || currentCallState === CallState.CONNECTING) {
       console.warn("[WebRTC Timeout] Peer connection handshake timed out for admin.");
-      terminateCallSession('Failed');
+      reportCallIssue({
+        eventType: 'ADMIN_HANDSHAKE_TIMEOUT',
+        severity: 'error',
+        stage: 'handshake',
+        errorMessage: 'Admin peer connection handshake timed out after 60s',
+        markCallFailed: true
+      });
+      terminateCallSession('Failed', {
+        failureReason: 'Admin peer connection handshake timed out after 60s',
+        errorCode: 'HANDSHAKE_TIMEOUT',
+        failedAtStage: 'handshake'
+      });
     }
-  }, 30000);
+  }, 60000);
 
   // Listen for SDP Offer from caller
   socket.off('receive-offer').on('receive-offer', async (data) => {
@@ -308,7 +438,19 @@ function initializeReceiverFlow() {
       });
     } catch (err) {
       console.error("[WebRTC Error] Negotiation failed during offer processing:", err);
-      terminateCallSession('Failed');
+      reportCallIssue({
+        eventType: 'SDP_ANSWER_ERROR',
+        severity: 'error',
+        stage: 'offer_answer',
+        errorName: err.name,
+        errorMessage: 'Error during offer processing or answer creation: ' + (err.message || err.toString()),
+        markCallFailed: true
+      });
+      terminateCallSession('Failed', {
+        failureReason: 'Error during offer processing: ' + err.message,
+        errorCode: 'SDP_ANSWER_ERROR',
+        failedAtStage: 'offer_answer'
+      });
     }
   });
 }
@@ -342,7 +484,19 @@ async function startCallNegotiation(isInitiator) {
     }
   } catch (err) {
     console.error("[WebRTC Error] Negotiation initialization failed:", err);
-    terminateCallSession('Failed');
+    reportCallIssue({
+      eventType: 'SDP_OFFER_ERROR',
+      severity: 'error',
+      stage: 'offer_answer',
+      errorName: err.name,
+      errorMessage: 'Error creating WebRTC offer: ' + (err.message || err.toString()),
+      markCallFailed: true
+    });
+    terminateCallSession('Failed', {
+      failureReason: 'Error creating WebRTC offer: ' + err.message,
+      errorCode: 'SDP_OFFER_ERROR',
+      failedAtStage: 'offer_answer'
+    });
   }
 }
 
@@ -401,13 +555,20 @@ async function setupPeerConnection() {
       clearTimeout(connectingTimeoutTimer);
       connectingTimeoutTimer = null;
     }
+    if (ringingTimeoutTimer) {
+      clearTimeout(ringingTimeoutTimer);
+      ringingTimeoutTimer = null;
+    }
 
     transitionTo(CallState.CONNECTED);
     transitionTo(CallState.ACTIVE);
 
     console.log("[WebRTC] Call successfully established and active!");
     $("body").addClass("connected");
-    $(".call-status-badge").removeClass("connecting").addClass("connected").text("You're Connected");
+    $(".call-status-badge")
+      .removeClass("connecting")
+      .addClass("connected")
+      .html('<span class="status-indicator-dot online me-1"></span> You\'re Connected');
     $(".call-pulse-animation, .call-pulse-animation-2").css("animation-duration", "1.5s");
     $("#call-cancel-btn-wrapper, #call-cancel-btn").addClass("d-none");
     $("#call-active-controls").removeClass("d-none");
@@ -424,14 +585,36 @@ async function setupPeerConnection() {
     const connState = peerConnection.connectionState;
     console.log(`[WebRTC] Peer Connection State: ${connState}`);
 
+    reportCallIssue({
+      eventType: 'PEER_STATE_CHANGE',
+      severity: (connState === 'failed' || connState === 'disconnected') ? 'warn' : 'info',
+      stage: 'handshake',
+      errorMessage: `Peer connection state changed to: ${connState}`,
+      details: { connectionState: connState }
+    });
+
     if (connState === 'connected') {
       handleConnectedState();
     } else if (connState === 'failed') {
-      console.warn("[WebRTC] Peer connection failed.");
-      terminateCallSession(secondsElapsed > 0 ? "Completed" : "Failed");
+      console.warn("[WebRTC] Peer connection failed. Attempting ICE restart...");
+      reportCallIssue({
+        eventType: 'PEER_FAILED',
+        severity: 'warn',
+        stage: 'in_call',
+        errorMessage: 'Peer connection failed, attempting ICE restart'
+      });
+      if (typeof peerConnection.restartIce === 'function') {
+        peerConnection.restartIce();
+      }
     } else if (connState === 'disconnected') {
-      console.warn("[WebRTC] Peer connection disconnected.");
-      terminateCallSession(secondsElapsed > 0 ? "Completed" : "Cancelled");
+      console.warn("[WebRTC] Peer connection temporarily disconnected (ICE attempting reconnection)...");
+      reportCallIssue({
+        eventType: 'PEER_DISCONNECTED',
+        severity: 'info',
+        stage: 'in_call',
+        errorMessage: 'Peer connection temporarily disconnected (transient state)'
+      });
+      // DO NOT terminate active call! WebRTC automatically attempts to reconnect or re-route candidates.
     }
   };
 
@@ -440,15 +623,43 @@ async function setupPeerConnection() {
     const iceState = peerConnection.iceConnectionState;
     console.log(`[WebRTC] ICE Connection State: ${iceState}`);
 
+    reportCallIssue({
+      eventType: 'ICE_STATE_CHANGE',
+      severity: (iceState === 'failed' || iceState === 'disconnected') ? 'warn' : 'info',
+      stage: 'ice_negotiation',
+      errorMessage: `ICE connection state changed to: ${iceState}`,
+      details: { iceState }
+    });
+
     if (iceState === 'connected' || iceState === 'completed') {
       handleConnectedState();
     } else if (iceState === 'failed') {
       console.warn("[WebRTC] ICE failed. Attempting restart...");
+      reportCallIssue({
+        eventType: 'ICE_FAILED',
+        severity: 'error',
+        stage: 'ice_negotiation',
+        errorMessage: 'ICE candidates failed to connect peer addresses',
+        markCallFailed: true
+      });
       if (typeof peerConnection.restartIce === 'function') {
         peerConnection.restartIce();
       }
     }
   };
+
+  if ('onicecandidateerror' in peerConnection) {
+    peerConnection.onicecandidateerror = (event) => {
+      reportCallIssue({
+        eventType: 'ICE_CANDIDATE_ERROR',
+        severity: 'warn',
+        stage: 'ice_negotiation',
+        errorName: event.errorCode ? event.errorCode.toString() : 'IceCandidateError',
+        errorMessage: event.errorText || 'ICE candidate gathering warning',
+        details: { url: event.url, errorCode: event.errorCode }
+      });
+    };
+  }
 }
 
 // Signaling listeners
@@ -499,15 +710,23 @@ socket.off('receive-candidate').on('receive-candidate', async (data) => {
 });
 
 socket.off('peer-disconnected').on('peer-disconnected', (data) => {
-  console.warn(`[Socket] Received 'peer-disconnected'. Ending call session.`);
-  terminateCallSession(secondsElapsed > 0 ? "Completed" : "Cancelled");
+  console.warn(`[Socket] Received 'peer-disconnected':`, data);
+  // ONLY terminate if the peer explicitly hung up or server explicitly finalized
+  const isExplicit = data && (data.explicit || data.reason === 'Completed' || data.reason === 'Cancelled' || data.reason === 'Missed' || data.reason === 'Rejected' || data.reason === 'User Ended Call' || data.reason === 'Admin Ended Call');
+
+  if (isExplicit) {
+    console.log("[WebRTC] Peer explicitly ended the call. Terminating session...");
+    terminateCallSession(secondsElapsed > 0 ? "Completed" : (data.reason || "Cancelled"));
+  } else {
+    console.log("[WebRTC] Ignoring non-explicit peer-disconnected event (network jitter/reconnecting).");
+  }
 });
 
 socket.off('call-finalized').on('call-finalized', (data) => {
   console.log(`[Socket] Call finalized confirmation received from server:`, data);
 });
 
-// Hardware camera / microphone stream (with graceful video-to-audio and silent fallback)
+// Hardware camera / microphone stream (with graceful video-to-audio and permission issue tracking)
 async function getMicrophoneAccess() {
   if (localStream) return localStream;
 
@@ -524,11 +743,25 @@ async function getMicrophoneAccess() {
           }
         });
         console.log("[WebRTC] Video and microphone access granted.");
+        reportCallIssue({
+          eventType: 'PERMISSION_APPROVED',
+          severity: 'info',
+          stage: 'media_permission',
+          errorMessage: 'Microphone and Camera permission approved by user in browser'
+        });
         attachLocalVideo(localStream);
         return localStream;
       }
     } catch (videoErr) {
       console.warn("[WebRTC Warning] Video camera access failed or denied, falling back to audio:", videoErr);
+      reportCallIssue({
+        eventType: (videoErr.name === 'NotAllowedError' || videoErr.name === 'PermissionDeniedError') ? 'CAMERA_PERMISSION_DENIED' : 'CAMERA_ERROR',
+        severity: 'warn',
+        stage: 'media_permission',
+        errorName: videoErr.name,
+        errorMessage: `Camera access issue: ${videoErr.message}. Attempting audio-only fallback.`,
+        details: { error: videoErr.toString() }
+      });
     }
   }
 
@@ -537,37 +770,111 @@ async function getMicrophoneAccess() {
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       console.log("[WebRTC] Microphone access granted.");
+      reportCallIssue({
+        eventType: 'PERMISSION_APPROVED',
+        severity: 'info',
+        stage: 'media_permission',
+        errorMessage: 'Microphone permission approved by user in browser'
+      });
       return localStream;
     }
   } catch (err) {
-    console.warn("[WebRTC Warning] Hardware microphone access failed, attempting audio fallback:", err);
+    console.warn("[WebRTC Error] Hardware microphone access failed:", err);
+
+    const isPermissionDenied = (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError');
+    const isDeviceNotFound = (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError');
+    const isDeviceInUse = (err.name === 'NotReadableError' || err.name === 'TrackStartError');
+
+    let eventType = 'MEDIA_ERROR';
+    let friendlyMsg = 'Microphone access is required to participate in the call.';
+    let failureReason = err.message || 'Microphone error';
+
+    if (isPermissionDenied) {
+      eventType = 'PERMISSION_DENIED';
+      friendlyMsg = 'Microphone permission was not approved in browser. Please allow microphone access in your browser (lock icon in address bar) and try again.';
+      failureReason = 'User did not approve microphone access in browser (Permission Denied)';
+    } else if (isDeviceNotFound) {
+      eventType = 'DEVICE_NOT_FOUND';
+      friendlyMsg = 'No microphone device was detected on your system. Please connect an audio input device and try again.';
+      failureReason = 'Microphone device not found (NotFoundError)';
+    } else if (isDeviceInUse) {
+      eventType = 'DEVICE_IN_USE';
+      friendlyMsg = 'Microphone is already in use by another application. Please close other audio apps and try again.';
+      failureReason = 'Microphone in use by another application (NotReadableError)';
+    }
+
+    reportCallIssue({
+      eventType,
+      severity: 'error',
+      stage: 'media_permission',
+      errorName: err.name,
+      errorMessage: failureReason,
+      details: {
+        errorString: err.toString(),
+        stack: err.stack || ''
+      },
+      markCallFailed: true
+    });
+
+    alert(friendlyMsg);
+
+    socket.emit('hangup', {
+      callId: currentCallId,
+      reason: 'Failed',
+      failureReason,
+      errorCode: eventType,
+      failedAtStage: 'media_permission'
+    });
+
+    terminateCallSession("Failed", {
+      failureReason,
+      errorCode: eventType,
+      failedAtStage: 'media_permission'
+    });
+
+    return null;
   }
 
-  // Graceful fallback for test environments / systems without physical microphones
-  try {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (AudioContext) {
-      const audioCtx = new AudioContext();
-      const osc = audioCtx.createOscillator();
-      const dst = audioCtx.createMediaStreamDestination();
-      osc.connect(dst);
-      osc.start();
-      const track = dst.stream.getAudioTracks()[0];
-      if (track) {
-        track.enabled = false; // muted silent track
-        localStream = dst.stream;
-        console.log("[WebRTC] Silent audio track fallback initialized.");
-        return localStream;
+  // Graceful fallback for synthetic automated tests only
+  if (window.__ENABLE_SILENT_MOCK_MIC__ || window.navigator.webdriver) {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) {
+        const audioCtx = new AudioContext();
+        const osc = audioCtx.createOscillator();
+        const dst = audioCtx.createMediaStreamDestination();
+        osc.connect(dst);
+        osc.start();
+        const track = dst.stream.getAudioTracks()[0];
+        if (track) {
+          track.enabled = false;
+          localStream = dst.stream;
+          console.log("[WebRTC] Automated test silent audio track fallback initialized.");
+          return localStream;
+        }
       }
-    }
-  } catch (fallbackErr) {
-    console.warn("[WebRTC Warning] Silent audio fallback failed:", fallbackErr);
+    } catch (fallbackErr) {}
   }
 
   console.error("[WebRTC Error] Microphone access denied or no audio device available.");
+  reportCallIssue({
+    eventType: 'MEDIA_UNSUPPORTED',
+    severity: 'error',
+    stage: 'media_permission',
+    errorMessage: 'No audio device available or mediaDevices unsupported',
+    markCallFailed: true
+  });
   alert("Microphone access is required to participate in the call.");
-  socket.emit('hangup', { callId: currentCallId, reason: 'Cancelled' });
-  terminateCallSession("Cancelled");
+  socket.emit('hangup', {
+    callId: currentCallId,
+    reason: 'Failed',
+    failureReason: 'No audio device available'
+  });
+  terminateCallSession("Failed", {
+    failureReason: 'No audio device available or mediaDevices unsupported',
+    errorCode: 'MEDIA_UNSUPPORTED',
+    failedAtStage: 'media_permission'
+  });
   return null;
 }
 
@@ -641,17 +948,17 @@ $(document).on("click", "#call-end-btn, #call-cancel-btn", function(e) {
   e.preventDefault();
   console.log("[UI] Hangup / Cancel button clicked.");
   const finalReason = secondsElapsed > 0 ? "Completed" : "Cancelled";
-  socket.emit('hangup', { callId: currentCallId, reason: finalReason });
+  socket.emit('hangup', { callId: currentCallId, reason: finalReason, explicit: true });
   terminateCallSession(finalReason);
 });
 
-function terminateCallSession(statusType) {
+function terminateCallSession(statusType, diagnostics = {}) {
   if (isTerminating) return;
   isTerminating = true;
 
   transitionTo(CallState.ENDING, { statusType });
 
-  console.log(`[WebRTC] Terminating call session (${currentCallId}) with status: ${statusType}`);
+  console.log(`[WebRTC] Terminating call session (${currentCallId}) with status: ${statusType}`, diagnostics);
 
   // Protect buttons against multi-click
   $("#call-end-btn, #call-cancel-btn").prop('disabled', true);
@@ -706,18 +1013,25 @@ function terminateCallSession(statusType) {
 
   const isUserCaller = $("#call-screen-trigger").length > 0 || window.isCaller;
 
+  const payloadData = {
+    callId: currentCallId,
+    status: statusType,
+    failureReason: diagnostics.failureReason || '',
+    errorCode: diagnostics.errorCode || '',
+    failedAtStage: diagnostics.failedAtStage || '',
+    errorDetails: diagnostics.errorDetails || ''
+  };
+
   if (isUserCaller) {
     // Notify server via AJAX to finalize call and deduct credits
     $.ajax({
       url: '/user/end-call',
       method: 'POST',
-      data: {
-        callId: currentCallId,
-        status: statusType
-      },
+      data: payloadData,
       complete: function() {
         transitionTo(CallState.FINALIZED);
-        window.location.href = "/user/call-history?callFinished=true";
+        const queryParam = (statusType === 'Failed') ? 'callFailed=true' : 'callFinished=true';
+        window.location.href = `/user/call-history?${queryParam}`;
       }
     });
   } else {
@@ -725,10 +1039,7 @@ function terminateCallSession(statusType) {
     $.ajax({
       url: '/admin/end-call',
       method: 'POST',
-      data: {
-        callId: currentCallId,
-        status: statusType
-      },
+      data: payloadData,
       complete: function() {
         transitionTo(CallState.FINALIZED);
         window.location.href = "/admin/calls";

@@ -7,19 +7,24 @@ import {
 
 export const RTC_CONFIG = {
   iceServers: [
+    // High-priority TLS TURNS relays (Port 443 with TCP & TLS for UAE / strict firewall bypass)
+    {
+      urls: [
+        'turns:openrelay.metered.ca:443?transport=tcp',
+        'turns:openrelay.metered.ca:443',
+        'turn:openrelay.metered.ca:443?transport=tcp',
+        'turn:openrelay.metered.ca:443',
+        'turn:openrelay.metered.ca:80'
+      ],
+      username: 'openrelay',
+      credential: 'openrelay'
+    },
+    // STUN servers for standard networks
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
     { urls: 'stun:stun3.l.google.com:19302' },
-    {
-      urls: [
-        'turn:openrelay.metered.ca:80',
-        'turn:openrelay.metered.ca:443',
-        'turn:openrelay.metered.ca:443?transport=tcp'
-      ],
-      username: 'openrelay',
-      credential: 'openrelay'
-    }
+    { urls: 'stun:stun.relay.metered.ca:80' }
   ],
   iceCandidatePoolSize: 10
 };
@@ -295,6 +300,32 @@ export const webrtcService = {
       }
     }
     console.log('[WebRTC Service] WebRTC cleanup finished');
+  },
+
+  /**
+   * Dynamically fetch and update ICE servers (including TURNS Port 443 TLS) from backend
+   */
+  fetchIceServers: async (baseUrl) => {
+    try {
+      if (!baseUrl) return RTC_CONFIG.iceServers;
+      const url = `${baseUrl.replace(/\/$/, '')}/api/calls/ice-servers`;
+      const res = await fetch(url);
+      const json = await res.json();
+      if (json && json.success && Array.isArray(json.iceServers) && json.iceServers.length > 0) {
+        RTC_CONFIG.iceServers = json.iceServers;
+        console.log('[WebRTC Service] Updated dynamic ICE servers from backend:', json.iceServers.length);
+        return json.iceServers;
+      }
+    } catch (e) {
+      console.warn('[WebRTC Service] Could not fetch remote ICE servers, using built-in UAE TURNS config:', e.message);
+    }
+    return RTC_CONFIG.iceServers;
+  },
+
+  setIceServers: (servers) => {
+    if (Array.isArray(servers) && servers.length > 0) {
+      RTC_CONFIG.iceServers = servers;
+    }
   }
 };
 

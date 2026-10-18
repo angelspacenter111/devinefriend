@@ -384,6 +384,7 @@
     window.callType = "<%= typeof callType !== 'undefined' ? callType : 'Voice' %>";
     window.creditRate = <%= typeof creditRate !== 'undefined' ? creditRate : 1 %>;
     window.isAdminReceiver = true;
+    window.iceServers = <%- JSON.stringify(typeof iceServers !== 'undefined' && iceServers ? iceServers : []) %>;
   </script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/webrtc.js"></script>

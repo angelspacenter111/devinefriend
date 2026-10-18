@@ -112,6 +112,7 @@ exports.postBuyCredits = async (req, res) => {
 };
 
 const callService = require('../services/callService');
+const webrtcConfig = require('../config/webrtcConfig');
 
 exports.getCall = async (req, res) => {
   try {
@@ -131,7 +132,8 @@ exports.getCall = async (req, res) => {
       user,
       call,
       callType: requestedType,
-      creditRate: call.creditRate || (requestedType === 'Video' ? 2 : 1)
+      creditRate: call.creditRate || (requestedType === 'Video' ? 2 : 1),
+      iceServers: webrtcConfig.getIceServers()
     });
   } catch (error) {
     console.error('[User Call Initiation Error]', error);
@@ -147,7 +149,7 @@ exports.getCall = async (req, res) => {
 // AJAX endpoint to securely finalize call and deduct credits
 exports.postEndCall = async (req, res) => {
   try {
-    const { callId, status } = req.body;
+    const { callId, status, failureReason, errorCode, failedAtStage, errorDetails } = req.body;
     const user = req.user;
 
     if (!callId) {
@@ -163,7 +165,13 @@ exports.postEndCall = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Unauthorized to finalize this call.' });
     }
 
-    const result = await callService.finalizeCall(callId, { reason: status || 'Completed' });
+    const result = await callService.finalizeCall(callId, {
+      reason: status || 'Completed',
+      failureReason,
+      errorCode,
+      failedAtStage,
+      errorDetails
+    });
 
     return res.json({
       status: true,
@@ -182,6 +190,42 @@ exports.postEndCall = async (req, res) => {
   } catch (error) {
     console.error('[End Call Error]', error);
     return res.status(500).json({ status: false, success: false, message: 'Server error saving call log.' });
+  }
+};
+
+// AJAX/Beacon endpoint to log connection issues, browser approvals/denials, and diagnostics
+exports.postLogCallIssue = async (req, res) => {
+  try {
+    const {
+      callId,
+      eventType,
+      severity,
+      stage,
+      errorName,
+      errorMessage,
+      details,
+      markCallFailed
+    } = req.body;
+
+    const user = req.user;
+
+    const logged = await callService.recordCallLog({
+      callId,
+      userId: user ? user._id : null,
+      role: 'user',
+      eventType: eventType || 'CONNECTION_ISSUE',
+      severity: severity || 'info',
+      stage: stage || 'general',
+      errorName: errorName || '',
+      errorMessage: errorMessage || '',
+      details: details || {},
+      markCallFailed: Boolean(markCallFailed)
+    });
+
+    return res.json({ success: true, logId: logged ? logged._id : null });
+  } catch (error) {
+    console.error('[User Log Call Issue Error]', error);
+    return res.status(500).json({ success: false, message: 'Failed to record call log.' });
   }
 };
 

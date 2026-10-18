@@ -230,7 +230,14 @@ export const CallProvider = ({ children }) => {
       }, 1600);
     };
 
-    const handlePeerDisconnected = () => {
+    const handlePeerDisconnected = (data) => {
+      // If disconnected without explicit hangup (transient network glitch), do not drop immediately
+      const isExplicit = data && (data.explicit || data.reason === 'Completed' || data.reason === 'Cancelled' || data.reason === 'Missed' || data.reason === 'Rejected' || data.reason === 'User Ended Call' || data.reason === 'Admin Ended Call');
+      if (!isExplicit && data?.reason === 'Disconnected') {
+        console.log('[CallContext] Peer disconnected transiently, waiting for reconnect...');
+        setCallStatusText('Reconnecting...');
+        return;
+      }
       if (Platform.OS !== 'web') {
         try {
           Vibration.cancel();
@@ -239,7 +246,7 @@ export const CallProvider = ({ children }) => {
       setCallPhase('ended');
       setCallStatusText('Call Ended');
       setTimeout(() => {
-        endCall('Peer Disconnected');
+        endCall(data?.reason || 'Peer Disconnected');
       }, 1200);
     };
 

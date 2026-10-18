@@ -30,7 +30,10 @@ async function startServer() {
       cors: {
         origin: '*',
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
-      }
+      },
+      pingTimeout: 30000,
+      pingInterval: 15000,
+      transports: ['websocket', 'polling']
     });
 
     // Enable Cross-Origin Resource Sharing (for React Native and Mobile apps)
@@ -106,6 +109,10 @@ async function startServer() {
       res.status(404).redirect('/');
     });
 
+    // Disconnect grace tracking map to prevent premature call drops on socket transport switches or brief network glitches
+    const callDisconnectTimers = new Map();
+    const CALL_DISCONNECT_GRACE_MS = 35000; // 35s grace period before considering call disconnected
+
     // Socket.io Signaling Logic for WebRTC & Live Presence
     io.on('connection', (socket) => {
       console.log(`[Socket] Client connected: ${socket.id}`);
@@ -136,11 +143,19 @@ async function startServer() {
         socket.callId = data.callId;
         socket.userId = data.userId;
         socket.callType = data.callType || 'Voice';
-        socket.role = 'user';
+        socket.role = data.role || 'user';
+
+        // Clear disconnect grace timer if client reconnected
+        if (data.callId && callDisconnectTimers.has(data.callId)) {
+          console.log(`[Socket Grace] Client reconnected for call ${data.callId}. Clearing disconnect grace timer.`);
+          clearTimeout(callDisconnectTimers.get(data.callId));
+          callDisconnectTimers.delete(data.callId);
+        }
 
         // 1. Resolve real caller name with 100% database accuracy
         let callerName = data.userName;
         let callerMobile = '';
+        let isAlreadyActive = false;
         try {
           const Call = require('./models/Call');
           const User = require('./models/User');
@@ -148,6 +163,9 @@ async function startServer() {
           if (callDoc) {
             callerName = (callDoc.user && callDoc.user.name) || callDoc.callerName || callerName;
             callerMobile = (callDoc.user && callDoc.user.mobile) || '';
+            if (callDoc.status === 'In Progress' || callDoc.status === 'Connected') {
+              isAlreadyActive = true;
+            }
           } else if (data.userId) {
             const userDoc = await User.findById(data.userId);
             if (userDoc) {
@@ -172,6 +190,13 @@ async function startServer() {
           socketId: socket.id,
           roomId: roomId
         });
+
+        // If call is already actively in progress (e.g. transport upgrade / socket reconnect), sync without ringing alerts
+        if (isAlreadyActive) {
+          console.log(`[Socket] Re-joining actively connected call ${data.callId}. Emitting call-active sync.`);
+          socket.emit('call-active', { callId: data.callId });
+          return;
+        }
 
         // Notify caller that call has been initiated and device is being rung
         socket.emit('call-placed', { callId: data.callId });
@@ -206,6 +231,13 @@ async function startServer() {
         socket.join(roomId);
         socket.callId = data.callId;
         socket.role = 'admin';
+
+        // Clear disconnect grace timer if admin joined
+        if (data.callId && callDisconnectTimers.has(data.callId)) {
+          console.log(`[Socket Grace] Admin joined call ${data.callId}. Clearing disconnect grace timer.`);
+          clearTimeout(callDisconnectTimers.get(data.callId));
+          callDisconnectTimers.delete(data.callId);
+        }
 
         // Fetch verified caller details from database
         let callerName = '';
@@ -362,11 +394,18 @@ async function startServer() {
         }
       });
 
-      // Hangup call
+      // Hangup call (explicit user or admin hangup action)
       socket.on('hangup', async (data) => {
         const callId = (data && data.callId) || socket.callId;
         const reason = (data && data.reason) || 'Completed';
         const roomId = callId || 'call_room';
+
+        // Clear any pending disconnect grace timer immediately on explicit hangup
+        if (callId && callDisconnectTimers.has(callId)) {
+          console.log(`[Socket Hangup] Clearing disconnect grace timer for call ${callId}`);
+          clearTimeout(callDisconnectTimers.get(callId));
+          callDisconnectTimers.delete(callId);
+        }
 
         callService.logStructured('CALL_ENDED', {
           callId,
@@ -397,16 +436,42 @@ async function startServer() {
           if (callId) pushNotificationService.sendCallCancelledAlert(callId);
         }
 
-        socket.to(roomId).emit('peer-disconnected', { callId, reason });
+        socket.to(roomId).emit('peer-disconnected', { callId, reason, explicit: true });
         socket.leave(roomId);
+      });
+
+      // Real-time call connection issue / diagnostic logger
+      socket.on('call-issue-log', async (data) => {
+        try {
+          const callId = (data && data.callId) || socket.callId;
+          const role = socket.isAdmin ? 'admin' : (socket.role || 'user');
+          await callService.recordCallLog({
+            callId,
+            userId: socket.userId || (data && data.userId) || null,
+            adminId: socket.isAdmin ? socket.id : null,
+            role,
+            eventType: (data && data.eventType) || 'CONNECTION_ISSUE',
+            severity: (data && data.severity) || 'info',
+            stage: (data && data.stage) || 'general',
+            errorName: (data && data.errorName) || '',
+            errorMessage: (data && data.errorMessage) || '',
+            details: (data && data.details) || {},
+            markCallFailed: Boolean(data && data.markCallFailed)
+          });
+        } catch (logErr) {
+          console.error('[Socket Diagnostic Log Error]', logErr);
+        }
       });
 
       // Connection drop / Browser Refresh / Tab Close
       socket.on('disconnect', async () => {
         const callId = socket.callId;
+        const socketRole = socket.role || (socket.isAdmin ? 'admin' : 'user');
+
         callService.logStructured('SOCKET_DISCONNECTED', {
           socketId: socket.id,
-          callId: callId || null
+          callId: callId || null,
+          role: socketRole
         });
 
         // If disconnected socket was an admin, update presence and broadcast live status
@@ -416,18 +481,59 @@ async function startServer() {
           console.log(`[Socket] Admin disconnected: ${socket.id}, Remaining online admins: ${presence.count}`);
         }
 
+        // Resilient disconnect handling: DO NOT kill active call immediately on a socket disconnect!
+        // Start a 35s grace timer for the client/admin to reconnect (e.g. transport upgrade or page transition).
         if (callId) {
           const roomId = callId;
-          // Notify any pending admin monitor
-          io.to('admins').emit('call-cancelled', { callId, reason: 'Disconnected' });
-          socket.to(roomId).emit('peer-disconnected', { callId, reason: 'Disconnected' });
           try {
-            await callService.finalizeCall(callId, { reason: 'Completed' });
-          } catch (e) {
-            console.error('[Socket Error] finalizeCall on disconnect failed:', e);
+            const Call = require('./models/Call');
+            const activeCallDoc = await Call.findOne({ callId });
+
+            const terminalStates = ['Completed', 'Cancelled', 'Failed', 'Rejected', 'Missed'];
+            if (!activeCallDoc || terminalStates.includes(activeCallDoc.status)) {
+              return;
+            }
+
+            console.log(`[Socket Grace] Socket ${socket.id} (${socketRole}) disconnected for call ${callId}. Starting ${CALL_DISCONNECT_GRACE_MS / 1000}s grace timer...`);
+
+            if (callDisconnectTimers.has(callId)) {
+              clearTimeout(callDisconnectTimers.get(callId));
+            }
+
+            const graceTimer = setTimeout(async () => {
+              callDisconnectTimers.delete(callId);
+              console.warn(`[Socket Grace Expired] Grace period expired for call ${callId}. Finalizing call session.`);
+
+              try {
+                const currentDoc = await Call.findOne({ callId });
+                if (currentDoc && !terminalStates.includes(currentDoc.status)) {
+                  const final = await callService.finalizeCall(callId, {
+                    reason: currentDoc.status === 'In Progress' ? 'Completed' : 'Cancelled',
+                    failureReason: 'Connection lost (socket disconnected without reconnect)',
+                    errorCode: 'SOCKET_DISCONNECT_TIMEOUT'
+                  });
+
+                  if (final && final.call) {
+                    io.to(roomId).emit('call-finalized', {
+                      callId,
+                      duration: final.call.duration,
+                      credits: final.call.credits,
+                      status: final.call.status,
+                      remainingCredits: final.remainingCredits
+                    });
+                  }
+                  io.to(roomId).emit('peer-disconnected', { callId, reason: 'Disconnected', explicit: true });
+                  io.to('admins').emit('call-cancelled', { callId, reason: 'Timeout' });
+                }
+              } catch (finErr) {
+                console.error('[Socket Grace Finalize Error]', finErr);
+              }
+            }, CALL_DISCONNECT_GRACE_MS);
+
+            callDisconnectTimers.set(callId, graceTimer);
+          } catch (dbErr) {
+            console.error('[Socket Disconnect DB Error]', dbErr);
           }
-        } else {
-          socket.to('call_room').emit('peer-disconnected');
         }
       });
     });

@@ -97,7 +97,32 @@ const callSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Transaction',
     default: null
-  }
+  },
+  failureReason: {
+    type: String,
+    default: ''
+  },
+  failedAtStage: {
+    type: String,
+    default: ''
+  },
+  errorCode: {
+    type: String,
+    default: ''
+  },
+  errorDetails: {
+    type: String,
+    default: ''
+  },
+  connectionLogs: [{
+    timestamp: { type: Date, default: Date.now },
+    role: { type: String, default: 'user' },
+    eventType: { type: String, required: true },
+    severity: { type: String, default: 'info' },
+    stage: { type: String, default: 'general' },
+    message: { type: String, default: '' },
+    details: { type: mongoose.Schema.Types.Mixed, default: {} }
+  }]
 }, {
   timestamps: true
 });

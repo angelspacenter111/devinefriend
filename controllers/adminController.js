@@ -1,9 +1,11 @@
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const Call = require('../models/Call');
+const CallLog = require('../models/CallLog');
 const Transaction = require('../models/Transaction');
 const PricingPlan = require('../models/PricingPlan');
 const callService = require('../services/callService');
+const webrtcConfig = require('../config/webrtcConfig');
 
 // Helper to safely escape regex characters
 const escapeRegex = (string) => {
@@ -816,7 +818,8 @@ exports.getCall = async (req, res) => {
     callerName: callerName,
     callType: callType,
     creditRate: creditRate,
-    user: req.user
+    user: req.user,
+    iceServers: webrtcConfig.getIceServers()
   });
 };
 
@@ -868,6 +871,8 @@ exports.getCallDetails = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Call not found.' });
     }
 
+    const logs = await CallLog.find({ callId: call.callId }).sort({ timestamp: 1 });
+
     return res.json({
       success: true,
       data: {
@@ -883,6 +888,10 @@ exports.getCallDetails = async (req, res) => {
         },
         callType: call.callType || 'Voice',
         status: call.status,
+        failureReason: call.failureReason || '',
+        failedAtStage: call.failedAtStage || '',
+        errorCode: call.errorCode || '',
+        errorDetails: call.errorDetails || '',
         date: call.date ? call.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
         time: call.time,
         startTime: call.startTime ? new Date(call.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : (call.time || 'N/A'),
@@ -893,12 +902,56 @@ exports.getCallDetails = async (req, res) => {
         creditRate: call.creditRate || 1,
         credits: call.credits || 0,
         creditStatus: call.creditStatus || 'none',
-        transactionId: call.transaction ? call.transaction.txnId : 'None'
+        transactionId: call.transaction ? call.transaction.txnId : 'None',
+        connectionLogs: logs.map(l => ({
+          timestamp: l.timestamp ? new Date(l.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '',
+          role: l.role,
+          eventType: l.eventType,
+          severity: l.severity,
+          stage: l.stage,
+          errorName: l.errorName,
+          errorMessage: l.errorMessage,
+          details: l.details
+        }))
       }
     });
   } catch (error) {
     console.error('[Admin Call Details Error]', error);
     return res.status(500).json({ success: false, message: 'Server error loading call details.' });
+  }
+};
+
+// AJAX/Beacon endpoint to log admin-side connection issues or diagnostics
+exports.postLogCallIssue = async (req, res) => {
+  try {
+    const {
+      callId,
+      eventType,
+      severity,
+      stage,
+      errorName,
+      errorMessage,
+      details,
+      markCallFailed
+    } = req.body;
+
+    const logged = await callService.recordCallLog({
+      callId,
+      adminId: req.user ? req.user._id : null,
+      role: 'admin',
+      eventType: eventType || 'CONNECTION_ISSUE',
+      severity: severity || 'info',
+      stage: stage || 'general',
+      errorName: errorName || '',
+      errorMessage: errorMessage || '',
+      details: details || {},
+      markCallFailed: Boolean(markCallFailed)
+    });
+
+    return res.json({ success: true, logId: logged ? logged._id : null });
+  } catch (error) {
+    console.error('[Admin Log Call Issue Error]', error);
+    return res.status(500).json({ success: false, message: 'Failed to record call log.' });
   }
 };
 

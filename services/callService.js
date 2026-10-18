@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Call = require('../models/Call');
+const CallLog = require('../models/CallLog');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 
@@ -191,7 +192,14 @@ async function connectCall({ callId }) {
  * - Credit transaction ledger entry
  * - Final call status
  */
-async function finalizeCall(callId, { reason = 'Completed', forcedEndTime = null } = {}) {
+async function finalizeCall(callId, {
+  reason = 'Completed',
+  forcedEndTime = null,
+  failureReason = '',
+  errorCode = '',
+  failedAtStage = '',
+  errorDetails = ''
+} = {}) {
   if (!callId) {
     console.warn('[CallService] finalizeCall called without callId');
     return null;
@@ -265,13 +273,15 @@ async function finalizeCall(callId, { reason = 'Completed', forcedEndTime = null
     if (reason === 'Auto-Disconnected (No Credits)') {
       finalStatus = 'Auto-Disconnected (No Credits)';
     } else if (durationSeconds > 0) {
-      finalStatus = 'Completed';
+      finalStatus = (reason === 'Failed') ? 'Failed' : 'Completed';
     } else if (reason === 'Cancelled') {
       finalStatus = 'Cancelled';
     } else if (reason === 'Rejected') {
       finalStatus = 'Rejected';
     } else if (reason === 'Missed') {
       finalStatus = 'Missed';
+    } else if (reason === 'Failed') {
+      finalStatus = 'Failed';
     } else {
       finalStatus = 'Completed';
     }
@@ -287,6 +297,8 @@ async function finalizeCall(callId, { reason = 'Completed', forcedEndTime = null
       finalStatus = 'Cancelled';
     } else if (reason === 'Missed') {
       finalStatus = 'Missed';
+    } else if (reason === 'Failed') {
+      finalStatus = 'Failed';
     } else {
       finalStatus = 'Cancelled';
     }
@@ -363,6 +375,14 @@ async function finalizeCall(callId, { reason = 'Completed', forcedEndTime = null
   lockedCall.durationMinutes = durationMinutes;
   lockedCall.status = finalStatus;
   lockedCall.endTime = endTime;
+
+  if (failureReason) lockedCall.failureReason = failureReason;
+  if (errorCode) lockedCall.errorCode = errorCode;
+  if (failedAtStage) lockedCall.failedAtStage = failedAtStage;
+  if (errorDetails) {
+    lockedCall.errorDetails = typeof errorDetails === 'string' ? errorDetails : JSON.stringify(errorDetails);
+  }
+
   await lockedCall.save();
 
   logStructured('CALL_FINALIZED', {
@@ -382,8 +402,100 @@ async function finalizeCall(callId, { reason = 'Completed', forcedEndTime = null
     alreadyFinalized: false,
     call: populated,
     creditsDeducted: lockedCall.credits,
-    remainingCredits: userDoc ? userDoc.credits : 0
+    remainingCredits: userDoc ? userDoc.credits : (populated && populated.user ? populated.user.credits : 0)
   };
+}
+
+/**
+ * 5. Record Call Log / Connection Issue
+ * Persists granular connection diagnostics, browser approvals/denials,
+ * ICE/WebRTC errors, timeouts, and hardware issues.
+ */
+async function recordCallLog({
+  callId,
+  userId = null,
+  adminId = null,
+  role = 'user',
+  eventType = 'CONNECTION_ISSUE',
+  severity = 'info',
+  stage = 'general',
+  errorName = '',
+  errorMessage = '',
+  details = {},
+  markCallFailed = false
+}) {
+  try {
+    let callDoc = null;
+    if (callId) {
+      callDoc = await Call.findOne({ callId });
+    }
+
+    const logEntry = new CallLog({
+      callId: callId || (callDoc ? callDoc.callId : 'UNKNOWN'),
+      call: callDoc ? callDoc._id : null,
+      user: userId || (callDoc ? callDoc.user : null),
+      admin: adminId || (callDoc ? callDoc.admin : null),
+      role: role || 'user',
+      eventType: eventType || 'CONNECTION_ISSUE',
+      severity: severity || 'info',
+      stage: stage || 'general',
+      errorName: errorName || '',
+      errorMessage: errorMessage || '',
+      details: details || {},
+      timestamp: new Date()
+    });
+
+    await logEntry.save();
+
+    // If call document exists, update call record and append to embedded connectionLogs array
+    if (callDoc) {
+      const embeddedLog = {
+        timestamp: new Date(),
+        role: role || 'user',
+        eventType: eventType || 'CONNECTION_ISSUE',
+        severity: severity || 'info',
+        stage: stage || 'general',
+        message: errorMessage || errorName || eventType,
+        details: details || {}
+      };
+
+      if (!Array.isArray(callDoc.connectionLogs)) {
+        callDoc.connectionLogs = [];
+      }
+      callDoc.connectionLogs.push(embeddedLog);
+
+      if (markCallFailed || severity === 'error') {
+        // Mark call as Failed if not already successfully finalized with connected duration
+        if (!['Completed', 'Auto-Disconnected (No Credits)'].includes(callDoc.status) || callDoc.durationSeconds === 0) {
+          callDoc.status = 'Failed';
+          callDoc.failureReason = errorMessage || errorName || eventType;
+          callDoc.failedAtStage = stage;
+          callDoc.errorCode = errorName || eventType;
+          if (details) {
+            callDoc.errorDetails = typeof details === 'string' ? details : JSON.stringify(details);
+          }
+        }
+      }
+
+      await callDoc.save();
+    }
+
+    logStructured('CALL_DIAGNOSTIC_LOG', {
+      callId,
+      role,
+      eventType,
+      severity,
+      stage,
+      errorName,
+      errorMessage,
+      markCallFailed
+    });
+
+    return logEntry;
+  } catch (err) {
+    console.error('[CallService Error] recordCallLog failed:', err);
+    return null;
+  }
 }
 
 /**
@@ -487,6 +599,7 @@ module.exports = {
   registerAdminPresence,
   unregisterAdminPresence,
   isAdvisorOnline,
-  getAdvisorPresenceInfo
+  getAdvisorPresenceInfo,
+  recordCallLog
 };
 
