@@ -104,7 +104,7 @@ exports.postRegister = async (req, res) => {
       });
     }
 
-    // Create and save new user (credits defaults to 25)
+    // Create and save new user (credits defaults to 5)
     const newUser = new User({
       name: name.trim(),
       mobile: cleanMobile,
@@ -117,9 +117,9 @@ exports.postRegister = async (req, res) => {
     const welcomeTxn = new Transaction({
       txnId: "TXN-" + Math.floor(1000 + Math.random() * 9000) + Math.floor(10 + Math.random() * 90),
       user: savedUser._id,
-      desc: "Welcome Bonus (25 Free Coins)",
+      desc: "Welcome Bonus (5 Free Coins)",
       type: "credit",
-      credits: 25,
+      credits: 5,
       amount: "AED 0",
       status: "Successful"
     });

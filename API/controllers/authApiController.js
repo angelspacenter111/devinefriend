@@ -63,9 +63,9 @@ exports.register = async (req, res) => {
     const welcomeTxn = new Transaction({
       txnId: "TXN-" + Math.floor(1000 + Math.random() * 9000) + Math.floor(10 + Math.random() * 90),
       user: savedUser._id,
-      desc: "Welcome Bonus (25 Free Credits)",
+      desc: "Welcome Bonus (5 Free Credits)",
       type: "credit",
-      credits: 25,
+      credits: 5,
       amount: "AED 0",
       status: "Successful"
     });
@@ -75,7 +75,7 @@ exports.register = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: 'Registration successful! Welcome bonus of 25 credits credited.',
+      message: 'Registration successful! Welcome bonus of 5 credits credited.',
       token,
       user: {
         id: savedUser._id,

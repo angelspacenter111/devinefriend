@@ -23,7 +23,7 @@ Authorization: Bearer <your_jwt_token>
 ### 2. Authentication (`/api/auth`)
 - **`POST /api/auth/register`**:
   - Body: `{ "name": "...", "mobile": "...", "password": "..." }`
-  - Creates user, automatically adds 25 welcome credits, returns user & JWT token.
+  - Creates user, automatically adds 5 welcome credits, returns user & JWT token.
 - **`POST /api/auth/login`**:
   - Body: `{ "mobile": "...", "password": "..." }`
   - Validates credentials, returns user profile & JWT token.

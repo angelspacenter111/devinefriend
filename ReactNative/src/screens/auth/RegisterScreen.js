@@ -68,9 +68,9 @@ export const RegisterScreen = ({ onNavigateLogin }) => {
         <View style={styles.bonusBanner}>
           <Ionicons name="gift" size={24} color="#fbbf24" />
           <View style={styles.bonusInfo}>
-            <Text style={styles.bonusTitle}>25 Free Welcome Credits!</Text>
+            <Text style={styles.bonusTitle}>5 Free Welcome Credits!</Text>
             <Text style={styles.bonusText}>
-              Get 25 minutes of voice companionship on signup.
+              Get 5 minutes of voice companionship on signup.
             </Text>
           </View>
         </View>
@@ -184,7 +184,7 @@ export const RegisterScreen = ({ onNavigateLogin }) => {
               <ActivityIndicator color="#fff" />
             ) : (
               <>
-                <Text style={styles.submitBtnText}>Sign Up & Claim 25 Credits</Text>
+                <Text style={styles.submitBtnText}>Sign Up & Claim 5 Credits</Text>
                 <Ionicons name="sparkles" size={18} color="#fbbf24" />
               </>
             )}
