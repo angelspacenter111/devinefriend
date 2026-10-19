@@ -139,9 +139,9 @@
             <i class="bi bi-telephone-x-fill"></i>
           </button>
 
-          <button class="call-ctrl-btn app-tap-active" id="speaker-toggle-btn" onclick="toggleRemoteSpeaker()" title="Speaker On / Off">
-            <i class="bi bi-volume-up-fill"></i>
-            <small class="d-block" style="font-size: 0.65rem; margin-top: 2px;">Speaker</small>
+          <button class="call-ctrl-btn app-tap-active" id="speaker-toggle-btn" onclick="toggleRemoteSpeaker()" title="Switch Audio Output (Earpiece / Speaker)">
+            <i class="bi <%= isVideo ? 'bi-volume-up-fill' : 'bi-telephone-fill' %>"></i>
+            <small class="d-block" style="font-size: 0.65rem; margin-top: 2px;"><%= isVideo ? 'Speaker' : 'Earpiece' %></small>
           </button>
         </div>
 

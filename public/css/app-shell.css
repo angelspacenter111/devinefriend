@@ -732,6 +732,13 @@ body.app-mode {
   transform: scale(0.92);
 }
 
+.call-ctrl-btn.active {
+  background: rgba(255, 255, 255, 0.45);
+  color: #FFFFFF;
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+}
+
 .call-ctrl-btn.end-btn {
   background: #EF4444;
   width: 68px;

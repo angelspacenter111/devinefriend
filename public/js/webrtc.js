@@ -556,6 +556,9 @@ async function setupPeerConnection() {
           window.addEventListener('click', resumeAudio, { once: true });
           window.addEventListener('touchstart', resumeAudio, { once: true });
         });
+
+        // Configure audio routing: defaults to earpiece for voice calls, speaker for video
+        applyAudioRouting(isVideoCall ? 'speaker' : 'earpiece');
       }
       const remoteVideo = document.getElementById('remoteVideo');
       if (remoteVideo) {
@@ -809,11 +812,18 @@ async function getMicrophoneAccess() {
     }
   }
 
-  // 2. Audio-only media request
+  // 2. Audio-only media request (VoIP / Telephony mode)
   try {
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      console.log("[WebRTC] Microphone access granted.");
+      localStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: { ideal: true },
+          noiseSuppression: { ideal: true },
+          autoGainControl: { ideal: true },
+          channelCount: { ideal: 1 }
+        }
+      });
+      console.log("[WebRTC] Microphone access granted with VoIP telephony constraints.");
       reportCallIssue({
         eventType: 'PERMISSION_APPROVED',
         severity: 'info',
@@ -1134,14 +1144,122 @@ function toggleLocalMute() {
   }
 }
 
-// Speaker mute/unmute
-function toggleRemoteSpeaker() {
-  const $btn = $("#speaker-toggle-btn");
+// ==========================================
+// Audio Output Routing (Earpiece / Receiver vs Loudspeaker)
+// ==========================================
+let currentAudioRoute = isVideoCall ? 'speaker' : 'earpiece';
+let activeAudioRoutingCtx = null;
+
+async function applyAudioRouting(targetMode) {
+  currentAudioRoute = targetMode;
   const remoteAudio = document.getElementById('remoteAudio');
-  if (remoteAudio) {
-    remoteAudio.muted = !remoteAudio.muted;
-    $btn.toggleClass("active");
-    $btn.find("i").toggleClass("bi-volume-up-fill bi-volume-mute-fill");
+  console.log(`[Audio Routing] Applying route: ${targetMode} (isVideoCall: ${isVideoCall})`);
+
+  // 1. Try HTMLMediaElement.setSinkId if supported by browser
+  if (remoteAudio && typeof remoteAudio.setSinkId === 'function') {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const outputDevices = devices.filter(d => d.kind === 'audiooutput');
+      console.log(`[Audio Routing] Available audio outputs (${outputDevices.length}):`, outputDevices);
+
+      let chosenDeviceId = '';
+      if (targetMode === 'earpiece') {
+        const earpiece = outputDevices.find(d => /earpiece|receiver|phone|handset|internal/i.test(d.label));
+        if (earpiece) {
+          chosenDeviceId = earpiece.deviceId;
+        } else {
+          chosenDeviceId = 'default';
+        }
+      } else {
+        const speaker = outputDevices.find(d => /speaker|loudspeaker|speakerphone|external/i.test(d.label));
+        if (speaker) {
+          chosenDeviceId = speaker.deviceId;
+        } else if (outputDevices.length > 1) {
+          const nonDefault = outputDevices.find(d => d.deviceId !== 'default');
+          chosenDeviceId = nonDefault ? nonDefault.deviceId : 'default';
+        } else {
+          chosenDeviceId = 'default';
+        }
+      }
+
+      if (chosenDeviceId) {
+        await remoteAudio.setSinkId(chosenDeviceId);
+        console.log(`[Audio Routing] remoteAudio.setSinkId set to '${chosenDeviceId}' for mode '${targetMode}'`);
+      }
+    } catch (sinkErr) {
+      console.warn("[Audio Routing] setSinkId notice:", sinkErr.name || sinkErr.message);
+    }
+  }
+
+  // 2. Try AudioContext.setSinkId if supported (Chromium 110+)
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass && remoteAudio && remoteAudio.srcObject) {
+      if (!activeAudioRoutingCtx || activeAudioRoutingCtx.state === 'closed') {
+        activeAudioRoutingCtx = new AudioContextClass({ latencyHint: 'interactive' });
+      }
+      if (activeAudioRoutingCtx.state === 'suspended') {
+        activeAudioRoutingCtx.resume().catch(() => {});
+      }
+      if (typeof activeAudioRoutingCtx.setSinkId === 'function') {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const outputs = devices.filter(d => d.kind === 'audiooutput');
+        const target = (targetMode === 'earpiece')
+          ? outputs.find(d => /earpiece|receiver|phone|handset|internal/i.test(d.label))
+          : outputs.find(d => /speaker|loudspeaker|speakerphone/i.test(d.label));
+        const sinkId = target ? target.deviceId : 'default';
+        await activeAudioRoutingCtx.setSinkId(sinkId);
+        console.log(`[Audio Routing] activeAudioRoutingCtx.setSinkId set to '${sinkId}'`);
+      }
+    }
+  } catch (ctxErr) {
+    // Non-blocking fallback
+  }
+
+  // 3. Update UI button text and icon
+  updateSpeakerButtonUI(targetMode);
+}
+
+// Toggle between Earpiece and Speakerphone
+async function toggleRemoteSpeaker() {
+  const nextMode = (currentAudioRoute === 'earpiece') ? 'speaker' : 'earpiece';
+
+  // If browser supports native selectAudioOutput picker, offer it
+  if (typeof navigator.mediaDevices !== 'undefined' && typeof navigator.mediaDevices.selectAudioOutput === 'function') {
+    try {
+      const selected = await navigator.mediaDevices.selectAudioOutput();
+      if (selected && selected.deviceId) {
+        const remoteAudio = document.getElementById('remoteAudio');
+        if (remoteAudio && typeof remoteAudio.setSinkId === 'function') {
+          await remoteAudio.setSinkId(selected.deviceId);
+          const isSpk = /speaker|loudspeaker/i.test(selected.label);
+          currentAudioRoute = isSpk ? 'speaker' : 'earpiece';
+          updateSpeakerButtonUI(currentAudioRoute);
+          return;
+        }
+      }
+    } catch (e) {
+      // User cancelled picker or rejected permission, fallback to standard toggle
+    }
+  }
+
+  await applyAudioRouting(nextMode);
+}
+
+function updateSpeakerButtonUI(mode) {
+  const $btn = $("#speaker-toggle-btn");
+  if (!$btn.length) return;
+
+  if (mode === 'speaker') {
+    $btn.addClass("active");
+    $btn.find("i").removeClass("bi-telephone-fill bi-ear-fill").addClass("bi-volume-up-fill");
+    $btn.find("small").text("Speaker");
+    $btn.attr("title", "Speakerphone Active (Tap to switch to Earpiece)");
+  } else {
+    $btn.removeClass("active");
+    $btn.find("i").removeClass("bi-volume-up-fill").addClass("bi-telephone-fill");
+    $btn.find("small").text("Earpiece");
+    $btn.attr("title", "Earpiece Active (Tap to switch to Speakerphone)");
   }
 }
 
