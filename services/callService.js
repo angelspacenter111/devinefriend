@@ -376,14 +376,74 @@ async function finalizeCall(callId, {
   lockedCall.status = finalStatus;
   lockedCall.endTime = endTime;
 
-  if (failureReason) lockedCall.failureReason = failureReason;
-  if (errorCode) lockedCall.errorCode = errorCode;
-  if (failedAtStage) lockedCall.failedAtStage = failedAtStage;
+  // Intelligently infer diagnosis if call ended without connecting or without explicit failure reason
+  let effectiveFailureReason = failureReason || lockedCall.failureReason || '';
+  let effectiveErrorCode = errorCode || lockedCall.errorCode || '';
+  let effectiveFailedStage = failedAtStage || lockedCall.failedAtStage || '';
+
+  if (!effectiveFailureReason && (!lockedCall.connectedTime || finalStatus !== 'Completed')) {
+    if (finalStatus === 'Cancelled') {
+      if (!lockedCall.acceptedTime) {
+        effectiveFailureReason = 'Caller cancelled the call before advisor answered (phone was ringing)';
+        effectiveFailedStage = 'ringing';
+        effectiveErrorCode = 'CALLER_CANCELLED_WHILE_RINGING';
+      } else {
+        effectiveFailureReason = 'Media connection could not be established during WebRTC handshake (Dubai/strict firewall or network timeout)';
+        effectiveFailedStage = 'handshake';
+        effectiveErrorCode = 'WEBRTC_HANDSHAKE_FAILED';
+      }
+    } else if (finalStatus === 'Missed') {
+      effectiveFailureReason = 'Advisor did not answer within ringing timeout (90 seconds)';
+      effectiveFailedStage = 'ringing';
+      effectiveErrorCode = 'RINGING_TIMEOUT';
+    } else if (finalStatus === 'Rejected') {
+      effectiveFailureReason = 'Advisor declined the call request';
+      effectiveFailedStage = 'ringing';
+      effectiveErrorCode = 'CALL_DECLINED';
+    } else if (finalStatus === 'Failed') {
+      effectiveFailureReason = 'WebRTC peer connection failed (UDP/Firewall blockage between networks)';
+      effectiveFailedStage = 'handshake';
+      effectiveErrorCode = 'CONNECTION_FAILED';
+    } else if (finalStatus === 'Auto-Disconnected (No Credits)') {
+      effectiveFailureReason = 'Call ended automatically due to insufficient coins';
+      effectiveFailedStage = 'in_call';
+      effectiveErrorCode = 'INSUFFICIENT_CREDITS';
+    }
+  }
+
+  lockedCall.failureReason = effectiveFailureReason;
+  lockedCall.errorCode = effectiveErrorCode;
+  lockedCall.failedAtStage = effectiveFailedStage;
   if (errorDetails) {
     lockedCall.errorDetails = typeof errorDetails === 'string' ? errorDetails : JSON.stringify(errorDetails);
   }
 
   await lockedCall.save();
+
+  // Record this termination diagnostic event in CallLog if call was not completed
+  if (finalStatus !== 'Completed') {
+    try {
+      await recordCallLog({
+        callId: lockedCall.callId,
+        userId: lockedCall.user,
+        adminId: lockedCall.admin || null,
+        role: 'system',
+        eventType: effectiveErrorCode || 'CALL_TERMINATED',
+        severity: (finalStatus === 'Failed' || effectiveErrorCode === 'WEBRTC_HANDSHAKE_FAILED') ? 'error' : 'warn',
+        stage: effectiveFailedStage || 'general',
+        errorName: effectiveErrorCode || finalStatus,
+        errorMessage: effectiveFailureReason || `Call ended with status: ${finalStatus}`,
+        details: {
+          status: finalStatus,
+          duration: formattedDuration,
+          acceptedTime: lockedCall.acceptedTime,
+          connectedTime: lockedCall.connectedTime
+        }
+      });
+    } catch (logErr) {
+      console.warn('[CallService] Error recording termination log:', logErr.message);
+    }
+  }
 
   logStructured('CALL_FINALIZED', {
     callId,

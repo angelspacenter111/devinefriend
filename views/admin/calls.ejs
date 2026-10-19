@@ -301,18 +301,23 @@
 
             const html = `
               <div class="row g-3">
-                ${d.failureReason ? `
+                ${(d.failureReason || d.status !== 'Completed') ? `
                   <div class="col-12">
-                    <div class="p-3 bg-danger-subtle text-danger rounded-3 border border-danger-subtle">
+                    <div class="p-3 ${d.status === 'Failed' || (d.errorCode && d.errorCode.includes('FAILED')) ? 'bg-danger-subtle text-danger border-danger-subtle' : 'bg-warning-subtle text-dark border-warning-subtle'} rounded-3 border">
                       <div class="d-flex align-items-center justify-content-between mb-1">
                         <div class="d-flex align-items-center gap-2">
-                          <i class="bi bi-exclamation-triangle-fill fs-5 text-danger"></i>
-                          <strong class="text-danger">Connection Problem Detected</strong>
+                          <i class="bi ${d.status === 'Failed' ? 'bi-exclamation-triangle-fill text-danger' : 'bi-info-circle-fill text-warning'} fs-5"></i>
+                          <strong class="${d.status === 'Failed' ? 'text-danger' : 'text-dark'}">${d.status === 'Failed' ? 'Connection Problem Detected' : 'Call Status Diagnosis'}</strong>
                         </div>
-                        ${d.failedAtStage ? `<span class="badge bg-danger text-white rounded-pill text-uppercase px-2.5 py-1" style="font-size: 0.7rem;">Stage: ${d.failedAtStage}</span>` : ''}
+                        ${d.failedAtStage ? `<span class="badge ${d.status === 'Failed' ? 'bg-danger' : 'bg-warning text-dark'} rounded-pill text-uppercase px-2.5 py-1" style="font-size: 0.7rem;">Stage: ${d.failedAtStage}</span>` : ''}
                       </div>
-                      <p class="mb-1 small text-dark fw-semibold">${d.failureReason}</p>
-                      ${d.errorCode ? `<small class="text-muted font-monospace">Error Code: <code>${d.errorCode}</code></small>` : ''}
+                      <p class="mb-1 small text-dark fw-semibold">${d.failureReason || (d.status === 'Cancelled' ? 'Call was cancelled before connection established.' : 'Call ended without connection.')}</p>
+                      ${d.errorCode ? `<small class="text-muted font-monospace d-block">Diagnostic Code: <code>${d.errorCode}</code></small>` : ''}
+                      ${(d.errorCode === 'WEBRTC_HANDSHAKE_FAILED' || (d.failureReason && d.failureReason.toLowerCase().includes('dubai'))) ? `
+                        <div class="mt-2 pt-2 border-top border-warning-subtle small text-muted">
+                          <i class="bi bi-lightbulb-fill text-warning me-1"></i> <strong>Dubai / UAE Network Note:</strong> UAE telecom providers (Etisalat & du) block peer-to-peer UDP WebRTC. High-priority TURNS on Port 443 (TCP/TLS) bypasses this restriction.
+                        </div>
+                      ` : ''}
                     </div>
                   </div>
                 ` : ''}

@@ -10,11 +10,11 @@ export const RTC_CONFIG = {
     // High-priority TLS TURNS relays (Port 443 with TCP & TLS for UAE / strict firewall bypass)
     {
       urls: [
-        'turns:openrelay.metered.ca:443?transport=tcp',
-        'turns:openrelay.metered.ca:443',
-        'turn:openrelay.metered.ca:443?transport=tcp',
-        'turn:openrelay.metered.ca:443',
-        'turn:openrelay.metered.ca:80'
+        'turns:global.relay.metered.ca:443?transport=tcp',
+        'turns:global.relay.metered.ca:443',
+        'turn:global.relay.metered.ca:443?transport=tcp',
+        'turn:global.relay.metered.ca:443',
+        'turn:global.relay.metered.ca:80'
       ],
       username: 'openrelay',
       credential: 'openrelay'
@@ -24,7 +24,7 @@ export const RTC_CONFIG = {
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
     { urls: 'stun:stun3.l.google.com:19302' },
-    { urls: 'stun:stun.relay.metered.ca:80' }
+    { urls: 'stun:stun.cloudflare.com:3478' }
   ],
   iceCandidatePoolSize: 10
 };

@@ -33,6 +33,86 @@
     let activeCallerId = null;
     let activeCallType = 'Voice';
     let isProcessingAction = false;
+    let ringtoneTimer = null;
+    let audioCtx = null;
+    let originalDocTitle = document.title;
+    let titleFlashTimer = null;
+
+    function playRingChime() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        if (!audioCtx || audioCtx.state === 'closed') {
+          audioCtx = new AudioContext();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume().catch(function() {});
+        }
+
+        const now = audioCtx.currentTime;
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(440, now);
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(480, now);
+
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(0.18, now + 0.05);
+        gainNode.gain.setValueAtTime(0.18, now + 1.0);
+        gainNode.gain.linearRampToValueAtTime(0, now + 1.2);
+
+        osc1.connect(gainNode);
+        osc2.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 1.25);
+        osc2.stop(now + 1.25);
+      } catch (e) {
+        console.warn("[Admin Ringtone] Audio playback warning:", e);
+      }
+    }
+
+    function startAdminRingtone(callerName) {
+      stopAdminRingtone();
+      playRingChime();
+      ringtoneTimer = setInterval(playRingChime, 3000);
+
+      originalDocTitle = document.title;
+      let toggle = false;
+      titleFlashTimer = setInterval(function() {
+        document.title = toggle ? `🔔 CALL FROM ${callerName || 'Client'}!` : `📞 INCOMING CALL - ANSWER NOW`;
+        toggle = !toggle;
+      }, 700);
+
+      if ("Notification" in window && Notification.permission === "granted") {
+        try {
+          new Notification(`Incoming Call from ${callerName || 'Companion User'}`, {
+            body: 'Click here to answer the call.',
+            icon: '/images/favicon.ico'
+          });
+        } catch (nErr) {}
+      }
+    }
+
+    function stopAdminRingtone() {
+      if (ringtoneTimer) {
+        clearInterval(ringtoneTimer);
+        ringtoneTimer = null;
+      }
+      if (titleFlashTimer) {
+        clearInterval(titleFlashTimer);
+        titleFlashTimer = null;
+        if (originalDocTitle) document.title = originalDocTitle;
+      }
+      if (audioCtx && audioCtx.state === 'running') {
+        try { audioCtx.suspend(); } catch (e) {}
+      }
+    }
 
     function getIncomingModalInstance() {
       const modalEl = document.getElementById('incomingCallModal');
@@ -40,6 +120,7 @@
     }
 
     function resetIncomingCallState() {
+      stopAdminRingtone();
       activeCallId = null;
       activeCallerId = null;
       isProcessingAction = false;
@@ -74,8 +155,16 @@
         return;
       }
 
+      // Request browser notification permission once on user interaction
+      if ("Notification" in window && Notification.permission === "default") {
+        document.addEventListener('click', function reqNotif() {
+          Notification.requestPermission();
+          document.removeEventListener('click', reqNotif);
+        }, { once: true });
+      }
+
       console.log("[Admin Signaling] Initializing socket connection...");
-      adminSocket = io();
+      adminSocket = io({ transports: ['websocket', 'polling'] });
 
       adminSocket.on('connect', function() {
         console.log(`[Admin Signaling] Connected. Socket ID: ${adminSocket.id}`);
@@ -132,6 +221,9 @@
         if (data.callerId) localStorage.setItem("webrtc_caller_id", data.callerId);
         if (data.callerName) localStorage.setItem("webrtc_caller_name", data.callerName);
 
+        // Start ringing sound and flash document title
+        startAdminRingtone(data.callerName);
+
         const modal = getIncomingModalInstance();
         if (modal) {
           console.log("[Admin UI] Showing incomingCallModal for Call ID:", activeCallId);
@@ -143,6 +235,7 @@
       adminSocket.on('call-cancelled', function(data) {
         if (data && activeCallId && data.callId === activeCallId) {
           console.log(`[Admin Signaling] Call ${data.callId} cancelled by caller.`);
+          stopAdminRingtone();
           const modal = getIncomingModalInstance();
           if (modal) modal.hide();
           resetIncomingCallState();
@@ -175,6 +268,7 @@
             return;
           }
           isProcessingAction = true;
+          stopAdminRingtone();
 
           console.log(`[Admin UI] Accepting call ID: ${activeCallId}. Redirecting to /admin/call...`);
           acceptBtn.disabled = true;

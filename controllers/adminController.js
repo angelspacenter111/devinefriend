@@ -395,6 +395,31 @@ exports.getCalls = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
+    // Ensure older calls without explicit failure reason display accurate contextual diagnosis
+    calls.forEach(c => {
+      if (!c.failureReason && (!c.connectedTime || c.status !== 'Completed')) {
+        if (c.status === 'Cancelled') {
+          c.failureReason = !c.acceptedTime
+            ? 'Caller cancelled before advisor answered (phone was ringing)'
+            : 'Media connection failed during WebRTC handshake (Dubai/strict firewall or network timeout)';
+          c.failedAtStage = !c.acceptedTime ? 'ringing' : 'handshake';
+          c.errorCode = !c.acceptedTime ? 'CALLER_CANCELLED_WHILE_RINGING' : 'WEBRTC_HANDSHAKE_FAILED';
+        } else if (c.status === 'Missed') {
+          c.failureReason = 'Advisor did not answer within ringing timeout (90s)';
+          c.failedAtStage = 'ringing';
+          c.errorCode = 'RINGING_TIMEOUT';
+        } else if (c.status === 'Rejected') {
+          c.failureReason = 'Advisor declined the call request';
+          c.failedAtStage = 'ringing';
+          c.errorCode = 'CALL_DECLINED';
+        } else if (c.status === 'Failed') {
+          c.failureReason = 'WebRTC peer connection failed (UDP/Firewall blockage between networks)';
+          c.failedAtStage = 'handshake';
+          c.errorCode = 'CONNECTION_FAILED';
+        }
+      }
+    });
+
     const queryParams = 
       (nameSearch ? `&userName=${encodeURIComponent(nameSearch)}` : '') +
       (date ? `&date=${encodeURIComponent(date)}` : '') +
@@ -873,12 +898,42 @@ exports.getCallDetails = async (req, res) => {
 
     const logs = await CallLog.find({ callId: call.callId }).sort({ timestamp: 1 });
 
+    let failureReason = call.failureReason || '';
+    let failedAtStage = call.failedAtStage || '';
+    let errorCode = call.errorCode || '';
+
+    if (!failureReason && (!call.connectedTime || call.status !== 'Completed')) {
+      if (call.status === 'Cancelled') {
+        if (!call.acceptedTime) {
+          failureReason = 'Caller cancelled the call before advisor answered (phone was ringing)';
+          failedAtStage = 'ringing';
+          errorCode = 'CALLER_CANCELLED_WHILE_RINGING';
+        } else {
+          failureReason = 'Media connection could not be established during WebRTC handshake (Dubai/strict firewall or network timeout)';
+          failedAtStage = 'handshake';
+          errorCode = 'WEBRTC_HANDSHAKE_FAILED';
+        }
+      } else if (call.status === 'Missed') {
+        failureReason = 'Advisor did not answer within ringing timeout (90 seconds)';
+        failedAtStage = 'ringing';
+        errorCode = 'RINGING_TIMEOUT';
+      } else if (call.status === 'Rejected') {
+        failureReason = 'Advisor declined the call request';
+        failedAtStage = 'ringing';
+        errorCode = 'CALL_DECLINED';
+      } else if (call.status === 'Failed') {
+        failureReason = 'WebRTC peer connection failed (UDP/Firewall blockage between networks)';
+        failedAtStage = 'handshake';
+        errorCode = 'CONNECTION_FAILED';
+      }
+    }
+
     return res.json({
       success: true,
       data: {
         callId: call.callId,
         user: {
-          name: call.user ? call.user.name : 'N/A',
+          name: call.user ? call.user.name : (call.callerName || 'N/A'),
           mobile: call.user ? call.user.mobile : 'N/A',
           id: call.user ? call.user._id : 'N/A'
         },
@@ -888,9 +943,9 @@ exports.getCallDetails = async (req, res) => {
         },
         callType: call.callType || 'Voice',
         status: call.status,
-        failureReason: call.failureReason || '',
-        failedAtStage: call.failedAtStage || '',
-        errorCode: call.errorCode || '',
+        failureReason: failureReason,
+        failedAtStage: failedAtStage,
+        errorCode: errorCode,
         errorDetails: call.errorDetails || '',
         date: call.date ? call.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
         time: call.time,

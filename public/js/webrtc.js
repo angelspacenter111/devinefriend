@@ -63,11 +63,11 @@ const defaultIceServers = [
   // High-priority TLS TURNS relays (Port 443 with TCP & TLS for UAE / strict firewall bypass)
   {
     urls: [
-      'turns:openrelay.metered.ca:443?transport=tcp',
-      'turns:openrelay.metered.ca:443',
-      'turn:openrelay.metered.ca:443?transport=tcp',
-      'turn:openrelay.metered.ca:443',
-      'turn:openrelay.metered.ca:80'
+      'turns:global.relay.metered.ca:443?transport=tcp',
+      'turns:global.relay.metered.ca:443',
+      'turn:global.relay.metered.ca:443?transport=tcp',
+      'turn:global.relay.metered.ca:443',
+      'turn:global.relay.metered.ca:80'
     ],
     username: 'openrelay',
     credential: 'openrelay'
@@ -77,7 +77,7 @@ const defaultIceServers = [
   { urls: 'stun:stun1.l.google.com:19302' },
   { urls: 'stun:stun2.l.google.com:19302' },
   { urls: 'stun:stun3.l.google.com:19302' },
-  { urls: 'stun:stun.relay.metered.ca:80' }
+  { urls: 'stun:stun.cloudflare.com:3478' }
 ];
 
 const rtcConfig = {
@@ -606,6 +606,32 @@ async function setupPeerConnection() {
       if (typeof peerConnection.restartIce === 'function') {
         peerConnection.restartIce();
       }
+      setTimeout(() => {
+        if (peerConnection && peerConnection.connectionState === 'failed' && !isTerminalState(currentCallState)) {
+          console.error("[WebRTC] Peer connection failed after ICE restart delay.");
+          const failReason = 'WebRTC media connection failed (firewall or NAT traversal blockage between regions)';
+          reportCallIssue({
+            eventType: 'WEBRTC_ICE_FAILED',
+            severity: 'error',
+            stage: 'handshake',
+            errorMessage: failReason,
+            markCallFailed: true
+          });
+          alert("Audio connection could not be established. If you are in UAE/Dubai, please ensure you are connected to a stable network or Wi-Fi.");
+          socket.emit('hangup', {
+            callId: currentCallId,
+            reason: 'Failed',
+            failureReason: failReason,
+            errorCode: 'WEBRTC_ICE_FAILED',
+            failedAtStage: 'handshake'
+          });
+          terminateCallSession('Failed', {
+            failureReason: failReason,
+            errorCode: 'WEBRTC_ICE_FAILED',
+            failedAtStage: 'handshake'
+          });
+        }
+      }, 12000);
     } else if (connState === 'disconnected') {
       console.warn("[WebRTC] Peer connection temporarily disconnected (ICE attempting reconnection)...");
       reportCallIssue({
@@ -948,8 +974,37 @@ $(document).on("click", "#call-end-btn, #call-cancel-btn", function(e) {
   e.preventDefault();
   console.log("[UI] Hangup / Cancel button clicked.");
   const finalReason = secondsElapsed > 0 ? "Completed" : "Cancelled";
-  socket.emit('hangup', { callId: currentCallId, reason: finalReason, explicit: true });
-  terminateCallSession(finalReason);
+  
+  let diagnostics = {};
+  if (finalReason === "Cancelled") {
+    if (currentCallState === CallState.RINGING || currentCallState === CallState.OUTGOING) {
+      diagnostics = {
+        failureReason: "Caller cancelled the call before advisor answered",
+        errorCode: "CALLER_CANCELLED_WHILE_RINGING",
+        failedAtStage: "ringing"
+      };
+    } else if (currentCallState === CallState.ACCEPTED || currentCallState === CallState.CONNECTING) {
+      diagnostics = {
+        failureReason: "Caller cancelled during audio connection handshake (firewall or NAT traversal delay)",
+        errorCode: "HANDSHAKE_CANCELLED",
+        failedAtStage: "handshake"
+      };
+    } else {
+      diagnostics = {
+        failureReason: "Call cancelled by user",
+        errorCode: "CALL_CANCELLED",
+        failedAtStage: "general"
+      };
+    }
+  }
+
+  socket.emit('hangup', {
+    callId: currentCallId,
+    reason: finalReason,
+    explicit: true,
+    ...diagnostics
+  });
+  terminateCallSession(finalReason, diagnostics);
 });
 
 function terminateCallSession(statusType, diagnostics = {}) {

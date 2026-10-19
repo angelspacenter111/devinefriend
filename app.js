@@ -114,6 +114,9 @@ async function startServer() {
     const CALL_DISCONNECT_GRACE_MS = 35000; // 35s grace period before considering call disconnected
 
     // Socket.io Signaling Logic for WebRTC & Live Presence
+    const webrtcConfig = require('./config/webrtcConfig');
+    webrtcConfig.fetchMeteredIceServers().catch(() => {});
+
     io.on('connection', (socket) => {
       console.log(`[Socket] Client connected: ${socket.id}`);
 
@@ -398,6 +401,10 @@ async function startServer() {
       socket.on('hangup', async (data) => {
         const callId = (data && data.callId) || socket.callId;
         const reason = (data && data.reason) || 'Completed';
+        const failureReason = (data && data.failureReason) || '';
+        const errorCode = (data && data.errorCode) || '';
+        const failedAtStage = (data && data.failedAtStage) || '';
+        const errorDetails = (data && data.errorDetails) || '';
         const roomId = callId || 'call_room';
 
         // Clear any pending disconnect grace timer immediately on explicit hangup
@@ -410,12 +417,21 @@ async function startServer() {
         callService.logStructured('CALL_ENDED', {
           callId,
           reason,
+          failureReason,
+          errorCode,
+          failedAtStage,
           socketId: socket.id
         });
 
         if (callId) {
           try {
-            const final = await callService.finalizeCall(callId, { reason });
+            const final = await callService.finalizeCall(callId, {
+              reason,
+              failureReason,
+              errorCode,
+              failedAtStage,
+              errorDetails
+            });
             if (final && final.call) {
               io.to(roomId).emit('call-finalized', {
                 callId,
