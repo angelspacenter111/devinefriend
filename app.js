@@ -271,6 +271,11 @@ async function startServer() {
             });
           } catch (e) {
             console.error('[Socket Error] acceptCall failed:', e);
+            socket.emit('call-accept-error', {
+              callId: data.callId,
+              reason: e.message || 'Call could not be accepted'
+            });
+            return;
           }
         }
 

@@ -397,6 +397,24 @@ function initializeReceiverFlow() {
     }
   }, 60000);
 
+  // Listen for call-accept-error (e.g. caller cancelled before admin joined)
+  socket.off('call-accept-error').on('call-accept-error', (data) => {
+    console.warn('[WebRTC] Call cannot be accepted:', data);
+    if (connectingTimeoutTimer) clearTimeout(connectingTimeoutTimer);
+    alert('This call was already cancelled by the user.');
+    window.location.href = '/admin/calls';
+  });
+
+  // Listen for call cancellation while on admin call screen
+  socket.off('call-cancelled').on('call-cancelled', (data) => {
+    if (data && (!data.callId || data.callId === currentCallId)) {
+      console.warn('[WebRTC] Caller cancelled call during connection:', data);
+      if (connectingTimeoutTimer) clearTimeout(connectingTimeoutTimer);
+      alert('The caller has hung up.');
+      window.location.href = '/admin/calls';
+    }
+  });
+
   // Listen for SDP Offer from caller
   socket.off('receive-offer').on('receive-offer', async (data) => {
     if (isTerminalState(currentCallState)) return;

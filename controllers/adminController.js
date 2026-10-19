@@ -824,6 +824,10 @@ exports.getCall = async (req, res) => {
   try {
     const callRecord = await Call.findOne({ callId }).populate('user');
     if (callRecord) {
+      if (['Cancelled', 'Failed', 'Completed', 'Rejected'].includes(callRecord.status)) {
+        console.log(`[Admin Call] Call ${callId} is already in state '${callRecord.status}'. Redirecting to calls list.`);
+        return res.redirect(`/admin/calls?notice=${callRecord.status.toLowerCase()}&callId=${encodeURIComponent(callId)}`);
+      }
       if (callRecord.user && callRecord.user.name) {
         callerName = callRecord.user.name;
       } else if (callRecord.callerName) {

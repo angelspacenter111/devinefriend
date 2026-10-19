@@ -77,10 +77,37 @@
       }
     }
 
+    function triggerAdminVibrate() {
+      try {
+        if ('vibrate' in navigator) {
+          navigator.vibrate([800, 300, 800, 300, 800]);
+        }
+      } catch (e) {}
+    }
+
+    function unlockAudioContext() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        if (!audioCtx || audioCtx.state === 'closed') {
+          audioCtx = new AudioContext();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume().catch(function() {});
+        }
+      } catch (e) {}
+    }
+    document.addEventListener('click', unlockAudioContext, { passive: true });
+    document.addEventListener('touchstart', unlockAudioContext, { passive: true });
+
     function startAdminRingtone(callerName) {
       stopAdminRingtone();
       playRingChime();
-      ringtoneTimer = setInterval(playRingChime, 3000);
+      triggerAdminVibrate();
+      ringtoneTimer = setInterval(function() {
+        playRingChime();
+        triggerAdminVibrate();
+      }, 3000);
 
       originalDocTitle = document.title;
       let toggle = false;
@@ -104,6 +131,9 @@
         clearInterval(ringtoneTimer);
         ringtoneTimer = null;
       }
+      try {
+        if ('vibrate' in navigator) navigator.vibrate(0);
+      } catch (e) {}
       if (titleFlashTimer) {
         clearInterval(titleFlashTimer);
         titleFlashTimer = null;
@@ -236,9 +266,21 @@
         if (data && activeCallId && data.callId === activeCallId) {
           console.log(`[Admin Signaling] Call ${data.callId} cancelled by caller.`);
           stopAdminRingtone();
-          const modal = getIncomingModalInstance();
-          if (modal) modal.hide();
-          resetIncomingCallState();
+          const callTitle = document.getElementById('modal-call-title');
+          if (callTitle) callTitle.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle me-1"></i> Call Cancelled</span>';
+          const acceptBtn = document.getElementById('btn-incoming-accept');
+          if (acceptBtn) {
+            acceptBtn.disabled = true;
+            acceptBtn.innerText = 'Cancelled by User';
+          }
+          const declineBtn = document.getElementById('btn-incoming-decline');
+          if (declineBtn) declineBtn.disabled = true;
+
+          setTimeout(function() {
+            const modal = getIncomingModalInstance();
+            if (modal) modal.hide();
+            resetIncomingCallState();
+          }, 1500);
         }
       });
 
