@@ -238,7 +238,7 @@ function initializeCallerFlow() {
   });
 
   transitionTo(CallState.RINGING, { callId: currentCallId });
-  $(".call-status-badge").html('<span class="status-indicator-dot online me-1"></span> Calling Advisor...');
+  $(".call-status-badge").removeClass("connected").addClass("connecting").html('<span class="status-indicator-dot connecting me-1"></span> Calling...');
 
   // Pre-warm microphone access while phone is ringing so user approves permission before handshake
   getMicrophoneAccess().catch((e) => {
@@ -249,13 +249,13 @@ function initializeCallerFlow() {
   socket.off('call-placed').on('call-placed', () => {
     if (currentCallState === CallState.CONNECTED || currentCallState === CallState.ACTIVE) return;
     console.log("[Socket] Call placed on server. Ringing advisor...");
-    $(".call-status-badge").html('<span class="status-indicator-dot online me-1"></span> Ringing Phone...');
+    $(".call-status-badge").removeClass("connected").addClass("connecting ringing").html('<span class="status-indicator-dot ringing me-1"></span> Ringing...');
   });
 
   socket.off('call-ringing').on('call-ringing', () => {
     if (currentCallState === CallState.CONNECTED || currentCallState === CallState.ACTIVE) return;
     console.log("[Socket] Phone is ringing on advisor device...");
-    $(".call-status-badge").html('<span class="status-indicator-dot online me-1"></span> Ringing Phone...');
+    $(".call-status-badge").removeClass("connected").addClass("connecting ringing").html('<span class="status-indicator-dot ringing me-1"></span> Ringing...');
   });
 
   // Ringing Timeout: 90 seconds generous window for advisor to answer device
@@ -587,9 +587,10 @@ async function setupPeerConnection() {
     console.log("[WebRTC] Call successfully established and active!");
     $("body").addClass("connected");
     $(".call-status-badge")
-      .removeClass("connecting")
+      .removeClass("connecting ringing")
       .addClass("connected")
-      .html('<span class="status-indicator-dot online me-1"></span> You\'re Connected');
+      .html('<span class="status-indicator-dot online me-1"></span> Connected');
+    $(".call-meta-info p").text("Live 1-on-1 Audio Consultation");
     $(".call-pulse-animation, .call-pulse-animation-2").css("animation-duration", "1.5s");
     $("#call-cancel-btn-wrapper, #call-cancel-btn").addClass("d-none");
     $("#call-active-controls").removeClass("d-none");

@@ -84,17 +84,17 @@
 
       <!-- Top Header Bar -->
       <div class="call-header-bar">
-        <div class="d-flex align-items-center gap-2">
-          <a href="/admin/dashboard" class="btn btn-outline-light btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.15);" title="Dashboard">
+        <div class="d-flex align-items-center gap-2" style="min-width: 0; flex-shrink: 1;">
+          <a href="/admin/dashboard" class="btn btn-outline-light btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; min-width: 38px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.15);" title="Dashboard">
             <i class="bi bi-chevron-down fs-6"></i>
           </a>
-          <span class="badge rounded-pill px-3 py-1.5 text-white-50 small font-monospace" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.1);">
+          <span class="badge rounded-pill px-2.5 py-1.5 text-white-50 font-monospace" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.1); font-size: 0.75rem; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
             SESSION: <%= typeof callId !== 'undefined' && callId ? callId : '' %>
           </span>
         </div>
 
-        <div>
-          <span class="call-status-badge connecting call-status-pill connecting">
+        <div style="flex-shrink: 0; margin-left: 8px;">
+          <span class="call-status-badge connected call-status-pill connected">
             <span class="status-indicator-dot online me-1"></span> Active Session
           </span>
         </div>
@@ -103,11 +103,11 @@
       <!-- Center Stage: Caller Avatar, Timer & Quality -->
       <div class="call-center-stage" id="callCenterStage">
         <div class="call-meta-info mb-4">
-          <div class="badge rounded-pill px-3 py-1 small text-white-50 mb-2" style="background: rgba(255, 255, 255, 0.08);">
+          <div class="badge rounded-pill px-3 py-1 small text-white-50 mb-2" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.1);">
             <i class="bi bi-person-fill text-primary me-1"></i> Client Connected
           </div>
-          <h2 id="caller-name-display"><%= typeof callerName !== 'undefined' && callerName ? callerName : 'Client' %></h2>
-          <p>Talk With Ashu Live Consultation Session</p>
+          <h2 id="caller-name-display" class="text-white fw-bold mb-1 fs-3"><%= typeof callerName !== 'undefined' && callerName ? callerName : 'Client' %></h2>
+          <p class="text-white-50 small mb-0">Talk With Ashu Live Consultation Session</p>
         </div>
 
         <!-- Pulsing Radial Sound Wave Rings -->
