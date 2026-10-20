@@ -51,7 +51,23 @@ exports.getDashboard = async (req, res) => {
 
 exports.getWallet = async (req, res) => {
   try {
-    const user = req.user;
+    let user = req.user;
+
+    // Auto-heal/sync any pending Stripe payments if user recently recharged
+    try {
+      const paymentService = require('../services/paymentService');
+      const synced = await paymentService.syncPendingUserPayments(user._id);
+      if (synced && synced.length > 0) {
+        const freshUser = await User.findById(user._id);
+        if (freshUser) {
+          user = freshUser;
+          req.user = freshUser;
+          res.locals.user = freshUser;
+        }
+      }
+    } catch (syncErr) {
+      console.warn('[Wallet Pending Sync Note]:', syncErr.message);
+    }
 
     // Fetch recent 5 transactions
     const transactions = await Transaction.find({ user: user._id })
@@ -328,24 +344,41 @@ exports.getPaymentSuccess = async (req, res) => {
   try {
     const sessionId = req.query.session_id;
     if (!sessionId) {
-      return res.redirect('/user/wallet');
+      return res.redirect(req.session && req.session.userId ? '/user/wallet' : '/login');
     }
 
-    try {
-      const paymentService = require('../services/paymentService');
-      await paymentService.verifySession({
-        sessionId,
-        userId: req.user._id,
-        source: 'redirect'
-      });
-    } catch (verifyErr) {
-      console.warn('[Payment Success Verification Note]:', verifyErr.message);
+    const paymentService = require('../services/paymentService');
+
+    // 1. Verify and fulfill payment idempotently via Stripe session ID
+    const currentUserId = (req.user && req.user._id) ? req.user._id : (req.session && req.session.userId ? req.session.userId : null);
+
+    const verifyResult = await paymentService.verifySession({
+      sessionId,
+      userId: currentUserId,
+      source: 'redirect'
+    });
+
+    // 2. Identify target user (from verification result or existing session)
+    const targetUserId = currentUserId || verifyResult.paymentTransaction?.user;
+
+    // 3. If session cookie was dropped during cross-domain redirect from Stripe, restore user session
+    if (targetUserId && (!req.session || !req.session.userId)) {
+      const dbUser = await User.findById(targetUserId);
+      if (dbUser && !dbUser.isBlocked) {
+        req.session.userId = dbUser._id;
+        req.session.name = dbUser.name;
+        req.session.role = dbUser.role || 'user';
+        await new Promise((resolve) => req.session.save(resolve));
+      }
     }
 
     return res.redirect('/user/wallet?rechargeSuccess=true');
   } catch (error) {
     console.error('[Payment Success Error]:', error);
-    return res.redirect('/user/wallet');
+    if (req.session && req.session.userId) {
+      return res.redirect('/user/wallet?error=' + encodeURIComponent(error.message || 'Payment verification failed'));
+    }
+    return res.redirect('/login?rechargeNotice=' + encodeURIComponent('Payment processed. Please log in to view your wallet coins.'));
   }
 };
 

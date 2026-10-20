@@ -25,6 +25,8 @@ async function startServer() {
     await connectDB();
 
     const app = express();
+    // Enable trust proxy so req.protocol and cookies work reliably behind Nginx / reverse proxies
+    app.set('trust proxy', 1);
     const server = http.createServer(app);
     const io = new Server(server, {
       cors: {
@@ -63,7 +65,8 @@ async function startServer() {
       }),
       cookie: {
         maxAge: 1000 * 60 * 60 * 24, // 24 hours
-        secure: false // Set to true if running over HTTPS
+        secure: 'auto', // Automatically secure on HTTPS
+        sameSite: 'lax' // Preserves session on top-level GET return from Stripe
       }
     }));
 

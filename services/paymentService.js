@@ -83,12 +83,13 @@ async function createOrder({ userId, packageId, returnBaseUrl = 'http://localhos
     throw err;
   }
 
-  const currency = (process.env.STRIPE_CURRENCY || process.env.CURRENCY || 'aed').toLowerCase();
+  // Currency is strictly UAE Dirham (AED)
+  const currency = 'aed';
 
-  // Minimum transaction validation depending on currency
-  const minPrice = currency === 'inr' ? 50 : 2;
+  // Minimum transaction validation (Stripe AED requires minimum 2.00 AED = 200 fils)
+  const minPrice = 2;
   if (plan.price < minPrice) {
-    const err = new Error(`Stripe requires a minimum transaction value of ${minPrice} ${currency.toUpperCase()}. This pack is ${currency.toUpperCase()} ${plan.price}. Please select or update this pack to at least ${minPrice} ${currency.toUpperCase()}.`);
+    const err = new Error(`Stripe requires a minimum transaction value of 2 AED. This pack is AED ${plan.price}. Please select or update this pack to at least 2 AED.`);
     err.status = 400;
     throw err;
   }
@@ -447,6 +448,47 @@ async function getUserCreditTransactions(userId, limit = 30) {
     .limit(limit);
 }
 
+
+/**
+ * Check and recover any pending (CREATED) payment transactions for a user
+ */
+async function syncPendingUserPayments(userId) {
+  if (!userId) return [];
+  try {
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const pendingTxns = await PaymentTransaction.find({
+      user: userId,
+      status: 'CREATED',
+      gateway: 'stripe',
+      stripeSessionId: { $exists: true, $ne: null },
+      createdAt: { $gte: oneDayAgo }
+    }).limit(5);
+
+    const results = [];
+    for (const txn of pendingTxns) {
+      try {
+        const stripe = getStripeInstance();
+        const session = await stripe.checkout.sessions.retrieve(txn.stripeSessionId);
+        if (session && session.payment_status === 'paid') {
+          const res = await fulfillPaymentIdempotent({
+            stripeSessionId: session.id,
+            stripePaymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id,
+            userId,
+            source: 'auto_sync'
+          });
+          results.push(res);
+        }
+      } catch (err) {
+        // Silently skip if session not paid or expired
+      }
+    }
+    return results;
+  } catch (error) {
+    console.warn('[Sync Pending Payments Warning]:', error.message);
+    return [];
+  }
+}
+
 module.exports = {
   getStripeInstance,
   createOrder,
@@ -454,5 +496,6 @@ module.exports = {
   fulfillPaymentIdempotent,
   processWebhook,
   getUserPaymentHistory,
-  getUserCreditTransactions
+  getUserCreditTransactions,
+  syncPendingUserPayments
 };

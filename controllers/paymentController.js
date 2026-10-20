@@ -11,14 +11,7 @@ exports.createOrder = async (req, res) => {
     const { packageId, returnBaseUrl } = req.body;
     const userId = req.user._id;
 
-    // Reject order creation if Ashu (admin) is not online
-    if (!callService.isAdvisorOnline()) {
-      return res.status(403).json({
-        success: false,
-        code: 'ADVISOR_OFFLINE',
-        message: 'Ashu is currently offline. Coins can only be purchased when Ashu is online.'
-      });
-    }
+    // Note: Recharges remain active 24/7 so users can pre-load their wallet anytime.
 
     if (!packageId) {
       return res.status(400).json({
@@ -28,9 +21,14 @@ exports.createOrder = async (req, res) => {
     }
 
     // Determine host base URL for redirect if not provided
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
-    const host = req.get('host') || 'localhost:3000';
-    const baseUrl = returnBaseUrl || `${protocol}://${host}`;
+    let baseUrl = returnBaseUrl;
+    if (!baseUrl) {
+      const forwardedProto = (req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
+      const protocol = forwardedProto || req.protocol || 'http';
+      const host = req.get('host') || 'localhost:3000';
+      baseUrl = `${protocol}://${host}`;
+    }
+    baseUrl = baseUrl.replace(/\/+$/, '');
 
     const orderData = await paymentService.createOrder({
       userId,

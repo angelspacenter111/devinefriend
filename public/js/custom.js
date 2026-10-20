@@ -134,7 +134,7 @@ $(document).ready(function () {
       url: '/api/payments/create-order',
       method: 'POST',
       contentType: 'application/json',
-      data: JSON.stringify({ packageId: planId }),
+      data: JSON.stringify({ packageId: planId, returnBaseUrl: window.location.origin }),
       success: function (res) {
         if (!res.success || (!res.checkoutUrl && !res.sessionId)) {
           $btn.html(origText).prop("disabled", false);

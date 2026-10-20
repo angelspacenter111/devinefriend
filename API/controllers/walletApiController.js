@@ -106,9 +106,14 @@ exports.createOrder = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Selected plan not found or inactive.' });
     }
 
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
-    const host = req.get('host') || 'localhost:3000';
-    const baseUrl = returnBaseUrl || `${protocol}://${host}`;
+    let baseUrl = returnBaseUrl;
+    if (!baseUrl) {
+      const forwardedProto = (req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
+      const protocol = forwardedProto || req.protocol || 'http';
+      const host = req.get('host') || 'localhost:3000';
+      baseUrl = `${protocol}://${host}`;
+    }
+    baseUrl = baseUrl.replace(/\/+$/, '');
 
     const result = await paymentService.createOrder({
       userId: user._id,
