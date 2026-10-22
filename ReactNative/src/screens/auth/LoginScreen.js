@@ -219,7 +219,7 @@ export const LoginScreen = ({ onNavigateRegister, onNavigateForgotPassword, onNa
                 style={styles.modalInput}
                 value={inputHost}
                 onChangeText={setInputHost}
-                placeholder="e.g. https://devinefriend.duckdns.org"
+                placeholder="e.g. https://talkwithashu.duckdns.org"
                 placeholderTextColor={COLORS.textMuted}
                 autoCapitalize="none"
               />

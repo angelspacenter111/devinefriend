@@ -4,11 +4,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
  * Environment-based API & Server Configuration
  * Configured via ReactNative/.env -> EXPO_PUBLIC_API_URL
  */
-export const ENV_SERVER_URL = process.env.EXPO_PUBLIC_API_URL || 'https://devinefriend.duckdns.org';
+export const ENV_SERVER_URL = process.env.EXPO_PUBLIC_API_URL || 'https://talkwithashu.duckdns.org';
 export const PC_LAN_IP = ENV_SERVER_URL;
 
 const sanitizeUrl = (url) => {
-  if (!url) return 'https://devinefriend.duckdns.org';
+  if (!url) return 'https://talkwithashu.duckdns.org';
   let clean = url.trim().replace(/\/+$/, '');
   if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
     clean = `https://${clean}`;

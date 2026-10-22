@@ -51,7 +51,7 @@ export const AdminLoginScreen = () => {
     try {
       const res = await adminLogin(identifier.trim(), password);
       // Immediately register push notifications upon admin authentication
-      notificationService.registerForPushNotifications().catch(() => {});
+      notificationService.registerForPushNotifications().catch(() => { });
     } catch (err) {
       setErrorMsg(err.message || 'Admin authentication failed.');
     } finally {
@@ -199,7 +199,7 @@ export const AdminLoginScreen = () => {
                 style={styles.modalInput}
                 value={inputHost}
                 onChangeText={setInputHost}
-                placeholder="e.g. https://devinefriend.duckdns.org"
+                placeholder="e.g. https://talkwithashu.duckdns.org"
                 placeholderTextColor={COLORS.textMuted}
                 autoCapitalize="none"
                 keyboardType="url"
