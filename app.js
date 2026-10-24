@@ -114,6 +114,8 @@ async function startServer() {
 		app.use('/api/payments', paymentRoutes);
 		app.use('/api/credits', paymentRoutes);
 		app.use('/api/calls', paymentRoutes);
+		const sfuRoutes = require('./routes/sfuRoutes');
+		app.use('/api/sfu', sfuRoutes);
 
 		// 404 Fallback - redirect to home page
 		app.use((req, res) => {
@@ -357,6 +359,18 @@ async function startServer() {
 				}
 
 				io.to(roomId).emit('call-active', { callId, connectedAt: new Date() });
+			});
+
+			// Cloudflare Realtime SFU Track Announcement
+			socket.on('cf-sfu-tracks-published', (data) => {
+				const roomId = (data && data.callId) || socket.callId || 'call_room';
+				console.log(`[Socket SFU] Peer ${socket.id} published tracks on session ${data.sessionId} in room ${roomId}`);
+				socket.to(roomId).emit('cf-sfu-remote-tracks-available', {
+					publisherSessionId: data.sessionId,
+					tracks: data.tracks,
+					senderId: socket.id,
+					callId: data.callId
+				});
 			});
 
 			// Keep-alive heartbeat from active calling peers to prevent false-positive disconnects
