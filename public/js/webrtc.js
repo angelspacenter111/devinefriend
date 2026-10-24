@@ -1492,19 +1492,13 @@ async function applyAdaptiveQuality(quality, stats) {
         enc.active = true;
         setVideoFallbackMode(false);
       } else if (quality === 'CRITICAL') {
-        // High packet loss or severe congestion: Prioritize Clear Audio Over Video
-        if (stats.packetLoss > 18 || (stats.rtt > 500 && stats.packetLoss > 10)) {
-          enc.scaleResolutionDownBy = 4.0;
-          enc.maxFramerate = 8;
-          enc.maxBitrate = 45000;
-          setVideoFallbackMode(true, "Audio-Only Mode (Bandwidth Critical)");
-        } else {
-          enc.scaleResolutionDownBy = 4.0;
-          enc.maxFramerate = 12;
-          enc.maxBitrate = 75000;
-          enc.active = true;
-          setVideoFallbackMode(true, "Weak network: Video reduced to preserve clear voice");
-        }
+        // Under weak / constrained network: ALWAYS keep video call active (never switch to audio call)
+        // Dynamically scale down resolution and framerate to maintain continuous video stream without dropping
+        enc.scaleResolutionDownBy = 3.5;
+        enc.maxFramerate = 15;
+        enc.maxBitrate = 95000;
+        enc.active = true; // Video stream strictly active at all times
+        setVideoFallbackMode(true, "Weak network: Video quality adjusted to maintain stability");
       }
 
       await videoSender.setParameters(videoParams);
@@ -1517,32 +1511,25 @@ async function applyAdaptiveQuality(quality, stats) {
   updateNetworkQualityUI(quality, stats);
 }
 
-// Fallback Mode Handler: preserves voice quality when video connection drops
-function setVideoFallbackMode(active, message = "Weak network: Video reduced to preserve clear voice") {
+// Adaptive Video Quality Notice Handler (Never turns off video or switches to audio)
+function setVideoFallbackMode(active, message = "Weak network: Video quality adjusted") {
   if (isAudioFirstFallbackActive === active) return;
   isAudioFirstFallbackActive = active;
 
-  console.log(`[ABR Fallback] Audio-first fallback ${active ? 'ACTIVATED' : 'DEACTIVATED'}: ${message}`);
+  console.log(`[ABR Video] Adaptive video quality notice ${active ? 'ACTIVATED' : 'DEACTIVATED'}: ${message}`);
 
   const $banner = $("#videoFallbackBanner");
-  const $placeholder = $("#remoteVideoPlaceholder");
 
   if (active) {
     if ($banner.length) {
       $banner.removeClass("d-none restored").find("#videoFallbackText").text(message);
     }
-    if (message.includes("Audio-Only") && $placeholder.length) {
-      $placeholder.removeClass("d-none");
-    }
   } else {
     if ($banner.length && !$banner.hasClass("d-none")) {
-      $banner.addClass("restored").find("#videoFallbackText").text("Connection restored — Video resumed");
+      $banner.addClass("restored").find("#videoFallbackText").text("Connection restored — Full video quality resumed");
       setTimeout(() => {
         $banner.addClass("d-none").removeClass("restored");
       }, 3500);
-    }
-    if ($placeholder.length) {
-      $placeholder.addClass("d-none");
     }
   }
 }
@@ -1573,7 +1560,7 @@ function updateNetworkQualityUI(quality, stats = {}) {
     qualityClass = 'quality-critical';
     iconClass = 'bi-reception-1';
     audioLabel = 'Voice Priority';
-    videoLabel = 'Voice Priority';
+    videoLabel = 'Low';
   }
 
   // 1. Audio Call Screen Badge

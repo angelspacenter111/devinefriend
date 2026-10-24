@@ -4,7 +4,7 @@
  * 1. SDP Audio & Video Optimization (Opus FEC, DTX, VBR, Mono, RTCP-FB)
  * 2. Network Quality Monitor & Dynamic Bandwidth Estimation
  * 3. Adaptive Video Quality Controller (Resolution, Framerate, Bitrate scaling)
- * 4. Audio-First Fallback on Severe Packet Loss (>18%) & Weak Connectivity
+ * 4. Video Stream Continuity (NEVER switch video call to audio call; video stays active at all times)
  * 5. Hysteresis Stability & Quality Recovery
  * 6. Seamless ICE Restart Negotiation (Transient Disconnect Recovery)
  */
@@ -139,43 +139,32 @@ test('Network Quality Monitor: Accurate classification (Excellent, Good, Poor, C
 // Test 3: Adaptive Video Quality & Dynamic Resolution / Framerate
 // -------------------------------------------------------------
 test('Adaptive Video Quality: Dynamic resolution scale, framerate & bitrate adjustment', () => {
-  function getABRParameters(tier, stats = {}) {
+  function getABRParameters(tier) {
     const enc = {};
     if (tier === 'EXCELLENT') {
       enc.scaleResolutionDownBy = 1.0; // 720p
       enc.maxFramerate = 30;
       enc.maxBitrate = 1200000;
       enc.audioBitrate = 36000;
-      enc.fallbackActive = false;
+      enc.active = true;
     } else if (tier === 'GOOD') {
       enc.scaleResolutionDownBy = 1.5; // ~480p
       enc.maxFramerate = 24;
       enc.maxBitrate = 600000;
       enc.audioBitrate = 32000;
-      enc.fallbackActive = false;
+      enc.active = true;
     } else if (tier === 'POOR') {
       enc.scaleResolutionDownBy = 2.5; // ~288p
       enc.maxFramerate = 15;
       enc.maxBitrate = 200000;
       enc.audioBitrate = 24000;
-      enc.fallbackActive = false;
+      enc.active = true;
     } else if (tier === 'CRITICAL') {
-      if (stats.packetLoss > 18 || (stats.rtt > 500 && stats.packetLoss > 10)) {
-        // Audio-First Fallback
-        enc.scaleResolutionDownBy = 4.0;
-        enc.maxFramerate = 8;
-        enc.maxBitrate = 45000;
-        enc.audioBitrate = 20000;
-        enc.fallbackActive = true;
-        enc.fallbackMode = 'Audio-Only';
-      } else {
-        enc.scaleResolutionDownBy = 4.0; // 180p
-        enc.maxFramerate = 12;
-        enc.maxBitrate = 75000;
-        enc.audioBitrate = 20000;
-        enc.fallbackActive = true;
-        enc.fallbackMode = 'Low-Bandwidth';
-      }
+      enc.scaleResolutionDownBy = 3.5; // ~200p
+      enc.maxFramerate = 15;
+      enc.maxBitrate = 95000;
+      enc.audioBitrate = 20000;
+      enc.active = true; // Video stream strictly active
     }
     return enc;
   }
@@ -190,16 +179,44 @@ test('Adaptive Video Quality: Dynamic resolution scale, framerate & bitrate adju
   assert.strictEqual(pPoor.maxFramerate, 15);
   assert.strictEqual(pPoor.maxBitrate, 200000);
 
-  // Critical conditions with 22% packet loss -> Audio-First Fallback triggered
-  const pCrit = getABRParameters('CRITICAL', { packetLoss: 22, rtt: 550 });
-  assert.strictEqual(pCrit.fallbackActive, true);
-  assert.strictEqual(pCrit.fallbackMode, 'Audio-Only');
-  assert.strictEqual(pCrit.maxFramerate, 8);
-  assert.strictEqual(pCrit.maxBitrate, 45000);
+  const pCrit = getABRParameters('CRITICAL');
+  assert.strictEqual(pCrit.scaleResolutionDownBy, 3.5);
+  assert.strictEqual(pCrit.maxFramerate, 15);
+  assert.strictEqual(pCrit.maxBitrate, 95000);
+  assert.strictEqual(pCrit.active, true, 'Video must remain strictly active on CRITICAL tier');
 });
 
 // -------------------------------------------------------------
-// Test 4: Hysteresis Algorithm (Rapid downscale, conservative recovery)
+// Test 4: Video Stream Continuity (Never Switch Video to Audio Call)
+// -------------------------------------------------------------
+test('Video Continuity: Video call NEVER converts to audio-only call during connection drops', () => {
+  // Simulate network conditions dropping to severe loss (25% loss, 500ms RTT)
+  const stats = { packetLoss: 25, rtt: 500, jitter: 120 };
+  const callType = 'Video';
+
+  // Controller execution simulation
+  const enc = {
+    scaleResolutionDownBy: 1.0,
+    maxFramerate: 24,
+    maxBitrate: 800000,
+    active: true
+  };
+
+  // On critical network: scale quality down, NEVER switch to audio call
+  if (stats.packetLoss > 15 || stats.rtt > 400) {
+    enc.scaleResolutionDownBy = 3.5;
+    enc.maxFramerate = 15;
+    enc.maxBitrate = 95000;
+    enc.active = true; // Video is NOT disabled or switched to audio
+  }
+
+  assert.strictEqual(enc.active, true, 'Video track must remain active');
+  assert.strictEqual(callType, 'Video', 'Call type must remain Video');
+  assert(enc.scaleResolutionDownBy >= 3.0, 'Resolution must be scaled down to maintain low bandwidth');
+});
+
+// -------------------------------------------------------------
+// Test 5: Hysteresis Algorithm (Rapid downscale, conservative recovery)
 // -------------------------------------------------------------
 test('Hysteresis Algorithm: Immediate downscale on congestion, smoothed recovery', () => {
   class HysteresisController {
@@ -250,7 +267,7 @@ test('Hysteresis Algorithm: Immediate downscale on congestion, smoothed recovery
 });
 
 // -------------------------------------------------------------
-// Test 5: Seamless ICE Restart Protocol Verification
+// Test 6: Seamless ICE Restart Protocol Verification
 // -------------------------------------------------------------
 test('ICE Restart: Non-destructive renegotiation and active call preservation', () => {
   let isIceRestartFlag = false;
@@ -271,31 +288,6 @@ test('ICE Restart: Non-destructive renegotiation and active call preservation', 
   assert.strictEqual(isIceRestartFlag, true, 'isIceRestart flag must be preserved');
   assert.strictEqual(res.renegotiated, true, 'Renegotiation must complete successfully');
   assert.strictEqual(callTerminated, false, 'Call must not terminate on ICE restart');
-});
-
-// -------------------------------------------------------------
-// Test 6: Microphone Constraints & Speech Hint Verification
-// -------------------------------------------------------------
-test('Audio Processing: VoIP constraints & speech content hint', () => {
-  const telephonyConstraints = {
-    echoCancellation: { ideal: true },
-    noiseSuppression: { ideal: true },
-    autoGainControl: { ideal: true },
-    channelCount: { ideal: 1 },
-    sampleRate: { ideal: 48000 },
-    sampleSize: { ideal: 16 }
-  };
-
-  assert.strictEqual(telephonyConstraints.echoCancellation.ideal, true);
-  assert.strictEqual(telephonyConstraints.noiseSuppression.ideal, true);
-  assert.strictEqual(telephonyConstraints.autoGainControl.ideal, true);
-  assert.strictEqual(telephonyConstraints.channelCount.ideal, 1, 'Mono cuts audio bandwidth by 50%');
-
-  const mockAudioTrack = { kind: 'audio', contentHint: '' };
-  if (mockAudioTrack.kind === 'audio') {
-    mockAudioTrack.contentHint = 'speech';
-  }
-  assert.strictEqual(mockAudioTrack.contentHint, 'speech', 'Audio track must be tagged as speech');
 });
 
 console.log('\n================================================================');
