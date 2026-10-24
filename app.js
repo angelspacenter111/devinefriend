@@ -359,13 +359,23 @@ async function startServer() {
 				io.to(roomId).emit('call-active', { callId, connectedAt: new Date() });
 			});
 
+			// Keep-alive heartbeat from active calling peers to prevent false-positive disconnects
+			socket.on('call-heartbeat', (data) => {
+				const callId = (data && data.callId) || socket.callId;
+				if (callId && callDisconnectTimers.has(callId)) {
+					clearTimeout(callDisconnectTimers.get(callId));
+					callDisconnectTimers.delete(callId);
+				}
+			});
+
 			// Forward WebRTC SDP Offer (Direct socket addressing with room fallback)
 			socket.on('send-offer', (data) => {
 				const roomId = data.callId || 'call_room';
 				const payload = {
 					offer: data.offer,
 					senderId: socket.id,
-					callId: data.callId
+					callId: data.callId,
+					isIceRestart: Boolean(data.isIceRestart)
 				};
 				let delivered = false;
 				if (data.targetId && io.sockets.sockets.has(data.targetId)) {
@@ -383,7 +393,8 @@ async function startServer() {
 				const payload = {
 					answer: data.answer,
 					senderId: socket.id,
-					callId: data.callId
+					callId: data.callId,
+					isIceRestart: Boolean(data.isIceRestart)
 				};
 				let delivered = false;
 				if (data.targetId && io.sockets.sockets.has(data.targetId)) {

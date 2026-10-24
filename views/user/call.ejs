@@ -14,6 +14,25 @@
       <!-- Fullscreen Video Elements Layer -->
       <div class="video-stage-wrapper" id="videoStageWrapper">
         <video id="remoteVideo" autoplay playsinline class="remote-video-element"></video>
+
+        <!-- Remote Video Paused Placeholder for Audio-First Fallback -->
+        <div class="video-paused-placeholder d-none" id="remoteVideoPlaceholder">
+          <div class="placeholder-avatar"><i class="bi bi-person-heart"></i></div>
+          <div class="placeholder-text" id="videoPlaceholderText">Audio-Only Mode (Bandwidth Saving)</div>
+        </div>
+
+        <!-- Video Mode Network Quality Pill -->
+        <div class="video-network-pill d-none" id="videoNetworkPill">
+          <i class="bi bi-reception-4" id="videoNetworkIcon"></i>
+          <span id="videoNetworkLabel">HD</span>
+        </div>
+
+        <!-- Video Fallback Banner -->
+        <div class="video-fallback-banner d-none" id="videoFallbackBanner">
+          <i class="bi bi-wifi-exclamation me-1.5" id="videoFallbackIcon"></i>
+          <span id="videoFallbackText">Weak network: Video reduced to preserve clear voice</span>
+        </div>
+
         <div class="local-pip-container" id="localPipContainer">
           <video id="localVideo" autoplay playsinline muted class="local-video-element"></video>
           <button type="button" class="btn btn-sm btn-dark rounded-circle local-flip-btn" id="flip-camera-btn" onclick="flipCamera()" title="Flip Camera">
@@ -70,7 +89,11 @@
           </span>
         </div>
 
-        <div style="flex-shrink: 0; margin-left: 8px;">
+        <div class="d-flex align-items-center gap-2" style="flex-shrink: 0; margin-left: 8px;">
+          <span id="call-network-badge" class="call-network-badge d-none" title="Real-time Network & Audio Quality">
+            <i class="bi bi-reception-4" id="call-network-icon"></i>
+            <span id="call-network-label">HD Voice</span>
+          </span>
           <span class="call-status-badge connecting call-status-pill connecting">
             <span class="status-indicator-dot connecting me-1"></span> Connecting...
           </span>

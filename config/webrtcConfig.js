@@ -130,7 +130,10 @@ function getIceServers() {
 
 const RTC_CONFIG = {
   iceServers: getIceServers(),
-  iceCandidatePoolSize: 10
+  iceCandidatePoolSize: 10,
+  bundlePolicy: 'max-bundle',
+  rtcpMuxPolicy: 'require',
+  iceTransportPolicy: 'all'
 };
 
 module.exports = {

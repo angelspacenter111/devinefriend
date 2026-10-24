@@ -1,6 +1,13 @@
 /*
- * WebRTC Voice Calling Companion Engine
- * Friend MVC - Production Ready, Hardened & Zero Regression
+ * WebRTC Voice & Video Calling Companion Engine
+ * Friend MVC - Optimized for Slow & Unstable Networks
+ * Features:
+ *  - Adaptive Bitrate Controller (ABR) & Dynamic Video Scaling (Resolution & Framerate)
+ *  - Opus In-band FEC (Forward Error Correction) & DTX for Packet Loss Resilience
+ *  - Real-time Network Quality Monitor (RTT, Jitter, Packet Loss, BWE)
+ *  - Audio-First Fallback (Prioritizes voice clarity over video on weak networks)
+ *  - Seamless ICE Restart & Reconnection without call termination
+ *  - Jitter Buffer Tuning & Low Latency Telephony
  */
 
 // Global Socket instance
@@ -57,6 +64,7 @@ const currentCreditRate = window.creditRate || (isVideoCall ? 2 : 1);
 let isTerminating = false;
 let ringingTimeoutTimer = null;
 let connectingTimeoutTimer = null;
+let heartbeatTimer = null;
 
 // STUN & TURNS (TLS on Port 443) server configuration for UAE / Strict Firewall Traversal
 const defaultIceServers = [
@@ -77,6 +85,7 @@ const defaultIceServers = [
   { urls: 'stun:stun1.l.google.com:19302' },
   { urls: 'stun:stun2.l.google.com:19302' },
   { urls: 'stun:stun3.l.google.com:19302' },
+  { urls: 'stun:stun4.l.google.com:19302' },
   { urls: 'stun:stun.cloudflare.com:3478' }
 ];
 
@@ -84,7 +93,10 @@ const rtcConfig = {
   iceServers: (window.iceServers && Array.isArray(window.iceServers) && window.iceServers.length > 0)
     ? window.iceServers
     : defaultIceServers,
-  iceCandidatePoolSize: 10
+  iceCandidatePoolSize: 10,
+  bundlePolicy: 'max-bundle',
+  rtcpMuxPolicy: 'require',
+  iceTransportPolicy: 'all'
 };
 
 let localStream = null;
@@ -97,10 +109,117 @@ let callTimerInterval = null;
 let currentCreditsUsed = 0;
 let callStartTime = null;
 
+// Network Quality & Adaptive ABR controller instances
+let networkMonitor = null;
+let currentQualityTier = 'EXCELLENT';
+let isAudioFirstFallbackActive = false;
+let isRestartingIce = false;
+let iceDisconnectGraceTimer = null;
+
 // Session user configuration
 const activeUser = window.sessionUser || { name: "Caller", credits: 5 };
 
-// Function to report granular connection diagnostics & logs to backend
+// ==========================================
+// SDP Optimization Engine (Opus FEC, DTX, VBR & Video RTCP Feedback)
+// ==========================================
+function optimizeSDP(sdp, options = {}) {
+  if (!sdp || typeof sdp !== 'string') return sdp;
+
+  const {
+    maxAudioBitrate = 32000,
+    enableFEC = true,
+    enableDTX = true,
+    forceMono = true
+  } = options;
+
+  let lines = sdp.split('\r\n');
+  if (lines.length <= 1) {
+    lines = sdp.split('\n');
+  }
+
+  // 1. Identify Opus payload type from rtpmap
+  let opusPt = null;
+  for (const line of lines) {
+    const match = line.match(/^a=rtpmap:(\d+)\s+opus\/48000/i);
+    if (match) {
+      opusPt = match[1];
+      break;
+    }
+  }
+
+  const modifiedLines = [];
+  let fmtpFound = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    if (opusPt && line.startsWith(`a=fmtp:${opusPt}`)) {
+      fmtpFound = true;
+      const parts = line.split(' ');
+      const prefix = parts[0];
+      const paramStr = parts.slice(1).join(' ');
+
+      const paramMap = new Map();
+      if (paramStr) {
+        paramStr.split(';').forEach(p => {
+          const kv = p.trim().split('=');
+          if (kv[0]) {
+            paramMap.set(kv[0].trim(), kv[1] ? kv[1].trim() : '');
+          }
+        });
+      }
+
+      // Enforce optimized Opus parameters for slow / unstable network resilience
+      if (enableFEC) paramMap.set('useinbandfec', '1');
+      if (enableDTX) paramMap.set('usedtx', '1');
+      if (forceMono) {
+        paramMap.set('stereo', '0');
+        paramMap.set('sprop-stereo', '0');
+      }
+      paramMap.set('cbr', '0'); // Variable bitrate mode (higher clarity per byte)
+      paramMap.set('maxaveragebitrate', String(maxAudioBitrate));
+      if (!paramMap.has('minptime')) paramMap.set('minptime', '10');
+      if (!paramMap.has('ptime')) paramMap.set('ptime', '20');
+
+      const newParams = [];
+      paramMap.forEach((val, key) => {
+        if (val !== '') newParams.push(`${key}=${val}`);
+        else newParams.push(key);
+      });
+
+      modifiedLines.push(`${prefix} ${newParams.join(';')}`);
+    } else {
+      modifiedLines.push(line);
+    }
+  }
+
+  // If Opus pt was found but no fmtp line existed, inject one right after rtpmap
+  if (opusPt && !fmtpFound) {
+    const finalLines = [];
+    for (const line of modifiedLines) {
+      finalLines.push(line);
+      if (line.match(new RegExp(`^a=rtpmap:${opusPt}\\s+opus/48000`, 'i'))) {
+        const params = [
+          'minptime=10',
+          'ptime=20',
+          enableFEC ? 'useinbandfec=1' : '',
+          enableDTX ? 'usedtx=1' : '',
+          `maxaveragebitrate=${maxAudioBitrate}`,
+          'cbr=0',
+          forceMono ? 'stereo=0;sprop-stereo=0' : ''
+        ].filter(Boolean).join(';');
+        finalLines.push(`a=fmtp:${opusPt} ${params}`);
+      }
+    }
+    return finalLines.join('\r\n');
+  }
+
+  return modifiedLines.join('\r\n');
+}
+
+// ==========================================
+// Diagnostic Logging & Reporting
+// ==========================================
 function reportCallIssue({
   eventType = 'CONNECTION_ISSUE',
   severity = 'info',
@@ -120,6 +239,8 @@ function reportCallIssue({
     details: {
       ...details,
       callState: currentCallState,
+      qualityTier: currentQualityTier,
+      isAudioFirstFallback: isAudioFirstFallbackActive,
       userAgent: navigator.userAgent,
       platform: navigator.platform,
       callType: isVideoCall ? 'Video' : 'Voice'
@@ -129,12 +250,10 @@ function reportCallIssue({
 
   console.log(`[Diagnostic Report] [${severity.toUpperCase()}] ${eventType} (${stage}): ${errorMessage || errorName}`);
 
-  // 1. Emit through socket if connected
   if (socket && socket.connected) {
     socket.emit('call-issue-log', payload);
   }
 
-  // 2. Reliable HTTP POST fallback (Ajax / Beacon)
   const isAdm = (window.isAdminReceiver || $("#webrtc-admin-trigger").length > 0);
   const endpoint = isAdm ? '/admin/log-call-issue' : '/user/log-call-issue';
 
@@ -150,14 +269,15 @@ function reportCallIssue({
         data: JSON.stringify(payload)
       });
     }
-  } catch (e) {
-    // Non-blocking
-  }
+  } catch (e) {}
 }
 
-// Socket connection diagnostic logging
+// Socket Diagnostics
 socket.on('connect', () => {
   console.log(`[Socket] Connected to signaling server. Socket ID: ${socket.id}, Call ID: ${currentCallId}`);
+  if (currentCallId && (currentCallState === CallState.ACTIVE || currentCallState === CallState.CONNECTED)) {
+    socket.emit('call-heartbeat', { callId: currentCallId });
+  }
 });
 
 socket.on('connect_error', (error) => {
@@ -179,8 +299,6 @@ socket.on('disconnect', (reason) => {
     stage: 'socket_connection',
     errorMessage: `Socket disconnected: ${reason}`
   });
-  // DO NOT terminate active call! WebRTC audio runs on separate P2P/TURN media channels.
-  // Socket.io will automatically reconnect in the background.
 });
 
 $(document).ready(function() {
@@ -188,7 +306,7 @@ $(document).ready(function() {
   const isAdminReceiver = $("#webrtc-admin-trigger").length > 0 || window.isAdminReceiver;
 
   if (!currentCallId) {
-    console.warn("[WebRTC] No active call session found. Smoothly redirecting to dashboard...");
+    console.warn("[WebRTC] No active call session found. Redirecting to dashboard...");
     window.location.href = isAdminReceiver ? "/admin/dashboard" : "/user/dashboard";
     return;
   }
@@ -209,11 +327,8 @@ function initializeCallerFlow() {
   console.log(`[WebRTC] Starting caller flow for: ${userName} (Call ID: ${currentCallId})`);
 
   transitionTo(CallState.OUTGOING, { user: userName, callId: currentCallId });
-
-  // Store for disconnect fallback
   localStorage.setItem('active_call_id', currentCallId);
 
-  // Join call signaling room with Call ID
   function emitJoinRoom() {
     console.log(`[WebRTC] Emitting join-call-room for Call ID: ${currentCallId}, Socket ID: ${socket.id}`);
     socket.emit('join-call-room', {
@@ -230,7 +345,6 @@ function initializeCallerFlow() {
     socket.once('connect', emitJoinRoom);
   }
 
-  // Ensure room re-joined if socket reconnects during active ringing/negotiation
   socket.on('connect', () => {
     if (currentCallId && !isTerminalState(currentCallState)) {
       emitJoinRoom();
@@ -240,12 +354,11 @@ function initializeCallerFlow() {
   transitionTo(CallState.RINGING, { callId: currentCallId });
   $(".call-status-badge").removeClass("connected").addClass("connecting").html('<span class="status-indicator-dot connecting me-1"></span> Calling...');
 
-  // Pre-warm microphone access while phone is ringing so user approves permission before handshake
+  // Pre-warm microphone access while ringing
   getMicrophoneAccess().catch((e) => {
     console.log("[WebRTC Pre-warm] Mic access initial request:", e.name || e.message);
   });
 
-  // Live ringback acknowledgements (ignore if call already connected)
   socket.off('call-placed').on('call-placed', () => {
     if (currentCallState === CallState.CONNECTED || currentCallState === CallState.ACTIVE) return;
     console.log("[Socket] Call placed on server. Ringing advisor...");
@@ -258,7 +371,7 @@ function initializeCallerFlow() {
     $(".call-status-badge").removeClass("connected").addClass("connecting ringing").html('<span class="status-indicator-dot ringing me-1"></span> Ringing...');
   });
 
-  // Ringing Timeout: 90 seconds generous window for advisor to answer device
+  // 90s Ringing Timeout
   ringingTimeoutTimer = setTimeout(() => {
     if (currentCallState === CallState.RINGING || currentCallState === CallState.OUTGOING) {
       console.warn("[WebRTC Timeout] Ringing timed out after 90s without answer.");
@@ -278,7 +391,7 @@ function initializeCallerFlow() {
     }
   }, 90000);
 
-  // Listen for admin to accept call
+  // When admin accepts call
   socket.off('peer-connected').on('peer-connected', async (data) => {
     if (isTerminalState(currentCallState)) return;
     if (currentCallState === CallState.ACCEPTED || currentCallState === CallState.CONNECTING || currentCallState === CallState.CONNECTED || currentCallState === CallState.ACTIVE) {
@@ -296,7 +409,7 @@ function initializeCallerFlow() {
     targetPeerId = data.adminId;
     callStartTime = Date.now();
 
-    // Start 60s WebRTC Connection Timeout (ample time for TURNS 443 TLS handshake in strict firewalls)
+    // 60s Handshake Timeout
     connectingTimeoutTimer = setTimeout(() => {
       if (currentCallState === CallState.ACCEPTED || currentCallState === CallState.CONNECTING) {
         console.warn("[WebRTC Timeout] Connection handshake timed out after 60s.");
@@ -316,11 +429,10 @@ function initializeCallerFlow() {
       }
     }, 60000);
 
-    // Begin negotiations
+    // Begin WebRTC negotiation
     await startCallNegotiation(true);
   });
 
-  // Listen for admin to reject/decline call
   socket.off('call-rejected').on('call-rejected', (data) => {
     console.warn(`[Socket] Call was declined by Ashu:`, data);
     if (ringingTimeoutTimer) clearTimeout(ringingTimeoutTimer);
@@ -352,7 +464,6 @@ function initializeReceiverFlow() {
 
   transitionTo(CallState.ACCEPTED, { callerId, callId: currentCallId });
 
-  // Accept call alert & maintain presence
   function emitAdminAccept() {
     console.log(`[WebRTC] Emitting admin-accept-call for Call ID: ${currentCallId}, Socket ID: ${socket.id}`);
     socket.emit('admin-join', {
@@ -378,7 +489,6 @@ function initializeReceiverFlow() {
     console.log("[WebRTC Pre-warm Admin] Mic access initial request:", e.name || e.message);
   });
 
-  // Start 60s Connection Timeout for Admin
   connectingTimeoutTimer = setTimeout(() => {
     if (currentCallState === CallState.ACCEPTED || currentCallState === CallState.CONNECTING) {
       console.warn("[WebRTC Timeout] Peer connection handshake timed out for admin.");
@@ -397,7 +507,6 @@ function initializeReceiverFlow() {
     }
   }, 60000);
 
-  // Listen for call-accept-error (e.g. caller cancelled before admin joined)
   socket.off('call-accept-error').on('call-accept-error', (data) => {
     console.warn('[WebRTC] Call cannot be accepted:', data);
     if (connectingTimeoutTimer) clearTimeout(connectingTimeoutTimer);
@@ -405,7 +514,6 @@ function initializeReceiverFlow() {
     window.location.href = '/admin/calls';
   });
 
-  // Listen for call cancellation while on admin call screen
   socket.off('call-cancelled').on('call-cancelled', (data) => {
     if (data && (!data.callId || data.callId === currentCallId)) {
       console.warn('[WebRTC] Caller cancelled call during connection:', data);
@@ -415,17 +523,21 @@ function initializeReceiverFlow() {
     }
   });
 
-  // Listen for SDP Offer from caller
+  // Listen for SDP Offer from caller (or ICE restart offer)
   socket.off('receive-offer').on('receive-offer', async (data) => {
     if (isTerminalState(currentCallState)) return;
-    console.log(`[Socket] Received 'receive-offer' from peer.`);
+    console.log(`[Socket] Received 'receive-offer' from peer. isIceRestart: ${Boolean(data.isIceRestart)}`);
     targetPeerId = data.senderId;
 
     try {
-      transitionTo(CallState.CONNECTING, { targetPeerId });
+      const isExistingActiveCall = (currentCallState === CallState.ACTIVE || currentCallState === CallState.CONNECTED);
+      if (!isExistingActiveCall) {
+        transitionTo(CallState.CONNECTING, { targetPeerId });
+      }
+
       await setupPeerConnection();
       await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-      
+
       // Flush any queued ICE candidates
       if (webIceQueue.length > 0) {
         console.log(`[WebRTC] Flushing ${webIceQueue.length} queued ICE candidate(s)...`);
@@ -439,21 +551,42 @@ function initializeReceiverFlow() {
         webIceQueue = [];
       }
 
-      const stream = await getMicrophoneAccess();
-      if (stream && peerConnection) {
-        stream.getTracks().forEach(track => {
-          try { peerConnection.addTrack(track, stream); } catch (e) {}
-        });
+      // Add local media tracks if not already present
+      const senders = peerConnection.getSenders();
+      const hasTracks = senders.some(s => s.track);
+      if (!hasTracks) {
+        const stream = await getMicrophoneAccess();
+        if (stream && peerConnection) {
+          stream.getTracks().forEach(track => {
+            try { peerConnection.addTrack(track, stream); } catch (e) {}
+          });
+        }
       }
 
       const answer = await peerConnection.createAnswer();
-      await peerConnection.setLocalDescription(answer);
+      const optimizedAnswerSdp = optimizeSDP(answer.sdp, {
+        maxAudioBitrate: isAudioFirstFallbackActive ? 20000 : 32000,
+        enableFEC: true,
+        enableDTX: true
+      });
+
+      await peerConnection.setLocalDescription(new RTCSessionDescription({
+        type: answer.type,
+        sdp: optimizedAnswerSdp
+      }));
 
       socket.emit('send-answer', {
-        answer: answer,
+        answer: peerConnection.localDescription,
         targetId: targetPeerId,
-        callId: currentCallId
+        callId: currentCallId,
+        isIceRestart: Boolean(data.isIceRestart)
       });
+
+      // Apply sender parameters
+      applyAudioSenderOptimizations();
+      if (isVideoCall) {
+        applyVideoSenderOptimizations();
+      }
     } catch (err) {
       console.error("[WebRTC Error] Negotiation failed during offer processing:", err);
       reportCallIssue({
@@ -464,11 +597,13 @@ function initializeReceiverFlow() {
         errorMessage: 'Error during offer processing or answer creation: ' + (err.message || err.toString()),
         markCallFailed: true
       });
-      terminateCallSession('Failed', {
-        failureReason: 'Error during offer processing: ' + err.message,
-        errorCode: 'SDP_ANSWER_ERROR',
-        failedAtStage: 'offer_answer'
-      });
+      if (currentCallState !== CallState.ACTIVE) {
+        terminateCallSession('Failed', {
+          failureReason: 'Error during offer processing: ' + err.message,
+          errorCode: 'SDP_ANSWER_ERROR',
+          failedAtStage: 'offer_answer'
+        });
+      }
     }
   });
 }
@@ -486,18 +621,33 @@ async function startCallNegotiation(isInitiator) {
     const stream = await getMicrophoneAccess();
 
     if (stream && peerConnection) {
-      stream.getTracks().forEach(track => {
-        try { peerConnection.addTrack(track, stream); } catch (e) {}
-      });
+      const senders = peerConnection.getSenders();
+      const hasTracks = senders.some(s => s.track);
+      if (!hasTracks) {
+        stream.getTracks().forEach(track => {
+          try { peerConnection.addTrack(track, stream); } catch (e) {}
+        });
+      }
     }
 
     if (isInitiator && peerConnection) {
       const offer = await peerConnection.createOffer();
-      await peerConnection.setLocalDescription(offer);
+      const optimizedOfferSdp = optimizeSDP(offer.sdp, {
+        maxAudioBitrate: 32000,
+        enableFEC: true,
+        enableDTX: true
+      });
+
+      await peerConnection.setLocalDescription(new RTCSessionDescription({
+        type: offer.type,
+        sdp: optimizedOfferSdp
+      }));
+
       socket.emit('send-offer', {
-        offer: offer,
+        offer: peerConnection.localDescription,
         targetId: targetPeerId,
-        callId: currentCallId
+        callId: currentCallId,
+        isIceRestart: false
       });
     }
   } catch (err) {
@@ -534,12 +684,30 @@ async function setupPeerConnection() {
     }
   };
 
-  // Remote audio & video track reception (with fallback for React Native streams)
+  // Remote audio & video track reception with jitter buffering optimization
   peerConnection.ontrack = (event) => {
     console.log(`[WebRTC] Remote track arrived (${event.track ? event.track.kind : 'stream'}).`);
     let stream = (event.streams && event.streams[0]);
     if (!stream && event.track) {
       stream = new MediaStream([event.track]);
+    }
+
+    // Configure jitter buffer targets where supported
+    if (peerConnection.getReceivers) {
+      peerConnection.getReceivers().forEach(receiver => {
+        if (receiver.track && receiver.track.kind === 'audio') {
+          if ('playoutDelayHint' in receiver) {
+            receiver.playoutDelayHint = 0.05; // 50ms low-latency jitter buffer target
+          }
+          if ('jitterBufferTarget' in receiver) {
+            receiver.jitterBufferTarget = 50;
+          }
+        } else if (receiver.track && receiver.track.kind === 'video') {
+          if ('playoutDelayHint' in receiver) {
+            receiver.playoutDelayHint = 0.08; // 80ms lip-sync video jitter buffer target
+          }
+        }
+      });
     }
 
     if (stream) {
@@ -557,7 +725,6 @@ async function setupPeerConnection() {
           window.addEventListener('touchstart', resumeAudio, { once: true });
         });
 
-        // Configure audio routing: defaults to earpiece for voice calls, speaker for video
         applyAudioRouting(isVideoCall ? 'speaker' : 'earpiece');
       }
       const remoteVideo = document.getElementById('remoteVideo');
@@ -568,9 +735,18 @@ async function setupPeerConnection() {
     }
   };
 
-  // Helper: Transition to active connected state idempotently
+  // Idempotent Connected State Handler
   const handleConnectedState = () => {
-    if (currentCallState === CallState.CONNECTED || currentCallState === CallState.ACTIVE) return;
+    if (currentCallState === CallState.CONNECTED || currentCallState === CallState.ACTIVE) {
+      // Re-connected after transient reconnect or ICE restart
+      console.log("[WebRTC] Call connection re-verified / re-established.");
+      if (iceDisconnectGraceTimer) {
+        clearTimeout(iceDisconnectGraceTimer);
+        iceDisconnectGraceTimer = null;
+      }
+      isRestartingIce = false;
+      return;
+    }
 
     if (connectingTimeoutTimer) {
       clearTimeout(connectingTimeoutTimer);
@@ -595,10 +771,19 @@ async function setupPeerConnection() {
     $("#call-cancel-btn-wrapper, #call-cancel-btn").addClass("d-none");
     $("#call-active-controls").removeClass("d-none");
 
-    // Notify server that call is actively connected
+    // Reveal Network Quality Pill
+    $("#call-network-badge, #videoNetworkPill").removeClass("d-none");
+
     socket.emit('call-connected', { callId: currentCallId });
 
     startActiveCallTimer();
+    startNetworkMonitoring();
+    startCallHeartbeat();
+
+    applyAudioSenderOptimizations();
+    if (isVideoCall) {
+      applyVideoSenderOptimizations();
+    }
   };
 
   // Connection state changes
@@ -618,54 +803,22 @@ async function setupPeerConnection() {
     if (connState === 'connected') {
       handleConnectedState();
     } else if (connState === 'failed') {
-      console.warn("[WebRTC] Peer connection failed. Attempting ICE restart...");
-      reportCallIssue({
-        eventType: 'PEER_FAILED',
-        severity: 'warn',
-        stage: 'in_call',
-        errorMessage: 'Peer connection failed, attempting ICE restart'
-      });
-      if (typeof peerConnection.restartIce === 'function') {
-        peerConnection.restartIce();
-      }
-      setTimeout(() => {
-        if (peerConnection && peerConnection.connectionState === 'failed' && !isTerminalState(currentCallState)) {
-          console.error("[WebRTC] Peer connection failed after ICE restart delay.");
-          const failReason = 'WebRTC media connection failed (firewall or NAT traversal blockage between regions)';
-          reportCallIssue({
-            eventType: 'WEBRTC_ICE_FAILED',
-            severity: 'error',
-            stage: 'handshake',
-            errorMessage: failReason,
-            markCallFailed: true
-          });
-          alert("Audio connection could not be established. If you are in UAE/Dubai, please ensure you are connected to a stable network or Wi-Fi.");
-          socket.emit('hangup', {
-            callId: currentCallId,
-            reason: 'Failed',
-            failureReason: failReason,
-            errorCode: 'WEBRTC_ICE_FAILED',
-            failedAtStage: 'handshake'
-          });
-          terminateCallSession('Failed', {
-            failureReason: failReason,
-            errorCode: 'WEBRTC_ICE_FAILED',
-            failedAtStage: 'handshake'
-          });
-        }
-      }, 12000);
+      console.warn("[WebRTC] Peer connection failed. Triggering seamless ICE restart...");
+      triggerIceRestart();
     } else if (connState === 'disconnected') {
-      console.warn("[WebRTC] Peer connection temporarily disconnected (ICE attempting reconnection)...");
-      reportCallIssue({
-        eventType: 'PEER_DISCONNECTED',
-        severity: 'info',
-        stage: 'in_call',
-        errorMessage: 'Peer connection temporarily disconnected (transient state)'
-      });
-      // DO NOT terminate active call! WebRTC automatically attempts to reconnect or re-route candidates.
+      console.warn("[WebRTC] Peer connection temporarily disconnected. Awaiting ICE recovery...");
+      if (!iceDisconnectGraceTimer && !isRestartingIce) {
+        iceDisconnectGraceTimer = setTimeout(() => {
+          iceDisconnectGraceTimer = null;
+          if (peerConnection && (peerConnection.connectionState === 'disconnected' || peerConnection.connectionState === 'failed')) {
+            triggerIceRestart();
+          }
+        }, 4000);
+      }
     }
   };
 
+  // ICE connection state changes
   peerConnection.oniceconnectionstatechange = () => {
     if (!peerConnection) return;
     const iceState = peerConnection.iceConnectionState;
@@ -680,19 +833,25 @@ async function setupPeerConnection() {
     });
 
     if (iceState === 'connected' || iceState === 'completed') {
-      handleConnectedState();
-    } else if (iceState === 'failed') {
-      console.warn("[WebRTC] ICE failed. Attempting restart...");
-      reportCallIssue({
-        eventType: 'ICE_FAILED',
-        severity: 'error',
-        stage: 'ice_negotiation',
-        errorMessage: 'ICE candidates failed to connect peer addresses',
-        markCallFailed: true
-      });
-      if (typeof peerConnection.restartIce === 'function') {
-        peerConnection.restartIce();
+      if (iceDisconnectGraceTimer) {
+        clearTimeout(iceDisconnectGraceTimer);
+        iceDisconnectGraceTimer = null;
       }
+      isRestartingIce = false;
+      handleConnectedState();
+    } else if (iceState === 'disconnected') {
+      console.warn("[WebRTC] ICE disconnected. Waiting 4s before seamless restart...");
+      if (!iceDisconnectGraceTimer && !isRestartingIce && !isTerminalState(currentCallState)) {
+        iceDisconnectGraceTimer = setTimeout(() => {
+          iceDisconnectGraceTimer = null;
+          if (peerConnection && (peerConnection.iceConnectionState === 'disconnected' || peerConnection.iceConnectionState === 'failed')) {
+            triggerIceRestart();
+          }
+        }, 4000);
+      }
+    } else if (iceState === 'failed') {
+      console.warn("[WebRTC] ICE failed. Immediately executing ICE restart...");
+      triggerIceRestart();
     }
   };
 
@@ -710,6 +869,47 @@ async function setupPeerConnection() {
   }
 }
 
+// Seamless ICE Restart & Renegotiation without call termination
+async function triggerIceRestart() {
+  if (isRestartingIce || isTerminalState(currentCallState) || !peerConnection) return;
+  isRestartingIce = true;
+  console.log("[WebRTC] Initiating seamless ICE Restart...");
+
+  reportCallIssue({
+    eventType: 'ICE_RESTART_TRIGGERED',
+    severity: 'warn',
+    stage: 'ice_negotiation',
+    errorMessage: 'Executing seamless ICE restart negotiation'
+  });
+
+  try {
+    if (typeof peerConnection.restartIce === 'function') {
+      peerConnection.restartIce();
+    }
+    const offer = await peerConnection.createOffer({ iceRestart: true });
+    const optimizedOfferSdp = optimizeSDP(offer.sdp, {
+      maxAudioBitrate: isAudioFirstFallbackActive ? 20000 : 32000,
+      enableFEC: true,
+      enableDTX: true
+    });
+
+    await peerConnection.setLocalDescription(new RTCSessionDescription({
+      type: offer.type,
+      sdp: optimizedOfferSdp
+    }));
+
+    socket.emit('send-offer', {
+      offer: peerConnection.localDescription,
+      targetId: targetPeerId,
+      callId: currentCallId,
+      isIceRestart: true
+    });
+  } catch (err) {
+    console.error("[WebRTC] ICE restart offer creation failed:", err);
+    isRestartingIce = false;
+  }
+}
+
 // Signaling listeners
 socket.off('receive-answer').on('receive-answer', async (data) => {
   if (isTerminalState(currentCallState)) return;
@@ -722,7 +922,6 @@ socket.off('receive-answer').on('receive-answer', async (data) => {
       await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
       console.log("[WebRTC] Set remote description (Answer) successfully.");
 
-      // Flush queued candidates
       if (webIceQueue.length > 0) {
         console.log(`[WebRTC] Flushing ${webIceQueue.length} queued ICE candidate(s)...`);
         for (const cand of webIceQueue) {
@@ -734,9 +933,16 @@ socket.off('receive-answer').on('receive-answer', async (data) => {
         }
         webIceQueue = [];
       }
+
+      applyAudioSenderOptimizations();
+      if (isVideoCall) {
+        applyVideoSenderOptimizations();
+      }
+      isRestartingIce = false;
     }
   } catch (err) {
     console.error("[WebRTC Error] Failed to set Remote Description (Answer):", err);
+    isRestartingIce = false;
   }
 });
 
@@ -759,7 +965,6 @@ socket.off('receive-candidate').on('receive-candidate', async (data) => {
 
 socket.off('peer-disconnected').on('peer-disconnected', (data) => {
   console.warn(`[Socket] Received 'peer-disconnected':`, data);
-  // ONLY terminate if the peer explicitly hung up or server explicitly finalized
   const isExplicit = data && (data.explicit || data.reason === 'Completed' || data.reason === 'Cancelled' || data.reason === 'Missed' || data.reason === 'Rejected' || data.reason === 'User Ended Call' || data.reason === 'Admin Ended Call');
 
   if (isExplicit) {
@@ -774,23 +979,59 @@ socket.off('call-finalized').on('call-finalized', (data) => {
   console.log(`[Socket] Call finalized confirmation received from server:`, data);
 });
 
-// Hardware camera / microphone stream (with graceful video-to-audio and permission issue tracking)
+// Periodic signaling heartbeat for active calls
+function startCallHeartbeat() {
+  if (heartbeatTimer) return;
+  heartbeatTimer = setInterval(() => {
+    if (socket && socket.connected && currentCallId && !isTerminalState(currentCallState)) {
+      socket.emit('call-heartbeat', { callId: currentCallId, socketId: socket.id });
+    }
+  }, 10000);
+}
+
+// ==========================================
+// Hardware Media Access & Audio Constraints
+// ==========================================
 async function getMicrophoneAccess() {
   if (localStream) return localStream;
 
-  // 1. If Video Call, request both audio and video stream
+  // Optimized VoIP telephony constraints
+  const telephonyAudioConstraints = {
+    echoCancellation: { ideal: true },
+    noiseSuppression: { ideal: true },
+    autoGainControl: { ideal: true },
+    channelCount: { ideal: 1 },
+    sampleRate: { ideal: 48000 },
+    sampleSize: { ideal: 16 },
+    // Vendor specific flags for Chromium/Edge
+    googEchoCancellation: { ideal: true },
+    googAutoGainControl: { ideal: true },
+    googNoiseSuppression: { ideal: true },
+    googHighpassFilter: { ideal: true },
+    googTypingNoiseDetection: { ideal: true }
+  };
+
+  // 1. If Video Call, request both audio and optimized video stream
   if (isVideoCall) {
     try {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         localStream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
+          audio: telephonyAudioConstraints,
           video: {
             facingMode: 'user',
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
+            width: { ideal: 1280, max: 1280 },
+            height: { ideal: 720, max: 720 },
+            frameRate: { ideal: 24, max: 30 }
           }
         });
         console.log("[WebRTC] Video and microphone access granted.");
+
+        // Mark speech and motion contentHints
+        localStream.getTracks().forEach(t => {
+          if (t.kind === 'audio' && 'contentHint' in t) t.contentHint = 'speech';
+          if (t.kind === 'video' && 'contentHint' in t) t.contentHint = 'motion';
+        });
+
         reportCallIssue({
           eventType: 'PERMISSION_APPROVED',
           severity: 'info',
@@ -817,14 +1058,14 @@ async function getMicrophoneAccess() {
   try {
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       localStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: { ideal: true },
-          noiseSuppression: { ideal: true },
-          autoGainControl: { ideal: true },
-          channelCount: { ideal: 1 }
-        }
+        audio: telephonyAudioConstraints
       });
       console.log("[WebRTC] Microphone access granted with VoIP telephony constraints.");
+
+      localStream.getAudioTracks().forEach(t => {
+        if ('contentHint' in t) t.contentHint = 'speech';
+      });
+
       reportCallIssue({
         eventType: 'PERMISSION_APPROVED',
         severity: 'info',
@@ -890,7 +1131,7 @@ async function getMicrophoneAccess() {
     return null;
   }
 
-  // Graceful fallback for synthetic automated tests only
+  // Automated test mock fallback
   if (window.__ENABLE_SILENT_MOCK_MIC__ || window.navigator.webdriver) {
     try {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -942,7 +1183,436 @@ function attachLocalVideo(stream) {
 }
 
 // ==========================================
-// 4. Visual Call Timer & Client-side Balance Tracker
+// 4. RTCRtpSender Encoding Optimizations
+// ==========================================
+async function applyAudioSenderOptimizations() {
+  if (!peerConnection) return;
+  const audioSender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'audio');
+  if (audioSender && audioSender.getParameters && audioSender.setParameters) {
+    try {
+      const params = audioSender.getParameters();
+      if (!params.encodings || params.encodings.length === 0) {
+        params.encodings = [{}];
+      }
+      params.encodings[0].priority = 'high';
+      params.encodings[0].networkPriority = 'high';
+      params.encodings[0].maxBitrate = isAudioFirstFallbackActive ? 20000 : 32000;
+      await audioSender.setParameters(params);
+      console.log("[WebRTC Sender] Audio sender prioritized (priority: high, maxBitrate:", params.encodings[0].maxBitrate, ")");
+    } catch (e) {
+      console.warn("[WebRTC Sender] Audio sender optimization note:", e.message);
+    }
+  }
+}
+
+async function applyVideoSenderOptimizations() {
+  if (!peerConnection) return;
+  const videoSender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+  if (videoSender && videoSender.getParameters && videoSender.setParameters) {
+    try {
+      const params = videoSender.getParameters();
+      if (!params.encodings || params.encodings.length === 0) {
+        params.encodings = [{}];
+      }
+      if ('degradationPreference' in videoSender) {
+        // Prevent video freeze on weak connections by scaling down resolution first
+        videoSender.degradationPreference = 'maintain-framerate';
+      }
+      params.encodings[0].priority = 'medium';
+      params.encodings[0].networkPriority = 'medium';
+      params.encodings[0].maxBitrate = 900000;
+      params.encodings[0].maxFramerate = 24;
+      params.encodings[0].scaleResolutionDownBy = 1.0;
+      await videoSender.setParameters(params);
+      console.log("[WebRTC Sender] Video sender tuned (degradationPreference: maintain-framerate, maxBitrate: 900kbps)");
+    } catch (e) {
+      console.warn("[WebRTC Sender] Video sender optimization note:", e.message);
+    }
+  }
+}
+
+// ==========================================
+// 5. Network Quality Monitor & Adaptive Bitrate Engine
+// ==========================================
+class NetworkQualityMonitor {
+  constructor({ peerConnection, onQualityChange, onStatsUpdate, intervalMs = 2000 }) {
+    this.pc = peerConnection;
+    this.onQualityChange = onQualityChange;
+    this.onStatsUpdate = onStatsUpdate;
+    this.intervalMs = intervalMs;
+    this.timer = null;
+    this.prevStats = null;
+    this.currentQuality = 'EXCELLENT';
+    this.consecutiveDegraded = 0;
+    this.consecutiveImproved = 0;
+  }
+
+  start() {
+    if (this.timer) return;
+    this.timer = setInterval(() => this.collectStats(), this.intervalMs);
+    console.log("[NetworkMonitor] Real-time network statistics monitoring started.");
+  }
+
+  stop() {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+    this.prevStats = null;
+    console.log("[NetworkMonitor] Monitoring stopped.");
+  }
+
+  async collectStats() {
+    if (!this.pc || this.pc.connectionState === 'closed') return;
+    try {
+      const reportMap = await this.pc.getStats();
+      let rtt = 0;
+      let availableOutgoingBitrate = 0;
+      let audioJitter = 0;
+      let currentPacketsReceived = 0;
+      let currentPacketsLost = 0;
+      let videoFramesDropped = 0;
+      let videoFps = 0;
+      let totalBytesSent = 0;
+
+      reportMap.forEach(report => {
+        // 1. Candidate Pair (Round Trip Time & Bandwidth Estimation)
+        if (report.type === 'candidate-pair' && (report.selected || report.state === 'succeeded' || report.nominated)) {
+          if (typeof report.currentRoundTripTime === 'number') {
+            rtt = Math.round(report.currentRoundTripTime * 1000);
+          } else if (typeof report.roundTripTime === 'number') {
+            rtt = Math.round(report.roundTripTime * 1000);
+          }
+          if (typeof report.availableOutgoingBitrate === 'number') {
+            availableOutgoingBitrate = Math.round(report.availableOutgoingBitrate / 1000);
+          }
+        }
+
+        // 2. Inbound Audio RTP (Loss & Jitter)
+        if (report.type === 'inbound-rtp' && (report.kind === 'audio' || report.mediaType === 'audio')) {
+          currentPacketsReceived += report.packetsReceived || 0;
+          currentPacketsLost += report.packetsLost || 0;
+          if (typeof report.jitter === 'number') {
+            audioJitter = Math.round(report.jitter * 1000);
+          }
+        }
+
+        // 3. Inbound Video RTP
+        if (report.type === 'inbound-rtp' && (report.kind === 'video' || report.mediaType === 'video')) {
+          currentPacketsReceived += report.packetsReceived || 0;
+          currentPacketsLost += report.packetsLost || 0;
+          if (typeof report.framesDropped === 'number') {
+            videoFramesDropped = report.framesDropped;
+          }
+          if (typeof report.framesPerSecond === 'number') {
+            videoFps = Math.round(report.framesPerSecond);
+          }
+        }
+
+        // 4. Outbound RTP (Transmission Bitrate)
+        if (report.type === 'outbound-rtp') {
+          totalBytesSent += report.bytesSent || 0;
+        }
+      });
+
+      // Compute Rolling Delta Packet Loss %
+      let deltaLossRate = 0;
+      let bitrateSentKbps = 0;
+      const now = Date.now();
+
+      if (this.prevStats) {
+        const deltaReceived = Math.max(0, currentPacketsReceived - this.prevStats.packetsReceived);
+        const deltaLost = Math.max(0, currentPacketsLost - this.prevStats.packetsLost);
+        const totalDelta = deltaReceived + deltaLost;
+        if (totalDelta > 0) {
+          deltaLossRate = parseFloat(((deltaLost / totalDelta) * 100).toFixed(1));
+        }
+
+        const elapsedSec = (now - this.prevStats.timestamp) / 1000;
+        if (elapsedSec > 0) {
+          const deltaBytesSent = Math.max(0, totalBytesSent - this.prevStats.bytesSent);
+          bitrateSentKbps = Math.round((deltaBytesSent * 8) / (elapsedSec * 1000));
+        }
+      }
+
+      this.prevStats = {
+        packetsReceived: currentPacketsReceived,
+        packetsLost: currentPacketsLost,
+        bytesSent: totalBytesSent,
+        timestamp: now
+      };
+
+      // Quality Classification
+      let evaluatedTier = 'EXCELLENT';
+      if (rtt >= 400 || deltaLossRate >= 15 || audioJitter >= 100 || (availableOutgoingBitrate > 0 && availableOutgoingBitrate < 150)) {
+        evaluatedTier = 'CRITICAL';
+      } else if (rtt >= 220 || deltaLossRate >= 6 || audioJitter >= 60 || (availableOutgoingBitrate > 0 && availableOutgoingBitrate < 350)) {
+        evaluatedTier = 'POOR';
+      } else if (rtt >= 100 || deltaLossRate >= 2 || audioJitter >= 35 || (availableOutgoingBitrate > 0 && availableOutgoingBitrate < 700)) {
+        evaluatedTier = 'GOOD';
+      } else {
+        evaluatedTier = 'EXCELLENT';
+      }
+
+      // Hysteresis Filter (Downscale fast to protect calls, Upscale gradually after verification)
+      const tierRank = { 'EXCELLENT': 4, 'GOOD': 3, 'POOR': 2, 'CRITICAL': 1 };
+      const currentRank = tierRank[this.currentQuality];
+      const evalRank = tierRank[evaluatedTier];
+
+      let changed = false;
+      if (evalRank < currentRank) {
+        this.consecutiveDegraded++;
+        this.consecutiveImproved = 0;
+        if (this.consecutiveDegraded >= 1) {
+          this.currentQuality = evaluatedTier;
+          changed = true;
+        }
+      } else if (evalRank > currentRank) {
+        this.consecutiveImproved++;
+        this.consecutiveDegraded = 0;
+        if (this.consecutiveImproved >= 3) {
+          this.currentQuality = evaluatedTier;
+          changed = true;
+        }
+      } else {
+        this.consecutiveDegraded = 0;
+        this.consecutiveImproved = 0;
+      }
+
+      const statsPayload = {
+        quality: this.currentQuality,
+        rtt,
+        packetLoss: deltaLossRate,
+        jitter: audioJitter,
+        availableBandwidth: availableOutgoingBitrate,
+        bitrateSent: bitrateSentKbps,
+        videoFps
+      };
+
+      if (changed && typeof this.onQualityChange === 'function') {
+        this.onQualityChange(this.currentQuality, statsPayload);
+      }
+      if (typeof this.onStatsUpdate === 'function') {
+        this.onStatsUpdate(statsPayload);
+      }
+    } catch (statsErr) {
+      console.warn("[NetworkMonitor] getStats error:", statsErr);
+    }
+  }
+}
+
+function startNetworkMonitoring() {
+  if (networkMonitor) {
+    networkMonitor.stop();
+  }
+  networkMonitor = new NetworkQualityMonitor({
+    peerConnection,
+    onQualityChange: (quality, stats) => {
+      console.log(`[NetworkMonitor] Quality transitioned to: ${quality}`, stats);
+      currentQualityTier = quality;
+      applyAdaptiveQuality(quality, stats);
+    },
+    onStatsUpdate: (stats) => {
+      updateNetworkQualityUI(currentQualityTier, stats);
+    }
+  });
+  networkMonitor.start();
+}
+
+function stopNetworkMonitoring() {
+  if (networkMonitor) {
+    networkMonitor.stop();
+    networkMonitor = null;
+  }
+}
+
+// Adaptive Bitrate Controller: adjusts video resolution/fps and prioritizes audio
+async function applyAdaptiveQuality(quality, stats) {
+  if (!peerConnection) return;
+
+  const audioSender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'audio');
+  const videoSender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+
+  // 1. Audio Sender Adaptation
+  if (audioSender && audioSender.getParameters && audioSender.setParameters) {
+    try {
+      const audioParams = audioSender.getParameters();
+      if (!audioParams.encodings || audioParams.encodings.length === 0) {
+        audioParams.encodings = [{}];
+      }
+      audioParams.encodings[0].priority = 'high';
+      audioParams.encodings[0].networkPriority = 'high';
+
+      if (quality === 'CRITICAL') {
+        audioParams.encodings[0].maxBitrate = 20000;
+      } else if (quality === 'POOR') {
+        audioParams.encodings[0].maxBitrate = 24000;
+      } else if (quality === 'GOOD') {
+        audioParams.encodings[0].maxBitrate = 32000;
+      } else {
+        audioParams.encodings[0].maxBitrate = 36000;
+      }
+      await audioSender.setParameters(audioParams);
+    } catch (e) {
+      console.warn("[ABR Controller] Audio sender update warning:", e.message);
+    }
+  }
+
+  // 2. Video Sender Adaptation (Dynamic Bitrate, Resolution Scaling & Framerate)
+  if (videoSender && videoSender.getParameters && videoSender.setParameters) {
+    try {
+      const videoParams = videoSender.getParameters();
+      if (!videoParams.encodings || videoParams.encodings.length === 0) {
+        videoParams.encodings = [{}];
+      }
+      if ('degradationPreference' in videoSender) {
+        videoSender.degradationPreference = 'maintain-framerate';
+      }
+
+      const enc = videoParams.encodings[0];
+      enc.priority = (quality === 'CRITICAL' || quality === 'POOR') ? 'low' : 'medium';
+      enc.networkPriority = (quality === 'CRITICAL' || quality === 'POOR') ? 'low' : 'medium';
+
+      if (quality === 'EXCELLENT') {
+        enc.scaleResolutionDownBy = 1.0;
+        enc.maxFramerate = 30;
+        enc.maxBitrate = 1200000;
+        enc.active = true;
+        setVideoFallbackMode(false);
+      } else if (quality === 'GOOD') {
+        enc.scaleResolutionDownBy = 1.5;
+        enc.maxFramerate = 24;
+        enc.maxBitrate = 600000;
+        enc.active = true;
+        setVideoFallbackMode(false);
+      } else if (quality === 'POOR') {
+        enc.scaleResolutionDownBy = 2.5;
+        enc.maxFramerate = 15;
+        enc.maxBitrate = 200000;
+        enc.active = true;
+        setVideoFallbackMode(false);
+      } else if (quality === 'CRITICAL') {
+        // High packet loss or severe congestion: Prioritize Clear Audio Over Video
+        if (stats.packetLoss > 18 || (stats.rtt > 500 && stats.packetLoss > 10)) {
+          enc.scaleResolutionDownBy = 4.0;
+          enc.maxFramerate = 8;
+          enc.maxBitrate = 45000;
+          setVideoFallbackMode(true, "Audio-Only Mode (Bandwidth Critical)");
+        } else {
+          enc.scaleResolutionDownBy = 4.0;
+          enc.maxFramerate = 12;
+          enc.maxBitrate = 75000;
+          enc.active = true;
+          setVideoFallbackMode(true, "Weak network: Video reduced to preserve clear voice");
+        }
+      }
+
+      await videoSender.setParameters(videoParams);
+      console.log(`[ABR Controller] Video sender updated for tier ${quality} (scale: ${enc.scaleResolutionDownBy}, maxFps: ${enc.maxFramerate}, maxBitrate: ${enc.maxBitrate})`);
+    } catch (e) {
+      console.warn("[ABR Controller] Video sender update warning:", e.message);
+    }
+  }
+
+  updateNetworkQualityUI(quality, stats);
+}
+
+// Fallback Mode Handler: preserves voice quality when video connection drops
+function setVideoFallbackMode(active, message = "Weak network: Video reduced to preserve clear voice") {
+  if (isAudioFirstFallbackActive === active) return;
+  isAudioFirstFallbackActive = active;
+
+  console.log(`[ABR Fallback] Audio-first fallback ${active ? 'ACTIVATED' : 'DEACTIVATED'}: ${message}`);
+
+  const $banner = $("#videoFallbackBanner");
+  const $placeholder = $("#remoteVideoPlaceholder");
+
+  if (active) {
+    if ($banner.length) {
+      $banner.removeClass("d-none restored").find("#videoFallbackText").text(message);
+    }
+    if (message.includes("Audio-Only") && $placeholder.length) {
+      $placeholder.removeClass("d-none");
+    }
+  } else {
+    if ($banner.length && !$banner.hasClass("d-none")) {
+      $banner.addClass("restored").find("#videoFallbackText").text("Connection restored — Video resumed");
+      setTimeout(() => {
+        $banner.addClass("d-none").removeClass("restored");
+      }, 3500);
+    }
+    if ($placeholder.length) {
+      $placeholder.addClass("d-none");
+    }
+  }
+}
+
+// Update Real-Time UI Badges & Indicators
+function updateNetworkQualityUI(quality, stats = {}) {
+  const $callBadge = $("#call-network-badge");
+  const $videoPill = $("#videoNetworkPill");
+  const $adminQualityText = $("#adminStreamQualityText");
+  const $adminIcon = $("#adminStreamIcon");
+
+  let qualityClass = 'quality-excellent';
+  let iconClass = 'bi-reception-4';
+  let audioLabel = 'HD Voice';
+  let videoLabel = 'HD';
+
+  if (quality === 'GOOD') {
+    qualityClass = 'quality-good';
+    iconClass = 'bi-reception-3';
+    audioLabel = 'Good Voice';
+    videoLabel = 'SD';
+  } else if (quality === 'POOR') {
+    qualityClass = 'quality-poor';
+    iconClass = 'bi-reception-2';
+    audioLabel = 'Weak Signal';
+    videoLabel = 'Low Bandwidth';
+  } else if (quality === 'CRITICAL') {
+    qualityClass = 'quality-critical';
+    iconClass = 'bi-reception-1';
+    audioLabel = 'Voice Priority';
+    videoLabel = 'Voice Priority';
+  }
+
+  // 1. Audio Call Screen Badge
+  if ($callBadge.length) {
+    $callBadge
+      .removeClass("quality-excellent quality-good quality-poor quality-critical d-none")
+      .addClass(qualityClass);
+    $callBadge.find("#call-network-icon").attr("class", `bi ${iconClass} me-1`);
+    $callBadge.find("#call-network-label").text(audioLabel);
+    $callBadge.attr("title", `RTT: ${stats.rtt || 0}ms | Loss: ${stats.packetLoss || 0}% | Jitter: ${stats.jitter || 0}ms`);
+  }
+
+  // 2. Video Call Screen Floating Pill
+  if ($videoPill.length) {
+    $videoPill
+      .removeClass("quality-excellent quality-good quality-poor quality-critical d-none")
+      .addClass(qualityClass);
+    $videoPill.find("#videoNetworkIcon").attr("class", `bi ${iconClass}`);
+    $videoPill.find("#videoNetworkLabel").text(videoLabel);
+  }
+
+  // 3. Admin Call Console Stream Quality Display
+  if ($adminQualityText.length) {
+    let adminDesc = "HD Ultra Low Latency";
+    if (quality === 'GOOD') adminDesc = `Good (${stats.rtt || 0}ms)`;
+    if (quality === 'POOR') adminDesc = `Weak Network (Loss: ${stats.packetLoss || 0}%)`;
+    if (quality === 'CRITICAL') adminDesc = "Prioritizing Voice (Critical Bandwidth)";
+    $adminQualityText.text(adminDesc);
+
+    if ($adminIcon.length) {
+      if (quality === 'CRITICAL') $adminIcon.attr("class", "bi bi-broadcast text-danger");
+      else if (quality === 'POOR') $adminIcon.attr("class", "bi bi-broadcast text-warning");
+      else $adminIcon.attr("class", "bi bi-broadcast text-success");
+    }
+  }
+}
+
+// ==========================================
+// 6. Visual Call Timer & Client-side Balance Tracker
 // ==========================================
 function startActiveCallTimer() {
   if (callTimerInterval) return;
@@ -983,7 +1653,7 @@ function startActiveCallTimer() {
 }
 
 function triggerLowCreditWarning(rate = 1) {
-  if (isVideoCall) return; // Full-screen video call: suppress text alert banners
+  if (isVideoCall) return;
   if ($(".call-low-credit-bar").length === 0) {
     const minsRemaining = Math.max(1, Math.floor((activeUser.credits || 0) / rate));
     const warningHtml = `
@@ -997,13 +1667,13 @@ function triggerLowCreditWarning(rate = 1) {
 }
 
 // ==========================================
-// 5. Termination & Cleanup Handlers (Idempotent)
+// 7. Termination & Cleanup Handlers (Idempotent)
 // ==========================================
 $(document).on("click", "#call-end-btn, #call-cancel-btn", function(e) {
   e.preventDefault();
   console.log("[UI] Hangup / Cancel button clicked.");
   const finalReason = secondsElapsed > 0 ? "Completed" : "Cancelled";
-  
+
   let diagnostics = {};
   if (finalReason === "Cancelled") {
     if (currentCallState === CallState.RINGING || currentCallState === CallState.OUTGOING) {
@@ -1041,17 +1711,16 @@ function terminateCallSession(statusType, diagnostics = {}) {
   isTerminating = true;
 
   transitionTo(CallState.ENDING, { statusType });
-
   console.log(`[WebRTC] Terminating call session (${currentCallId}) with status: ${statusType}`, diagnostics);
 
-  // Protect buttons against multi-click
   $("#call-end-btn, #call-cancel-btn").prop('disabled', true);
   if ($("#call-cancel-btn").is(":visible")) {
     $("#call-cancel-btn").text('Cancelling...');
   }
   $("#call-end-btn").html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
 
-  // Clear timers
+  stopNetworkMonitoring();
+
   if (callTimerInterval) {
     clearInterval(callTimerInterval);
     callTimerInterval = null;
@@ -1064,8 +1733,15 @@ function terminateCallSession(statusType, diagnostics = {}) {
     clearTimeout(connectingTimeoutTimer);
     connectingTimeoutTimer = null;
   }
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+  if (iceDisconnectGraceTimer) {
+    clearTimeout(iceDisconnectGraceTimer);
+    iceDisconnectGraceTimer = null;
+  }
 
-  // Stop microphone hardware tracks safely
   if (localStream) {
     try {
       localStream.getTracks().forEach(track => {
@@ -1077,7 +1753,6 @@ function terminateCallSession(statusType, diagnostics = {}) {
     localStream = null;
   }
 
-  // Close PeerConnection
   if (peerConnection) {
     try {
       peerConnection.close();
@@ -1088,7 +1763,6 @@ function terminateCallSession(statusType, diagnostics = {}) {
   }
   webIceQueue = [];
 
-  // Clean local storage state
   localStorage.removeItem('active_call_id');
   localStorage.removeItem('webrtc_caller_id');
   localStorage.removeItem('webrtc_caller_name');
@@ -1107,7 +1781,6 @@ function terminateCallSession(statusType, diagnostics = {}) {
   };
 
   if (isUserCaller) {
-    // Notify server via AJAX to finalize call and deduct credits
     $.ajax({
       url: '/user/end-call',
       method: 'POST',
@@ -1119,7 +1792,6 @@ function terminateCallSession(statusType, diagnostics = {}) {
       }
     });
   } else {
-    // Admin receiver flow
     $.ajax({
       url: '/admin/end-call',
       method: 'POST',
@@ -1146,7 +1818,7 @@ function toggleLocalMute() {
 }
 
 // ==========================================
-// Audio Output Routing (Earpiece / Receiver vs Loudspeaker)
+// Audio Output Routing (Earpiece vs Loudspeaker)
 // ==========================================
 let currentAudioRoute = isVideoCall ? 'speaker' : 'earpiece';
 let activeAudioRoutingCtx = null;
@@ -1156,21 +1828,15 @@ async function applyAudioRouting(targetMode) {
   const remoteAudio = document.getElementById('remoteAudio');
   console.log(`[Audio Routing] Applying route: ${targetMode} (isVideoCall: ${isVideoCall})`);
 
-  // 1. Try HTMLMediaElement.setSinkId if supported by browser
   if (remoteAudio && typeof remoteAudio.setSinkId === 'function') {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const outputDevices = devices.filter(d => d.kind === 'audiooutput');
-      console.log(`[Audio Routing] Available audio outputs (${outputDevices.length}):`, outputDevices);
 
       let chosenDeviceId = '';
       if (targetMode === 'earpiece') {
         const earpiece = outputDevices.find(d => /earpiece|receiver|phone|handset|internal/i.test(d.label));
-        if (earpiece) {
-          chosenDeviceId = earpiece.deviceId;
-        } else {
-          chosenDeviceId = 'default';
-        }
+        chosenDeviceId = earpiece ? earpiece.deviceId : 'default';
       } else {
         const speaker = outputDevices.find(d => /speaker|loudspeaker|speakerphone|external/i.test(d.label));
         if (speaker) {
@@ -1192,7 +1858,6 @@ async function applyAudioRouting(targetMode) {
     }
   }
 
-  // 2. Try AudioContext.setSinkId if supported (Chromium 110+)
   try {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (AudioContextClass && remoteAudio && remoteAudio.srcObject) {
@@ -1210,22 +1875,16 @@ async function applyAudioRouting(targetMode) {
           : outputs.find(d => /speaker|loudspeaker|speakerphone/i.test(d.label));
         const sinkId = target ? target.deviceId : 'default';
         await activeAudioRoutingCtx.setSinkId(sinkId);
-        console.log(`[Audio Routing] activeAudioRoutingCtx.setSinkId set to '${sinkId}'`);
       }
     }
-  } catch (ctxErr) {
-    // Non-blocking fallback
-  }
+  } catch (ctxErr) {}
 
-  // 3. Update UI button text and icon
   updateSpeakerButtonUI(targetMode);
 }
 
-// Toggle between Earpiece and Speakerphone
 async function toggleRemoteSpeaker() {
   const nextMode = (currentAudioRoute === 'earpiece') ? 'speaker' : 'earpiece';
 
-  // If browser supports native selectAudioOutput picker, offer it
   if (typeof navigator.mediaDevices !== 'undefined' && typeof navigator.mediaDevices.selectAudioOutput === 'function') {
     try {
       const selected = await navigator.mediaDevices.selectAudioOutput();
@@ -1239,9 +1898,7 @@ async function toggleRemoteSpeaker() {
           return;
         }
       }
-    } catch (e) {
-      // User cancelled picker or rejected permission, fallback to standard toggle
-    }
+    } catch (e) {}
   }
 
   await applyAudioRouting(nextMode);
@@ -1308,4 +1965,3 @@ async function flipCamera() {
     console.warn('[WebRTC Warning] Could not flip camera:', err);
   }
 }
-
