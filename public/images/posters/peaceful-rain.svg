@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#121829"/>
+      <stop offset="50%" stop-color="#24335c"/>
+      <stop offset="100%" stop-color="#4d3278"/>
+    </linearGradient>
+    <radialGradient id="glow2" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#7B4DCE" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#7B4DCE" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bgGrad2)"/>
+  <circle cx="640" cy="320" r="380" fill="url(#glow2)"/>
+
+  <!-- Raindrop lines -->
+  <g stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity="0.15">
+    <line x1="200" y1="120" x2="160" y2="220"/>
+    <line x1="380" y1="80" x2="340" y2="180"/>
+    <line x1="520" y1="160" x2="480" y2="260"/>
+    <line x1="750" y1="90" x2="710" y2="190"/>
+    <line x1="920" y1="140" x2="880" y2="240"/>
+    <line x1="1100" y1="70" x2="1060" y2="170"/>
+    <line x1="260" y1="360" x2="220" y2="460"/>
+    <line x1="840" y1="380" x2="800" y2="480"/>
+    <line x1="1020" y1="340" x2="980" y2="440"/>
+  </g>
+
+  <!-- Play icon badge -->
+  <g transform="translate(640, 330)" opacity="0.95">
+    <circle cx="0" cy="0" r="54" fill="#ffffff" fill-opacity="0.18"/>
+    <circle cx="0" cy="0" r="44" fill="#ffffff"/>
+    <polygon points="-8,-14 16,0 -8,14" fill="#7B4DCE"/>
+  </g>
+
+  <text x="640" y="440" font-family="'Poppins', sans-serif" font-weight="700" font-size="28" fill="#ffffff" text-anchor="middle" letter-spacing="1">
+    Unwind &amp; Let Go of Daily Overwhelm
+  </text>
+  <text x="640" y="475" font-family="'Inter', sans-serif" font-weight="400" font-size="16" fill="#F5F1FF" text-anchor="middle" opacity="0.85">
+    Take a Breath • Relaxing Emotional Space • Preview Loading...
+  </text>
+</svg>

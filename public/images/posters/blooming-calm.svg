@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a1843"/>
+      <stop offset="50%" stop-color="#8a1f6a"/>
+      <stop offset="100%" stop-color="#E91E8F"/>
+    </linearGradient>
+    <radialGradient id="glow3" cx="50%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="#FCE7F3" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#FCE7F3" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bgGrad3)"/>
+  <circle cx="640" cy="360" r="340" fill="url(#glow3)"/>
+
+  <!-- Petal/wave shapes -->
+  <path d="M0,480 Q320,380 640,480 T1280,480 L1280,720 L0,720 Z" fill="#ffffff" fill-opacity="0.08"/>
+  <path d="M0,560 Q400,440 800,560 T1280,560 L1280,720 L0,720 Z" fill="#ffffff" fill-opacity="0.06"/>
+
+  <!-- Play icon badge -->
+  <g transform="translate(640, 330)" opacity="0.95">
+    <circle cx="0" cy="0" r="54" fill="#ffffff" fill-opacity="0.18"/>
+    <circle cx="0" cy="0" r="44" fill="#ffffff"/>
+    <polygon points="-8,-14 16,0 -8,14" fill="#E91E8F"/>
+  </g>
+
+  <text x="640" y="440" font-family="'Poppins', sans-serif" font-weight="700" font-size="28" fill="#ffffff" text-anchor="middle" letter-spacing="1">
+    Blooming Hope &amp; Renewed Clarity
+  </text>
+  <text x="640" y="475" font-family="'Inter', sans-serif" font-weight="400" font-size="16" fill="#FDF2F8" text-anchor="middle" opacity="0.85">
+    Transform Heavy Days Into Gentle Calm • Preview Loading...
+  </text>
+</svg>

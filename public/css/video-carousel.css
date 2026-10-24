@@ -1,0 +1,805 @@
+/* 
+ * Video Carousel Stylesheet
+ * Responsive, Modern, High-Performance Video Showcase
+ * Perfectly aligned with website design tokens
+ */
+
+/* Section Styling */
+.video-carousel-section {
+  background-color: #FAFAFD;
+  position: relative;
+  padding: 5.5rem 0;
+  overflow: hidden;
+}
+
+.max-width-700 {
+  max-width: 700px;
+}
+
+/* Glow Elements */
+.video-carousel-section .backdrop-glow {
+  position: absolute;
+  top: -120px;
+  right: -100px;
+  width: 480px;
+  height: 480px;
+  background: radial-gradient(circle, rgba(233, 30, 143, 0.08) 0%, rgba(123, 77, 206, 0.04) 50%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.video-carousel-section .backdrop-glow-left {
+  position: absolute;
+  bottom: -100px;
+  left: -80px;
+  width: 520px;
+  height: 520px;
+  background: radial-gradient(circle, rgba(23, 105, 224, 0.08) 0%, rgba(123, 77, 206, 0.04) 50%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Carousel Outer Shell */
+.video-carousel-wrapper {
+  position: relative;
+  max-width: 1140px;
+  margin: 0 auto;
+  outline: none;
+}
+
+/* Viewport & Track */
+.vc-viewport {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  box-shadow: 0 16px 45px rgba(24, 32, 51, 0.08), 0 4px 14px rgba(23, 105, 224, 0.04);
+  background: #FFFFFF;
+  border: 1px solid rgba(24, 32, 51, 0.06);
+}
+
+.vc-track {
+  display: flex;
+  width: 100%;
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+/* Single Slide */
+.vc-slide {
+  flex: 0 0 100%;
+  width: 100%;
+  opacity: 0.5;
+  transition: opacity 0.5s ease;
+  user-select: none;
+}
+
+.vc-slide.active {
+  opacity: 1;
+}
+
+/* Card Layout inside Slide (2-Column Desktop Grid) */
+.vc-card {
+  display: grid;
+  grid-template-columns: 1.18fr 0.82fr;
+  min-height: 480px;
+  background: #FFFFFF;
+}
+
+/* Video Player Box */
+.vc-video-box {
+  position: relative;
+  background-color: #0b1120;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 380px;
+}
+
+.vc-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background-color: #0f172a;
+  transition: filter 0.3s ease;
+}
+
+/* Gradient Overlay for Text Legibility */
+.vc-overlay-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.45) 0%,
+    transparent 35%,
+    transparent 55%,
+    rgba(15, 23, 42, 0.85) 100%
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Top Bar Over Video */
+.vc-top-bar {
+  position: absolute;
+  top: 18px;
+  left: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 3;
+}
+
+.vc-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 50px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.vc-pill-safe {
+  background: rgba(23, 105, 224, 0.85);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.vc-pill-pink {
+  background: rgba(233, 30, 143, 0.85);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.vc-pill-purple {
+  background: rgba(123, 77, 206, 0.85);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.vc-live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(18, 24, 38, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 5px 12px;
+  border-radius: 50px;
+  color: #FFFFFF;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.vc-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #22c55e;
+  box-shadow: 0 0 10px #22c55e;
+  animation: vcPulse 1.8s infinite;
+}
+
+@keyframes vcPulse {
+  0% { transform: scale(0.9); opacity: 0.8; }
+  50% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.8; }
+}
+
+/* Video Center Buffering / Play Overlay */
+.vc-center-action-btn {
+  position: absolute;
+  z-index: 3;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  color: #1769E0;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  transition: transform 0.25s ease, background 0.25s ease, opacity 0.3s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.vc-video-box:hover .vc-center-action-btn,
+.vc-video-box.is-paused .vc-center-action-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.vc-center-action-btn:hover {
+  transform: scale(1.1);
+  background: #FFFFFF;
+}
+
+/* Bottom Controls Bar on Video */
+.vc-controls-bar {
+  position: absolute;
+  bottom: 12px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 3;
+}
+
+.vc-controls-left,
+.vc-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Individual Control Buttons */
+.vc-ctrl-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(18, 24, 38, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+  position: relative;
+}
+
+.vc-ctrl-btn:hover {
+  background: rgba(23, 105, 224, 0.9);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: scale(1.06);
+  color: #FFFFFF;
+}
+
+.vc-ctrl-btn:focus-visible {
+  outline: 2px solid #FFFFFF;
+  outline-offset: 2px;
+}
+
+/* Sound Button Tooltip */
+.vc-sound-tooltip {
+  position: absolute;
+  bottom: 46px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(18, 24, 38, 0.95);
+  color: #FFFFFF;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 4px 9px;
+  border-radius: 6px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.vc-sound-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 4px;
+  border-style: solid;
+  border-color: rgba(18, 24, 38, 0.95) transparent transparent transparent;
+}
+
+.vc-btn-sound:hover .vc-sound-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-2px);
+}
+
+/* Video Time Display */
+.vc-time-display {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--font-primary, sans-serif);
+  padding: 4px 10px;
+  background: rgba(18, 24, 38, 0.6);
+  border-radius: 20px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  letter-spacing: 0.5px;
+}
+
+/* Video Mini Progress Track */
+.vc-video-progress-track {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  z-index: 4;
+  cursor: pointer;
+}
+
+.vc-video-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--brand-gradient, linear-gradient(135deg, #1769E0, #E91E8F));
+  transition: width 0.15s linear;
+}
+
+/* Info Box (Right Side) */
+.vc-info-box {
+  padding: 2.75rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: #FFFFFF;
+}
+
+.vc-topic-tag {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+
+.vc-slide-title {
+  font-size: 1.7rem;
+  font-weight: 800;
+  line-height: 1.3;
+  color: #182033;
+  margin-bottom: 1rem;
+}
+
+.vc-slide-desc {
+  color: #667085;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+  font-weight: 400;
+}
+
+/* Feature Checkpoints */
+.vc-features-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-bottom: 2rem;
+}
+
+.vc-feature-item {
+  display: flex;
+  align-items: center;
+  font-size: 0.92rem;
+  color: #334155;
+  font-weight: 500;
+}
+
+.vc-feature-item i {
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+
+/* Action Buttons Container */
+.vc-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.vc-cta-btn {
+  padding: 0.7rem 1.4rem;
+  font-size: 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vc-open-modal-btn {
+  padding: 0.65rem 1.25rem;
+  font-size: 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Navigation Arrows (Left/Right) */
+.vc-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 1px solid rgba(24, 32, 51, 0.1);
+  color: #182033;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(24, 32, 51, 0.12);
+  z-index: 10;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.vc-nav-prev {
+  left: -26px;
+}
+
+.vc-nav-next {
+  right: -26px;
+}
+
+.vc-nav-btn:hover {
+  background: #1769E0;
+  color: #FFFFFF;
+  border-color: #1769E0;
+  transform: translateY(-50%) scale(1.12);
+  box-shadow: 0 14px 30px rgba(23, 105, 224, 0.35);
+}
+
+.vc-nav-btn:active {
+  transform: translateY(-50%) scale(0.96);
+}
+
+/* Bottom Bar: Pagination, Autoplay Status & Counter */
+.vc-bottom-bar {
+  margin-top: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1rem;
+}
+
+/* Autoplay Control Pill */
+.vc-autoplay-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #FFFFFF;
+  border: 1px solid rgba(24, 32, 51, 0.08);
+  padding: 6px 14px;
+  border-radius: 50px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #667085;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(24, 32, 51, 0.04);
+  transition: all 0.25s ease;
+}
+
+.vc-autoplay-toggle:hover {
+  border-color: #1769E0;
+  color: #1769E0;
+  box-shadow: 0 4px 14px rgba(23, 105, 224, 0.12);
+}
+
+.vc-autoplay-toggle i {
+  font-size: 1.1rem;
+  color: #1769E0;
+  transition: color 0.25s ease;
+}
+
+.vc-autoplay-toggle.is-paused i {
+  color: #E91E8F;
+}
+
+.vc-autoplay-toggle.is-paused .vc-autoplay-label::after {
+  content: "Paused";
+}
+
+.vc-autoplay-toggle.is-paused .vc-autoplay-label span {
+  display: none;
+}
+
+/* Pagination Dots */
+.vc-pagination {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vc-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50px;
+  background: #E2E8F0;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: width 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.3s ease;
+}
+
+.vc-dot.active {
+  width: 48px;
+  height: 12px;
+  background: #E2E8F0;
+}
+
+/* Animated Progress Fill Inside Active Dot */
+.vc-dot-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 0%;
+  background: var(--brand-gradient, linear-gradient(135deg, #1769E0, #7B4DCE));
+  border-radius: 50px;
+  transition: width 0.1s linear;
+}
+
+.vc-dot:not(.active):hover {
+  background: #CBD5E1;
+  transform: scale(1.15);
+}
+
+/* Slide Counter */
+.vc-counter {
+  font-family: var(--font-secondary, sans-serif);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #667085;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.vc-current-num {
+  color: #1769E0;
+  font-weight: 800;
+  font-size: 1.15rem;
+}
+
+.vc-divider {
+  opacity: 0.5;
+}
+
+/* Modal Styling for Expanded Preview */
+.vc-modal .modal-content {
+  border-radius: 20px;
+  border: none;
+  overflow: hidden;
+  background: #0f172a;
+  color: #FFFFFF;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+}
+
+.vc-modal .modal-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1.25rem 1.75rem;
+  background: #1e293b;
+}
+
+.vc-modal .modal-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vc-modal-video-wrapper {
+  position: relative;
+  width: 100%;
+  background: #000000;
+  aspect-ratio: 16 / 9;
+  max-height: 520px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vc-modal-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.vc-modal-body-content {
+  padding: 1.75rem;
+  background: #0f172a;
+}
+
+.vc-modal-desc {
+  color: #cbd5e1;
+  font-size: 0.98rem;
+  line-height: 1.6;
+  margin-bottom: 1.25rem;
+}
+
+.vc-modal-footer-btns {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+/* Responsive Media Queries */
+@media (max-width: 1199.98px) {
+  .video-carousel-wrapper {
+    max-width: 960px;
+  }
+  
+  .vc-nav-prev {
+    left: -18px;
+  }
+  
+  .vc-nav-next {
+    right: -18px;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .video-carousel-section {
+    padding: 4.5rem 0;
+  }
+
+  .vc-card {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .vc-video-box {
+    aspect-ratio: 16 / 9;
+    min-height: 320px;
+  }
+
+  .vc-info-box {
+    padding: 2rem 1.75rem;
+  }
+
+  .vc-slide-title {
+    font-size: 1.45rem;
+  }
+
+  .vc-nav-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 1.15rem;
+  }
+
+  .vc-nav-prev {
+    left: 10px;
+  }
+
+  .vc-nav-next {
+    right: 10px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .video-carousel-section {
+    padding: 3.5rem 0;
+  }
+
+  .vc-viewport {
+    border-radius: 18px;
+  }
+
+  .vc-video-box {
+    min-height: 240px;
+    aspect-ratio: 16 / 9;
+  }
+
+  .vc-top-bar {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+  }
+
+  .vc-pill-badge {
+    padding: 4px 10px;
+    font-size: 0.7rem;
+  }
+
+  .vc-live-indicator {
+    padding: 3px 8px;
+    font-size: 0.65rem;
+  }
+
+  .vc-controls-bar {
+    bottom: 8px;
+    left: 10px;
+    right: 10px;
+  }
+
+  .vc-ctrl-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 0.88rem;
+  }
+
+  .vc-time-display {
+    font-size: 0.68rem;
+    padding: 3px 8px;
+  }
+
+  .vc-info-box {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .vc-slide-title {
+    font-size: 1.25rem;
+  }
+
+  .vc-slide-desc {
+    font-size: 0.9rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .vc-features-list {
+    margin-bottom: 1.5rem;
+    gap: 0.5rem;
+  }
+
+  .vc-feature-item {
+    font-size: 0.85rem;
+  }
+
+  /* Prevent responsive.css button 100% force on small screens */
+  .vc-actions .btn {
+    width: auto !important;
+    flex: 1 1 auto;
+    margin-bottom: 0;
+  }
+
+  /* Floating arrows on mobile placed neatly */
+  .vc-nav-btn {
+    display: none; /* Mobile users swipe comfortably; bottom controls available */
+  }
+
+  .vc-bottom-bar {
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 1.25rem;
+  }
+
+  .vc-counter {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .vc-autoplay-toggle {
+    order: 1;
+  }
+
+  .vc-pagination {
+    order: 2;
+  }
+}

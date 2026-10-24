@@ -1,6 +1,6 @@
 {
-  "name": "Friend - Emotional Support & Companion",
-  "short_name": "Friend",
+  "name": "Talk With Ashu - Voice Companion & Emotional Support",
+  "short_name": "Talk With Ashu",
   "description": "Private, warm, and supportive emotional conversations and voice companion platform.",
   "start_url": "/user/dashboard",
   "display": "standalone",
@@ -8,6 +8,12 @@
   "theme_color": "#1769E0",
   "orientation": "portrait",
   "icons": [
+    {
+      "src": "/images/logo.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
     {
       "src": "/favicon.ico",
       "sizes": "64x64 32x32 24x24 16x16",

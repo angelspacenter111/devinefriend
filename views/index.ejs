@@ -32,56 +32,11 @@
 							</div>
 						</div>
 
-						<!-- Hero Visual (SVG Drawing) -->
+						<!-- Hero Visual (Official Logo Showcase) -->
 						<div class="col-lg-6 text-center">
-							<div class="p-3">
-								<svg class="svg-illustration" viewBox="0 0 500 500" fill="none"
-									xmlns="http://www.w3.org/2000/svg">
-									<circle cx="250" cy="250" r="220" fill="url(#hero-bg-grad)" opacity="0.3" />
-									<circle cx="250" cy="250" r="160" fill="url(#hero-bg-grad2)" opacity="0.5" />
-
-									<path
-										d="M160 360C160 326.863 186.863 300 220 300C225.5 300 230 304.5 230 310V390C230 395.5 225.5 400 220 400C186.863 400 160 373.137 160 360Z"
-										fill="url(#pink-grad)" />
-									<circle cx="220" cy="250" r="30" fill="url(#pink-grad)" />
-
-									<path
-										d="M340 360C340 326.863 313.137 300 280 300C274.5 300 270 304.5 270 310V390C270 395.5 274.5 400 280 400C313.137 400 340 373.137 340 360Z"
-										fill="url(#blue-grad)" />
-									<circle cx="280" cy="250" r="30" fill="url(#blue-grad)" />
-
-									<path d="M220 200C240 180 260 180 280 200" stroke="#7B4DCE" stroke-width="4"
-										stroke-linecap="round" stroke-dasharray="8 8" />
-									<path d="M200 180C230 150 270 150 300 180" stroke="#E91E8F" stroke-width="3"
-										stroke-linecap="round" />
-
-									<path
-										d="M250 242C248 238 242 238 240 240C238 242 238 248 242 250L250 258L258 250C262 248 262 242 260 240C258 238 252 238 250 242Z"
-										fill="#D41473" />
-
-									<defs>
-										<linearGradient id="hero-bg-grad" x1="250" y1="30" x2="250" y2="470"
-											gradientUnits="userSpaceOnUse">
-											<stop stop-color="#EEF6FF" />
-											<stop offset="1" stop-color="#F5F1FF" />
-										</linearGradient>
-										<linearGradient id="hero-bg-grad2" x1="250" y1="90" x2="250" y2="410"
-											gradientUnits="userSpaceOnUse">
-											<stop stop-color="#1769E0" stop-opacity="0.2" />
-											<stop offset="1" stop-color="#E91E8F" stop-opacity="0.1" />
-										</linearGradient>
-										<linearGradient id="pink-grad" x1="160" y1="220" x2="230" y2="400"
-											gradientUnits="userSpaceOnUse">
-											<stop stop-color="#E91E8F" />
-											<stop offset="1" stop-color="#7B4DCE" />
-										</linearGradient>
-										<linearGradient id="blue-grad" x1="270" y1="220" x2="340" y2="400"
-											gradientUnits="userSpaceOnUse">
-											<stop stop-color="#1769E0" />
-											<stop offset="1" stop-color="#123B8E" />
-										</linearGradient>
-									</defs>
-								</svg>
+							<div class="hero-logo-wrapper">
+								<div class="hero-logo-glow"></div>
+								<img src="/images/logo.png" alt="Talk With Ashu - Voice Companion and Emotional Support" class="hero-logo-img img-fluid">
 							</div>
 						</div>
 					</div>
@@ -125,6 +80,440 @@
 								<div class="text-start">
 									<h6 class="mb-0 fw-bold">Respectful & Caring</h6>
 									<small class="text-muted">Completely non-judgmental</small>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- Video Carousel Showcase Section -->
+			<section id="video-showcase" class="section-padding video-carousel-section position-relative overflow-hidden">
+				<div class="backdrop-glow"></div>
+				<div class="backdrop-glow-left"></div>
+
+				<div class="container position-relative z-3">
+					<!-- Section Header -->
+					<div class="text-center max-width-700 mx-auto mb-5">
+						<span class="badge-category mb-2">
+							<i class="bi bi-camera-video me-1"></i> Video Experience
+						</span>
+						<h2 class="fw-bold mb-3">See &amp; Feel What It's Like to Talk With Ashu</h2>
+						<p class="text-muted">
+							Explore these short glimpses into our calm, private conversations. Discover how having a caring, attentive voice in your corner helps you decompress and feel lighter.
+						</p>
+					</div>
+
+					<!-- Carousel Shell -->
+					<div class="video-carousel-wrapper" role="region" aria-label="Video Showcase Carousel" tabindex="0">
+						<!-- Stage Viewport -->
+						<div class="vc-viewport" id="vcViewport">
+							<div class="vc-track" id="vcTrack">
+
+								<!-- Slide 1 -->
+								<div class="vc-slide active" data-index="0">
+									<div class="vc-card">
+										<!-- Video Player Box -->
+										<div class="vc-video-box">
+											<video class="vc-video"
+												preload="metadata"
+												playsinline
+												muted
+												loop
+												poster="/images/posters/nature-stream.svg">
+												<source src="/videos/nature-stream.mp4" type="video/mp4">
+												Your browser does not support HTML5 video.
+											</video>
+
+											<div class="vc-overlay-gradient"></div>
+
+											<!-- Top Status Bar -->
+											<div class="vc-top-bar">
+												<span class="vc-pill-badge vc-pill-safe">
+													<i class="bi bi-shield-check"></i> 100% Confidential
+												</span>
+												<span class="vc-live-indicator">
+													<span class="vc-pulse-dot"></span> HD PREVIEW
+												</span>
+											</div>
+
+											<!-- Center Floating Action Button -->
+											<button type="button" class="vc-center-action-btn" aria-label="Play or Pause Video">
+												<i class="bi bi-pause-fill"></i>
+											</button>
+
+											<!-- Bottom Controls Bar -->
+											<div class="vc-controls-bar">
+												<div class="vc-controls-left">
+													<button type="button" class="vc-ctrl-btn vc-btn-play-pause" aria-label="Pause Video" title="Pause / Play Video">
+														<i class="bi bi-pause-fill"></i>
+													</button>
+													<button type="button" class="vc-ctrl-btn vc-btn-sound" aria-label="Unmute audio" title="Mute / Unmute Audio">
+														<i class="bi bi-volume-mute-fill"></i>
+														<span class="vc-sound-tooltip">Click to Unmute</span>
+													</button>
+													<span class="vc-time-display">0:00 / 0:15</span>
+												</div>
+												<div class="vc-controls-right">
+													<button type="button" class="vc-ctrl-btn vc-btn-expand" aria-label="Watch Full Video" title="Expand Fullscreen">
+														<i class="bi bi-arrows-fullscreen"></i>
+													</button>
+												</div>
+											</div>
+
+											<!-- Mini Progress Scrubber -->
+											<div class="vc-video-progress-track" title="Seek video position">
+												<div class="vc-video-progress-fill"></div>
+											</div>
+										</div>
+
+										<!-- Slide Info Box -->
+										<div class="vc-info-box">
+											<div class="vc-info-header">
+												<span class="vc-topic-tag text-primary-blue">
+													<i class="bi bi-chat-quote-fill me-1"></i> Compassionate Presence
+												</span>
+												<h3 class="vc-slide-title">A Safe Haven to Speak Your Heart</h3>
+											</div>
+											<p class="vc-slide-desc">
+												Life can feel heavy when you keep everything bottled up inside. Here, you have a private, judgment-free space to speak your thoughts openly, share your struggles, and simply be heard.
+											</p>
+											<div class="vc-features-list">
+												<div class="vc-feature-item">
+													<i class="bi bi-check-circle-fill text-success me-2"></i> Strictly confidential — zero recording policy
+												</div>
+												<div class="vc-feature-item">
+													<i class="bi bi-check-circle-fill text-success me-2"></i> Gentle, patient, and non-judgmental companion
+												</div>
+												<div class="vc-feature-item">
+													<i class="bi bi-check-circle-fill text-success me-2"></i> Pay as you go with simple coins — no subscription
+												</div>
+											</div>
+											<div class="vc-actions">
+												<a href="/user/dashboard" class="btn btn-brand vc-cta-btn">
+													<i class="bi bi-telephone-fill me-2"></i> Talk With Ashu Now
+												</a>
+												<button type="button" class="btn btn-outline-brand vc-open-modal-btn">
+													<i class="bi bi-play-circle me-1"></i> Watch Story
+												</button>
+											</div>
+										</div>
+									</div>
+								</div>
+
+								<!-- Slide 2 -->
+								<div class="vc-slide" data-index="1">
+									<div class="vc-card">
+										<div class="vc-video-box">
+											<video class="vc-video"
+												preload="metadata"
+												playsinline
+												muted
+												loop
+												poster="/images/posters/peaceful-rain.svg">
+												<source src="/videos/peaceful-rain.mp4" type="video/mp4">
+												Your browser does not support HTML5 video.
+											</video>
+
+											<div class="vc-overlay-gradient"></div>
+
+											<div class="vc-top-bar">
+												<span class="vc-pill-badge vc-pill-purple">
+													<i class="bi bi-wind"></i> Emotional Reset
+												</span>
+												<span class="vc-live-indicator">
+													<span class="vc-pulse-dot"></span> HD PREVIEW
+												</span>
+											</div>
+
+											<button type="button" class="vc-center-action-btn" aria-label="Play or Pause Video">
+												<i class="bi bi-play-fill"></i>
+											</button>
+
+											<div class="vc-controls-bar">
+												<div class="vc-controls-left">
+													<button type="button" class="vc-ctrl-btn vc-btn-play-pause" aria-label="Play Video" title="Pause / Play Video">
+														<i class="bi bi-play-fill"></i>
+													</button>
+													<button type="button" class="vc-ctrl-btn vc-btn-sound" aria-label="Unmute audio" title="Mute / Unmute Audio">
+														<i class="bi bi-volume-mute-fill"></i>
+														<span class="vc-sound-tooltip">Click to Unmute</span>
+													</button>
+													<span class="vc-time-display">0:00 / 0:10</span>
+												</div>
+												<div class="vc-controls-right">
+													<button type="button" class="vc-ctrl-btn vc-btn-expand" aria-label="Watch Full Video" title="Expand Fullscreen">
+														<i class="bi bi-arrows-fullscreen"></i>
+													</button>
+												</div>
+											</div>
+
+											<div class="vc-video-progress-track" title="Seek video position">
+												<div class="vc-video-progress-fill"></div>
+											</div>
+										</div>
+
+										<div class="vc-info-box">
+											<div class="vc-info-header">
+												<span class="vc-topic-tag text-purple">
+													<i class="bi bi-cloud-sun-fill me-1"></i> Stress Relief
+												</span>
+												<h3 class="vc-slide-title">Unwind &amp; Let Go of Daily Overwhelm</h3>
+											</div>
+											<p class="vc-slide-desc">
+												Whether dealing with burnout, relationship tension, or racing thoughts late at night, take a gentle pause. Step away from the noise and unpack the pressure with someone who understands.
+											</p>
+											<div class="vc-features-list">
+												<div class="vc-feature-item">
+													<i class="bi bi-check-circle-fill text-success me-2"></i> Ideal for decompressing after a difficult day
+												</div>
+												<div class="vc-feature-item">
+													<i class="bi bi-check-circle-fill text-success me-2"></i> Dedicated 1-on-1 personalized attention
+												</div>
+												<div class="vc-feature-item">
+													<i class="bi bi-check-circle-fill text-success me-2"></i> Connects directly in your browser without app downloads
+												</div>
+											</div>
+											<div class="vc-actions">
+												<a href="/how-it-works" class="btn btn-brand vc-cta-btn">
+													<i class="bi bi-info-circle-fill me-2"></i> How It Works
+												</a>
+												<button type="button" class="btn btn-outline-brand vc-open-modal-btn">
+													<i class="bi bi-play-circle me-1"></i> Watch Story
+												</button>
+											</div>
+										</div>
+									</div>
+								</div>
+
+								<!-- Slide 3 -->
+								<div class="vc-slide" data-index="2">
+									<div class="vc-card">
+										<div class="vc-video-box">
+											<video class="vc-video"
+												preload="metadata"
+												playsinline
+												muted
+												loop
+												poster="/images/posters/blooming-calm.svg">
+												<source src="/videos/blooming-calm.mp4" type="video/mp4">
+												Your browser does not support HTML5 video.
+											</video>
+
+											<div class="vc-overlay-gradient"></div>
+
+											<div class="vc-top-bar">
+												<span class="vc-pill-badge vc-pill-pink">
+													<i class="bi bi-heart-pulse-fill"></i> Gentle Encouragement
+												</span>
+												<span class="vc-live-indicator">
+													<span class="vc-pulse-dot"></span> HD PREVIEW
+												</span>
+											</div>
+
+											<button type="button" class="vc-center-action-btn" aria-label="Play or Pause Video">
+												<i class="bi bi-play-fill"></i>
+											</button>
+
+											<div class="vc-controls-bar">
+												<div class="vc-controls-left">
+													<button type="button" class="vc-ctrl-btn vc-btn-play-pause" aria-label="Play Video" title="Pause / Play Video">
+														<i class="bi bi-play-fill"></i>
+													</button>
+													<button type="button" class="vc-ctrl-btn vc-btn-sound" aria-label="Unmute audio" title="Mute / Unmute Audio">
+														<i class="bi bi-volume-mute-fill"></i>
+														<span class="vc-sound-tooltip">Click to Unmute</span>
+													</button>
+													<span class="vc-time-display">0:00 / 0:12</span>
+												</div>
+												<div class="vc-controls-right">
+													<button type="button" class="vc-ctrl-btn vc-btn-expand" aria-label="Watch Full Video" title="Expand Fullscreen">
+														<i class="bi bi-arrows-fullscreen"></i>
+													</button>
+												</div>
+											</div>
+
+											<div class="vc-video-progress-track" title="Seek video position">
+												<div class="vc-video-progress-fill"></div>
+											</div>
+										</div>
+
+										<div class="vc-info-box">
+											<div class="vc-info-header">
+												<span class="vc-topic-tag text-primary-pink">
+													<i class="bi bi-brightness-high-fill me-1"></i> Clarity &amp; Hope
+												</span>
+												<h3 class="vc-slide-title">Transform Heavy Days Into Gentle Calm</h3>
+											</div>
+											<p class="vc-slide-desc">
+												You don't always need someone to fix everything on the spot. Sometimes, you simply need someone who stays, validates your feelings, and helps you rediscover your center and quiet confidence.
+											</p>
+											<div class="vc-features-list">
+												<div class="vc-feature-item">
+													<i class="bi bi-check-circle-fill text-success me-2"></i> Safe emotional grounding and validation
+												</div>
+												<div class="vc-feature-item">
+													<i class="bi bi-check-circle-fill text-success me-2"></i> Feel lighter within the first few minutes of talking
+												</div>
+												<div class="vc-feature-item">
+													<i class="bi bi-check-circle-fill text-success me-2"></i> Transparent coins: 1 Coin = 1 Minute of talk time
+												</div>
+											</div>
+											<div class="vc-actions">
+												<a href="/pricing" class="btn btn-brand vc-cta-btn">
+													<i class="bi bi-wallet2 me-2"></i> View Coin Plans
+												</a>
+												<button type="button" class="btn btn-outline-brand vc-open-modal-btn">
+													<i class="bi bi-play-circle me-1"></i> Watch Story
+												</button>
+											</div>
+										</div>
+									</div>
+								</div>
+
+								<!-- Slide 4 -->
+								<div class="vc-slide" data-index="3">
+									<div class="vc-card">
+										<div class="vc-video-box">
+											<video class="vc-video"
+												preload="metadata"
+												playsinline
+												muted
+												loop
+												poster="/images/posters/calm-moments.svg">
+												<source src="/videos/calm-moments.mp4" type="video/mp4">
+												Your browser does not support HTML5 video.
+											</video>
+
+											<div class="vc-overlay-gradient"></div>
+
+											<div class="vc-top-bar">
+												<span class="vc-pill-badge vc-pill-safe">
+													<i class="bi bi-person-check-fill"></i> Real Companion
+												</span>
+												<span class="vc-live-indicator">
+													<span class="vc-pulse-dot"></span> HD PREVIEW
+												</span>
+											</div>
+
+											<button type="button" class="vc-center-action-btn" aria-label="Play or Pause Video">
+												<i class="bi bi-play-fill"></i>
+											</button>
+
+											<div class="vc-controls-bar">
+												<div class="vc-controls-left">
+													<button type="button" class="vc-ctrl-btn vc-btn-play-pause" aria-label="Play Video" title="Pause / Play Video">
+														<i class="bi bi-play-fill"></i>
+													</button>
+													<button type="button" class="vc-ctrl-btn vc-btn-sound" aria-label="Unmute audio" title="Mute / Unmute Audio">
+														<i class="bi bi-volume-mute-fill"></i>
+														<span class="vc-sound-tooltip">Click to Unmute</span>
+													</button>
+													<span class="vc-time-display">0:00 / 0:20</span>
+												</div>
+												<div class="vc-controls-right">
+													<button type="button" class="vc-ctrl-btn vc-btn-expand" aria-label="Watch Full Video" title="Expand Fullscreen">
+														<i class="bi bi-arrows-fullscreen"></i>
+													</button>
+												</div>
+											</div>
+
+											<div class="vc-video-progress-track" title="Seek video position">
+												<div class="vc-video-progress-fill"></div>
+											</div>
+										</div>
+
+										<div class="vc-info-box">
+											<div class="vc-info-header">
+												<span class="vc-topic-tag text-primary-blue">
+													<i class="bi bi-person-heart me-1"></i> Live 1-on-1 Support
+												</span>
+												<h3 class="vc-slide-title">Genuine Voice &amp; Video Calling, 1-on-1</h3>
+											</div>
+											<p class="vc-slide-desc">
+												No scripted bots, no cold automated replies. Connect directly with Ashu through seamless high-definition WebRTC audio and video calling, right from your phone or desktop browser whenever you need support.
+											</p>
+											<div class="vc-features-list">
+												<div class="vc-feature-item">
+													<i class="bi bi-check-circle-fill text-success me-2"></i> 100% Real human voice companion
+												</div>
+												<div class="vc-feature-item">
+													<i class="bi bi-check-circle-fill text-success me-2"></i> Single-click call initiation inside your private dashboard
+												</div>
+												<div class="vc-feature-item">
+													<i class="bi bi-check-circle-fill text-success me-2"></i> Respectful, warm, and comforting presence
+												</div>
+											</div>
+											<div class="vc-actions">
+												<a href="/user/dashboard" class="btn btn-brand vc-cta-btn">
+													<i class="bi bi-chat-heart-fill me-2"></i> Start Talking
+												</a>
+												<button type="button" class="btn btn-outline-brand vc-open-modal-btn">
+													<i class="bi bi-play-circle me-1"></i> Watch Story
+												</button>
+											</div>
+										</div>
+									</div>
+								</div>
+
+							</div>
+						</div>
+
+						<!-- Navigation Arrows -->
+						<button type="button" class="vc-nav-btn vc-nav-prev" id="vcPrevBtn" aria-label="Previous Slide">
+							<i class="bi bi-chevron-left"></i>
+						</button>
+						<button type="button" class="vc-nav-btn vc-nav-next" id="vcNextBtn" aria-label="Next Slide">
+							<i class="bi bi-chevron-right"></i>
+						</button>
+
+						<!-- Bottom Bar: Autoplay Toggle, Animated Pagination & Counter -->
+						<div class="vc-bottom-bar">
+							<!-- Autoplay Control -->
+							<button type="button" class="vc-autoplay-toggle" id="vcAutoplayToggle" aria-label="Pause Autoplay" title="Pause / Resume Carousel Autoplay">
+								<i class="bi bi-pause-circle-fill"></i>
+								<span class="vc-autoplay-label">Autoplay On</span>
+							</button>
+
+							<!-- Pagination Dots with Progress Countdown Fill -->
+							<div class="vc-pagination" id="vcPagination" role="tablist" aria-label="Video Carousel Slides">
+								<!-- Dynamically populated and animated by video-carousel.js -->
+							</div>
+
+							<!-- Slide Counter -->
+							<div class="vc-counter">
+								<span class="vc-current-num" id="vcCurrentNum">01</span>
+								<span class="vc-divider">/</span>
+								<span class="vc-total-num">04</span>
+							</div>
+						</div>
+
+					</div>
+				</div>
+
+				<!-- Modal for Expanded HD Video Experience -->
+				<div class="modal fade vc-modal" id="vcPreviewModal" tabindex="-1" aria-labelledby="vcModalTitle" aria-hidden="true">
+					<div class="modal-dialog modal-dialog-centered modal-lg">
+						<div class="modal-content">
+							<div class="modal-header">
+								<h5 class="modal-title" id="vcModalTitle">
+									<i class="bi bi-play-circle-fill text-primary-blue me-2"></i> Story Preview
+								</h5>
+								<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+							</div>
+							<div class="modal-body p-0">
+								<div class="vc-modal-video-wrapper">
+									<video id="vcModalVideo" class="vc-modal-video" controls playsinline></video>
+								</div>
+								<div class="vc-modal-body-content">
+									<div id="vcModalTag" class="mb-2"></div>
+									<p id="vcModalDesc" class="vc-modal-desc mb-4"></p>
+									<div class="vc-modal-footer-btns">
+										<button type="button" class="btn btn-secondary-light btn-sm px-4" data-bs-dismiss="modal">Close</button>
+										<a href="/user/dashboard" class="btn btn-brand btn-sm px-4">
+											<i class="bi bi-chat-heart me-1"></i> Talk With Ashu
+										</a>
+									</div>
 								</div>
 							</div>
 						</div>

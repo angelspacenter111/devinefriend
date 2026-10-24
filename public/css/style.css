@@ -112,6 +112,25 @@ a:hover {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+.brand-logo-img {
+  height: 42px;
+  width: 42px;
+  border-radius: 11px;
+  object-fit: cover;
+  box-shadow: 0 3px 10px rgba(23, 105, 224, 0.15);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  flex-shrink: 0;
+}
+.navbar-brand:hover .brand-logo-img {
+  transform: scale(1.05);
+  box-shadow: 0 6px 18px rgba(123, 77, 206, 0.25);
+}
+.brand-logo-lg {
+  width: 78px;
+  height: 78px;
+  border-radius: 20px;
+  box-shadow: 0 10px 28px rgba(23, 105, 224, 0.2);
+}
 .nav-link {
   font-weight: 500;
   color: var(--muted-text) !important;
@@ -224,6 +243,49 @@ a:hover {
 }
 .border-divider {
   border-bottom: 1px solid rgba(24, 32, 51, 0.06);
+}
+
+/* Hero Visual Styles */
+.hero-logo-wrapper {
+  position: relative;
+  display: inline-block;
+  padding: 1rem;
+}
+
+.hero-logo-img {
+  width: 100%;
+  max-width: 440px;
+  height: auto;
+  border-radius: 38px;
+  box-shadow: 0 25px 65px rgba(123, 77, 206, 0.22), 0 10px 30px rgba(23, 105, 224, 0.16);
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.4s ease;
+  animation: heroFloat 5.5s ease-in-out infinite;
+  display: block;
+}
+
+.hero-logo-wrapper:hover .hero-logo-img {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 32px 75px rgba(233, 30, 143, 0.25), 0 14px 40px rgba(23, 105, 224, 0.22);
+}
+
+.hero-logo-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 110%;
+  height: 110%;
+  background: radial-gradient(circle, rgba(233, 30, 143, 0.22) 0%, rgba(123, 77, 206, 0.18) 45%, transparent 70%);
+  filter: blur(40px);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: -1;
+}
+
+@keyframes heroFloat {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
 }
 
 /* Custom Visual SVGs styles */
