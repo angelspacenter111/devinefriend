@@ -5,6 +5,8 @@
 
 const PricingPlan = require('../models/PricingPlan');
 const Review = require('../models/Review');
+const ContactMessage = require('../models/ContactMessage');
+const EmailService = require('../services/emailService');
 
 const defaultReviews = [
   {
@@ -59,6 +61,27 @@ async function ensureSeedReviews() {
 
 // Call seed check once on startup
 ensureSeedReviews();
+
+// In-memory rate limiting store for contact form: clientIp -> array of timestamps
+const contactRateLimits = new Map();
+
+function isRateLimited(ip) {
+  const now = Date.now();
+  const windowMs = 15 * 60 * 1000; // 15 minutes
+  const maxRequests = 5;
+
+  let timestamps = contactRateLimits.get(ip) || [];
+  timestamps = timestamps.filter((t) => now - t < windowMs);
+
+  if (timestamps.length >= maxRequests) {
+    contactRateLimits.set(ip, timestamps);
+    return true;
+  }
+
+  timestamps.push(now);
+  contactRateLimits.set(ip, timestamps);
+  return false;
+}
 
 exports.getHome = async (req, res) => {
   try {
@@ -133,6 +156,14 @@ exports.getFaq = (req, res) => {
   });
 };
 
+// GET: Contact Us Page
+exports.getContact = (req, res) => {
+  res.render('contact', {
+    title: 'Contact Us - Talk With Ashu | DevineFriend',
+    activeTab: 'contact'
+  });
+};
+
 // API: Get Reviews
 exports.getReviews = async (req, res) => {
   try {
@@ -151,7 +182,6 @@ exports.submitReview = async (req, res) => {
 
     // 1. Anti-spam honeypot verification
     if (honeypot) {
-      // Quietly reject bot submissions
       return res.status(200).json({
         success: true,
         message: 'Thank you for your feedback!'
@@ -162,7 +192,6 @@ exports.submitReview = async (req, res) => {
     if (!name || typeof name !== 'string') {
       return res.status(400).json({ success: false, message: 'Please enter your name.' });
     }
-    // Strip HTML tags and dangerous characters
     name = name.replace(/<[^>]*>?/gm, '').trim();
     if (name.length < 2) {
       return res.status(400).json({ success: false, message: 'Name must be at least 2 characters long.' });
@@ -215,6 +244,134 @@ exports.submitReview = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'An error occurred while submitting your review. Please try again.'
+    });
+  }
+};
+
+// POST: Submit Contact Us Form (Validated & Dispatched via EmailJS)
+exports.submitContact = async (req, res) => {
+  try {
+    let { name, email, phone, subject, message, hp_website } = req.body;
+
+    // 1. Bot Honeypot Check
+    if (hp_website) {
+      return res.status(200).json({
+        success: true,
+        message: 'Thank you! Your message has been received.'
+      });
+    }
+
+    // 2. IP Rate Limiting Check
+    const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+    if (isRateLimited(clientIp)) {
+      return res.status(429).json({
+        success: false,
+        message: 'Too many requests. Please wait a few minutes before submitting another message.'
+      });
+    }
+
+    // 3. Name Validation & Sanitization
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ success: false, message: 'Please enter your full name.' });
+    }
+    name = name.replace(/<[^>]*>?/gm, '').trim();
+    if (name.length < 2 || name.length > 50) {
+      return res.status(400).json({ success: false, message: 'Name must be between 2 and 50 characters long.' });
+    }
+
+    // 4. Email Validation & Sanitization
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ success: false, message: 'Please enter your email address.' });
+    }
+    email = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email) || email.length > 100) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid email address.' });
+    }
+
+    // 5. Phone Validation & Sanitization
+    if (!phone || typeof phone !== 'string') {
+      return res.status(400).json({ success: false, message: 'Please enter your contact phone number.' });
+    }
+    phone = phone.replace(/<[^>]*>?/gm, '').trim();
+    const phoneClean = phone.replace(/[^0-9+]/g, '');
+    if (phoneClean.length < 7 || phoneClean.length > 20) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid phone number (at least 7 digits).' });
+    }
+
+    // 6. Subject Validation & Sanitization
+    if (!subject || typeof subject !== 'string') {
+      return res.status(400).json({ success: false, message: 'Please provide a subject for your inquiry.' });
+    }
+    subject = subject.replace(/<[^>]*>?/gm, '').trim();
+    if (subject.length < 2 || subject.length > 100) {
+      return res.status(400).json({ success: false, message: 'Subject must be between 2 and 100 characters long.' });
+    }
+
+    // 7. Message Validation & Sanitization
+    if (!message || typeof message !== 'string') {
+      return res.status(400).json({ success: false, message: 'Please write your message.' });
+    }
+    message = message.replace(/<[^>]*>?/gm, '').trim();
+    if (message.length < 10) {
+      return res.status(400).json({ success: false, message: 'Message must be at least 10 characters long.' });
+    }
+    if (message.length > 2000) {
+      return res.status(400).json({ success: false, message: 'Message cannot exceed 2000 characters.' });
+    }
+
+    // 8. Prevent Duplicate Submissions (Same email & identical message within 5 minutes)
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const existingRecent = await ContactMessage.findOne({
+      email,
+      message,
+      createdAt: { $gte: fiveMinutesAgo }
+    });
+
+    if (existingRecent) {
+      return res.status(400).json({
+        success: false,
+        message: 'You have already submitted this inquiry recently. We will respond to you soon!'
+      });
+    }
+
+    // 9. Save message to MongoDB for permanent records
+    const contactRecord = await ContactMessage.create({
+      name,
+      email,
+      phone,
+      subject,
+      message,
+      ipAddress: String(clientIp),
+      status: 'new'
+    });
+
+    // 10. Send Email via EmailJS Node.js API
+    try {
+      await EmailService.sendContactEmail({
+        name,
+        email,
+        phone,
+        subject,
+        message
+      });
+      contactRecord.emailSent = true;
+      await contactRecord.save();
+    } catch (mailErr) {
+      console.warn('[Contact Submit] EmailJS dispatch notice:', mailErr.message);
+      // Even if email dispatch issues a notice, the message is safely preserved in DB
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Thank you! Your message has been sent successfully. We will reply to your email shortly.',
+      inquiryId: contactRecord._id
+    });
+  } catch (error) {
+    console.error('[PublicController submitContact Error]', error);
+    return res.status(500).json({
+      success: false,
+      message: 'An unexpected error occurred while sending your message. Please try again.'
     });
   }
 };

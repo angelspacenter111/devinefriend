@@ -12,6 +12,10 @@ router.get('/how-it-works', publicController.getHowItWorks);
 router.get('/support', publicController.getSupport);
 router.get('/pricing', publicController.getPricing);
 router.get('/faq', publicController.getFaq);
+router.get('/contact', publicController.getContact);
+
+// Contact Us Form Submission API
+router.post('/api/contact', publicController.submitContact);
 
 // Customer Ratings & Reviews Endpoints
 router.get('/api/reviews', publicController.getReviews);

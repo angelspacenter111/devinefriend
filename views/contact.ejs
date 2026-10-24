@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('partials/head') %>
+
+<body>
+  <%- include('partials/header') %>
+
+  <!-- Hero Section -->
+  <section class="contact-hero-section text-center position-relative overflow-hidden">
+    <div class="backdrop-glow"></div>
+    <div class="backdrop-glow-left"></div>
+    <div class="container position-relative z-3">
+      <div class="max-width-800 mx-auto">
+        <span class="badge-category mb-3">
+          <i class="bi bi-envelope-heart me-1"></i> Get In Touch
+        </span>
+        <h1 class="display-5 fw-extrabold mb-3" style="color: #182033; line-height: 1.2;">
+          We're Always Here to <span class="text-primary-blue">Listen</span> &amp; <span class="text-primary-pink">Support You</span>
+        </h1>
+        <p class="lead text-muted mb-0 font-primary" style="font-size: 1.15rem; font-weight: 300;">
+          Have questions regarding our companion sessions, coins, or technical assistance? Send us a message and we will respond promptly.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Contact Section -->
+  <section class="contact-main-section">
+    <div class="container">
+      <div class="row g-4 align-items-stretch">
+        
+        <!-- Left Column: Contact Methods & Channels -->
+        <div class="col-lg-5 col-xl-4">
+          <div class="contact-info-card">
+            <div>
+              <span class="badge-category mb-3">Direct Support</span>
+              <h3 class="fw-bold mb-3" style="color: #182033;">Contact Information</h3>
+              <p class="text-muted small mb-4">
+                Reach out through any of our channels. We treat every conversation and message with complete confidentiality and care.
+              </p>
+
+              <!-- Method 1: Email -->
+              <div class="contact-method-item">
+                <div class="contact-icon-box icon-pink">
+                  <i class="bi bi-envelope-fill"></i>
+                </div>
+                <div>
+                  <h6 class="contact-method-title">Email Us</h6>
+                  <p class="contact-method-desc small">Direct support inbox</p>
+                  <a href="mailto:foraamrathod@gmail.com" class="contact-link-highlight">
+                    foraamrathod@gmail.com
+                  </a>
+                </div>
+              </div>
+
+              <!-- Method 2: Live Companion Calling -->
+              <div class="contact-method-item">
+                <div class="contact-icon-box icon-blue">
+                  <i class="bi bi-telephone-fill"></i>
+                </div>
+                <div>
+                  <h6 class="contact-method-title">Live Calling</h6>
+                  <p class="contact-method-desc small">Talk directly with Ashu</p>
+                  <a href="/user/dashboard" class="contact-link-highlight">
+                    Dashboard Voice Line &rarr;
+                  </a>
+                </div>
+              </div>
+
+              <!-- Method 3: Availability Hours -->
+              <div class="contact-method-item">
+                <div class="contact-icon-box icon-purple">
+                  <i class="bi bi-clock-fill"></i>
+                </div>
+                <div>
+                  <h6 class="contact-method-title">Response Hours</h6>
+                  <p class="contact-method-desc small">Mon – Sun: 9:00 AM – 11:30 PM</p>
+                  <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-0.5 small">
+                    <i class="bi bi-check-circle-fill me-1"></i> Active Daily
+                  </span>
+                </div>
+              </div>
+
+              <!-- Method 4: Privacy Guarantee -->
+              <div class="contact-method-item">
+                <div class="contact-icon-box icon-green">
+                  <i class="bi bi-shield-check"></i>
+                </div>
+                <div>
+                  <h6 class="contact-method-title">Zero Recording</h6>
+                  <p class="contact-method-desc small">100% Confidential Guarantee</p>
+                  <span class="text-muted small">Your contact details are strictly safe</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Warm Assurance Box -->
+            <div class="contact-assurance-box mt-4">
+              <div class="contact-assurance-title text-primary-blue">
+                <i class="bi bi-chat-quote-fill"></i> Someone Who Cares
+              </div>
+              <p class="contact-assurance-text">
+                "You are never alone. Whether you're seeking clarity or having questions about how our platform works, we are here with an open ear."
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Interactive Contact Form -->
+        <div class="col-lg-7 col-xl-8">
+          <div class="contact-form-card">
+            
+            <div class="contact-form-header">
+              <span class="badge-category mb-2">Send Message</span>
+              <h2 class="contact-form-title">Send a Direct Inquiry</h2>
+              <p class="contact-form-subtitle mb-0">
+                Please complete the form below. Your message will be sent straight to our team and we will reply to your email as quickly as possible.
+              </p>
+            </div>
+
+            <!-- Dynamic Alert Box for Success / Error Feedback -->
+            <div id="contactAlert" class="contact-alert" role="alert"></div>
+
+            <form id="contactForm" class="contact-form" novalidate>
+              <!-- Anti-Spam Honeypot Field -->
+              <input type="text" name="hp_website" class="hp-field" tabindex="-1" autocomplete="off">
+
+              <!-- Row 1: Name & Email -->
+              <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                  <label for="contactName" class="form-label form-label-custom">
+                    Your Name <span class="text-danger">*</span>
+                  </label>
+                  <div class="contact-input-wrapper">
+                    <i class="bi bi-person-fill contact-input-icon"></i>
+                    <input type="text" class="form-control-contact" id="contactName" name="name" placeholder="e.g. Rahul Sharma" required minlength="2" maxlength="50" autocomplete="name">
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="contactEmail" class="form-label form-label-custom">
+                    Email Address <span class="text-danger">*</span>
+                  </label>
+                  <div class="contact-input-wrapper">
+                    <i class="bi bi-envelope-fill contact-input-icon"></i>
+                    <input type="email" class="form-control-contact" id="contactEmail" name="email" placeholder="e.g. rahul@example.com" required maxlength="100" autocomplete="email">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Row 2: Phone & Subject -->
+              <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                  <label for="contactPhone" class="form-label form-label-custom">
+                    Contact Phone Number <span class="text-danger">*</span>
+                  </label>
+                  <div class="contact-input-wrapper">
+                    <i class="bi bi-telephone-fill contact-input-icon"></i>
+                    <input type="tel" class="form-control-contact" id="contactPhone" name="phone" placeholder="e.g. +91 98765 43210" required minlength="7" maxlength="20" autocomplete="tel">
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="contactSubject" class="form-label form-label-custom">
+                    Subject / Topic <span class="text-danger">*</span>
+                  </label>
+                  <div class="contact-input-wrapper">
+                    <i class="bi bi-tag-fill contact-input-icon"></i>
+                    <input type="text" class="form-control-contact" id="contactSubject" name="subject" placeholder="e.g. Session Question, Coin Help, Inquiry" required minlength="2" maxlength="100">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Row 3: Message Body -->
+              <div class="mb-4">
+                <label for="contactMessage" class="form-label form-label-custom">
+                  Your Message <span class="text-danger">*</span>
+                </label>
+                <div class="contact-input-wrapper">
+                  <textarea class="form-control-contact form-textarea-contact" id="contactMessage" name="message" rows="5" placeholder="Please write your questions, thoughts, or what you would like help with..." required minlength="10" maxlength="2000"></textarea>
+                </div>
+                <div class="char-counter" id="contactCharCounter">0 / 2000 characters</div>
+              </div>
+
+              <!-- Submit Button -->
+              <div class="text-center">
+                <button type="submit" id="contactSubmitBtn" class="btn btn-brand btn-submit-contact shadow-brand">
+                  <i class="bi bi-send-fill me-2"></i> Send Message Now
+                </button>
+                <small class="text-muted d-block mt-3">
+                  <i class="bi bi-shield-lock-fill text-success me-1"></i> Your information is strictly private and sent directly to Ashu's verified mailbox.
+                </small>
+              </div>
+            </form>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick FAQ Help Strip -->
+  <section class="py-5 bg-white border-divider">
+    <div class="container">
+      <div class="row g-4 text-center justify-content-center">
+        <div class="col-md-4">
+          <div class="p-3">
+            <div class="fs-2 text-primary-blue mb-2"><i class="bi bi-lightning-charge-fill"></i></div>
+            <h6 class="fw-bold mb-1">Quick Turnaround</h6>
+            <p class="text-muted small mb-0">Most inquiries receive a personal response within 2–4 hours.</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-3">
+            <div class="fs-2 text-primary-pink mb-2"><i class="bi bi-telephone-heart-fill"></i></div>
+            <h6 class="fw-bold mb-1">Immediate Conversation?</h6>
+            <p class="text-muted small mb-0">Recharge a coin pack and talk with Ashu instantly from your dashboard.</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-3">
+            <div class="fs-2 text-purple mb-2"><i class="bi bi-question-circle-fill"></i></div>
+            <h6 class="fw-bold mb-1">Common Questions</h6>
+            <p class="text-muted small mb-0">Read answers about coin packages, privacy, and calling in our <a href="/faq" class="fw-bold text-primary-blue">FAQ section</a>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <%- include('partials/footer') %>
+  <%- include('partials/scripts') %>
+</body>
+</html>

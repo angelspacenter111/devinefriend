@@ -7,6 +7,7 @@
     "start": "node app.js"
   },
   "dependencies": {
+    "@emailjs/nodejs": "^5.0.2",
     "bcryptjs": "^3.0.3",
     "connect-mongo": "^6.0.0",
     "cors": "^2.8.6",
