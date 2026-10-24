@@ -513,6 +513,17 @@ function initializeCallerFlow() {
   });
 
   // Listen for Cloudflare SFU remote track announcements
+  
+  // Coordinated fallback from SFU to P2P mesh
+  socket.off('switch-to-p2p').on('switch-to-p2p', (data) => {
+    if (data && data.callId && data.callId !== currentCallId) return;
+    console.log("[WebRTC] Received switch-to-p2p signal from peer. Switching to P2P Mesh...");
+    isUsingSfu = false;
+    if (audioWatchdogTimer) { clearTimeout(audioWatchdogTimer); audioWatchdogTimer = null; }
+    if (pubPeerConnection) { try { pubPeerConnection.close(); } catch (e) {} pubPeerConnection = null; }
+    if (subPeerConnection) { try { subPeerConnection.close(); } catch (e) {} subPeerConnection = null; }
+  });
+
   socket.off('cf-sfu-remote-tracks-available').on('cf-sfu-remote-tracks-available', async (data) => {
     console.log("[WebRTC SFU] Received remote tracks announcement:", data);
     await subscribeToRemoteSFUTracks(data.publisherSessionId, data.tracks);
@@ -604,7 +615,13 @@ function initializeReceiverFlow() {
 
   // P2P Offer/Answer fallback listeners
   socket.off('receive-offer').on('receive-offer', async (data) => {
-    if (isUsingSfu || isTerminalState(currentCallState)) return;
+    if (isTerminalState(currentCallState)) return;
+    if (isUsingSfu) {
+      console.log("[WebRTC] Received P2P offer while in SFU mode. Demoting to P2P Mesh.");
+      isUsingSfu = false;
+      if (pubPeerConnection) { try { pubPeerConnection.close(); } catch (e) {} pubPeerConnection = null; }
+      if (subPeerConnection) { try { subPeerConnection.close(); } catch (e) {} subPeerConnection = null; }
+    }
     console.log(`[Socket P2P] Received 'receive-offer' from peer. isIceRestart: ${Boolean(data.isIceRestart)}`);
     targetPeerId = data.senderId;
 
@@ -662,6 +679,217 @@ function initializeReceiverFlow() {
       console.error("[WebRTC P2P Error] Offer processing failed:", err);
     }
   });
+}
+
+// ==========================================
+// ==========================================
+// Robust Audio Playback & Auto-Unlock Engine
+// ==========================================
+let audioUnlocked = false;
+
+function setupOneTouchAudioUnlock() {
+  if (audioUnlocked) return;
+
+  const unlockAudio = () => {
+    audioUnlocked = true;
+    const remoteAudio = document.getElementById('remoteAudio');
+    const remoteVideo = document.getElementById('remoteVideo');
+
+    if (remoteAudio) {
+      remoteAudio.muted = false;
+      remoteAudio.volume = 1.0;
+      remoteAudio.play().catch(() => {});
+    }
+    if (remoteVideo) {
+      remoteVideo.play().catch(() => {});
+    }
+
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        if (!activeAudioRoutingCtx || activeAudioRoutingCtx.state === 'closed') {
+          activeAudioRoutingCtx = new AudioCtx();
+        }
+        if (activeAudioRoutingCtx.state === 'suspended') {
+          activeAudioRoutingCtx.resume().catch(() => {});
+        }
+      }
+    } catch (e) {}
+
+    console.log("[WebRTC Audio] User interaction detected: Audio pipeline unlocked.");
+    window.removeEventListener('click', unlockAudio);
+    window.removeEventListener('touchstart', unlockAudio);
+    window.removeEventListener('touchend', unlockAudio);
+    window.removeEventListener('keydown', unlockAudio);
+  };
+
+  window.addEventListener('click', unlockAudio, { once: true, passive: true });
+  window.addEventListener('touchstart', unlockAudio, { once: true, passive: true });
+  window.addEventListener('touchend', unlockAudio, { once: true, passive: true });
+  window.addEventListener('keydown', unlockAudio, { once: true, passive: true });
+}
+
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupOneTouchAudioUnlock);
+  } else {
+    setupOneTouchAudioUnlock();
+  }
+}
+
+function attachRemoteAudioTrack(track) {
+  const remoteAudio = document.getElementById('remoteAudio');
+  if (!remoteAudio || !track || track.kind !== 'audio') return;
+
+  console.log(`[WebRTC Audio] Attaching remote audio track: id=${track.id}, readyState=${track.readyState}`);
+
+  let audioStream = remoteAudio.srcObject;
+  if (!audioStream || !(audioStream instanceof MediaStream)) {
+    audioStream = new MediaStream();
+    remoteAudio.srcObject = audioStream;
+  }
+
+  // Remove stale audio tracks and add this active one
+  audioStream.getAudioTracks().forEach(t => {
+    if (t.id !== track.id) {
+      try { audioStream.removeTrack(t); } catch (e) {}
+    }
+  });
+
+  if (!audioStream.getAudioTracks().some(t => t.id === track.id)) {
+    try { audioStream.addTrack(track); } catch (e) {}
+  }
+
+  remoteAudio.muted = false;
+  remoteAudio.volume = 1.0;
+
+  const playPromise = remoteAudio.play();
+  if (playPromise !== undefined) {
+    playPromise.then(() => {
+      console.log("[WebRTC Audio] Remote audio playback active!");
+    }).catch(err => {
+      console.warn("[WebRTC Audio] Autoplay deferred until interaction:", err.message);
+      setupOneTouchAudioUnlock();
+    });
+  }
+
+  // Dual-path: also attach audio to remoteVideo for redundancy
+  const remoteVideo = document.getElementById('remoteVideo');
+  if (remoteVideo) {
+    let videoStream = remoteVideo.srcObject;
+    if (videoStream && videoStream instanceof MediaStream) {
+      if (!videoStream.getAudioTracks().some(t => t.id === track.id)) {
+        try { videoStream.addTrack(track); } catch (e) {}
+      }
+    }
+  }
+
+  if (audioWatchdogTimer) {
+    clearTimeout(audioWatchdogTimer);
+    audioWatchdogTimer = null;
+  }
+}
+
+function attachRemoteVideoTrack(track) {
+  const remoteVideo = document.getElementById('remoteVideo');
+  if (!remoteVideo || !track || track.kind !== 'video') return;
+
+  console.log(`[WebRTC Video] Attaching remote video track: id=${track.id}, readyState=${track.readyState}`);
+
+  let videoStream = remoteVideo.srcObject;
+  if (!videoStream || !(videoStream instanceof MediaStream)) {
+    videoStream = new MediaStream();
+    remoteVideo.srcObject = videoStream;
+  }
+
+  // Replace old video tracks
+  videoStream.getVideoTracks().forEach(t => {
+    if (t.id !== track.id) {
+      try { videoStream.removeTrack(t); } catch (e) {}
+    }
+  });
+
+  if (!videoStream.getVideoTracks().some(t => t.id === track.id)) {
+    try { videoStream.addTrack(track); } catch (e) {}
+  }
+
+  // Preserve remote audio in videoStream if available
+  const remoteAudio = document.getElementById('remoteAudio');
+  if (remoteAudio && remoteAudio.srcObject && (remoteAudio.srcObject instanceof MediaStream)) {
+    const audioTracks = remoteAudio.srcObject.getAudioTracks();
+    if (audioTracks.length > 0 && !videoStream.getAudioTracks().some(t => t.id === audioTracks[0].id)) {
+      try { videoStream.addTrack(audioTracks[0]); } catch (e) {}
+    }
+  }
+
+  remoteVideo.play().catch(e => console.warn('[WebRTC Video] Video play notice:', e));
+}
+
+function handleRemoteTrack(event) {
+  console.log(`[WebRTC] Remote track arrived: kind=${event.track ? event.track.kind : 'stream'}`);
+
+  if (event.streams && event.streams[0]) {
+    const stream = event.streams[0];
+    const audioTracks = stream.getAudioTracks();
+    const videoTracks = stream.getVideoTracks();
+
+    if (audioTracks.length > 0) {
+      attachRemoteAudioTrack(audioTracks[0]);
+    }
+    if (videoTracks.length > 0) {
+      attachRemoteVideoTrack(videoTracks[0]);
+    }
+  } else if (event.track) {
+    if (event.track.kind === 'audio') {
+      attachRemoteAudioTrack(event.track);
+    } else if (event.track.kind === 'video') {
+      attachRemoteVideoTrack(event.track);
+    }
+  }
+
+  applyAudioRouting(isVideoCall ? 'speaker' : 'earpiece');
+}
+
+let audioWatchdogTimer = null;
+function startAudioWatchdog() {
+  if (audioWatchdogTimer) clearTimeout(audioWatchdogTimer);
+  audioWatchdogTimer = setTimeout(() => {
+    const remoteAudio = document.getElementById('remoteAudio');
+    const hasAudio = remoteAudio && remoteAudio.srcObject && remoteAudio.srcObject.getAudioTracks().length > 0;
+    if (!hasAudio && isUsingSfu && !isTerminalState(currentCallState)) {
+      console.warn("[WebRTC Watchdog] No remote audio detected on SFU after 4.5s. Activating P2P fallback!");
+      fallbackToP2PMesh("NO_AUDIO_TRACKS_ON_SFU");
+    }
+  }, 4500);
+}
+
+function fallbackToP2PMesh(reason) {
+  if (!isUsingSfu && peerConnection && (peerConnection.connectionState === 'connected' || peerConnection.iceConnectionState === 'connected')) {
+    return;
+  }
+  console.warn(`[WebRTC Fallback] SFU connection degraded (${reason}). Switching to P2P Mesh with TURNS...`);
+  isUsingSfu = false;
+  if (audioWatchdogTimer) {
+    clearTimeout(audioWatchdogTimer);
+    audioWatchdogTimer = null;
+  }
+
+  if (pubPeerConnection) {
+    try { pubPeerConnection.close(); } catch (e) {}
+    pubPeerConnection = null;
+  }
+  if (subPeerConnection) {
+    try { subPeerConnection.close(); } catch (e) {}
+    subPeerConnection = null;
+  }
+
+  socket.emit('switch-to-p2p', { callId: currentCallId });
+
+  // Initiate P2P mesh
+  const isCaller = Boolean(urlParams.get('callId') && !window.location.pathname.includes('/admin/'));
+  if (isCaller) {
+    startCallNegotiation(true);
+  }
 }
 
 // ==========================================
@@ -747,13 +975,29 @@ async function startCloudflareSFUFlow(isInitiator) {
     // 7. Complete Publisher handshake with SFU Answer
     await pubPeerConnection.setRemoteDescription(new RTCSessionDescription(pubResult.sessionDescription));
 
-    isUsingSfu = true;
     applyAudioSenderOptimizations();
     if (isVideoCall) {
       applyVideoSenderOptimizations();
     }
 
-    // 8. Announce published tracks to room
+    // 8. Wait briefly for publisher ICE connection so Cloudflare receives media packets
+    await new Promise((resolve) => {
+      if (pubPeerConnection.iceConnectionState === 'connected' || pubPeerConnection.connectionState === 'connected') {
+        return resolve();
+      }
+      const onConn = () => {
+        if (pubPeerConnection.iceConnectionState === 'connected' || pubPeerConnection.connectionState === 'connected') {
+          pubPeerConnection.removeEventListener('iceconnectionstatechange', onConn);
+          pubPeerConnection.removeEventListener('connectionstatechange', onConn);
+          resolve();
+        }
+      };
+      pubPeerConnection.addEventListener('iceconnectionstatechange', onConn);
+      pubPeerConnection.addEventListener('connectionstatechange', onConn);
+      setTimeout(resolve, 2000);
+    });
+
+    // 9. Announce published tracks to room
     const publishedNames = tracksPayload.map(t => t.trackName);
     socket.emit('cf-sfu-tracks-published', {
       callId: currentCallId,
@@ -798,35 +1042,7 @@ async function subscribeToRemoteSFUTracks(remotePublisherSessionId, trackNames) 
       });
 
       subPeerConnection.ontrack = (event) => {
-        console.log(`[Cloudflare SFU] Remote track arrived (${event.track.kind}).`);
-        let stream = (event.streams && event.streams[0]);
-        if (!stream && event.track) {
-          stream = new MediaStream([event.track]);
-        }
-
-        if (stream) {
-          const remoteAudio = document.getElementById('remoteAudio');
-          if (remoteAudio) {
-            remoteAudio.srcObject = stream;
-            remoteAudio.play().catch(e => {
-              console.warn('[WebRTC] Auto-play audio notice:', e);
-              const resume = () => {
-                remoteAudio.play().catch(() => {});
-                window.removeEventListener('click', resume);
-                window.removeEventListener('touchstart', resume);
-              };
-              window.addEventListener('click', resume, { once: true });
-              window.addEventListener('touchstart', resume, { once: true });
-            });
-            applyAudioRouting(isVideoCall ? 'speaker' : 'earpiece');
-          }
-
-          const remoteVideo = document.getElementById('remoteVideo');
-          if (remoteVideo) {
-            remoteVideo.srcObject = stream;
-            remoteVideo.play().catch(e => console.warn('[WebRTC] Auto-play video notice:', e));
-          }
-        }
+        handleRemoteTrack(event);
       };
 
       // Set low latency jitter buffer hint
@@ -839,7 +1055,7 @@ async function subscribeToRemoteSFUTracks(remotePublisherSessionId, trackNames) 
       }
     }
 
-    // 3. Request subscription from SFU
+    // 3. Request subscription from SFU with retry loop for pending publisher packets
     const subscribePayload = {
       tracks: trackNames.map(name => ({
         location: 'remote',
@@ -848,7 +1064,33 @@ async function subscribeToRemoteSFUTracks(remotePublisherSessionId, trackNames) 
       }))
     };
 
-    const subResult = await apiPost(`/api/sfu/sessions/${cfSubscriberSessionId}/subscribe`, subscribePayload);
+    let subResult = null;
+    let subscribeSuccess = false;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        subResult = await apiPost(`/api/sfu/sessions/${cfSubscriberSessionId}/subscribe`, subscribePayload);
+        const hasTrackErrors = subResult.tracks && subResult.tracks.some(t => t.errorCode);
+        const isInactive = subResult.sessionDescription && subResult.sessionDescription.sdp && subResult.sessionDescription.sdp.includes('a=inactive');
+
+        if (!hasTrackErrors && !isInactive) {
+          subscribeSuccess = true;
+          break;
+        }
+
+        console.warn(`[Cloudflare SFU] Track subscription attempt ${attempt + 1} pending packets on edge...`, subResult.tracks);
+        if (attempt < 2) {
+          await new Promise(r => setTimeout(r, 700));
+        }
+      } catch (postErr) {
+        console.warn(`[Cloudflare SFU] Subscribe attempt ${attempt + 1} error:`, postErr.message);
+        if (attempt < 2) await new Promise(r => setTimeout(r, 700));
+      }
+    }
+
+    if (!subscribeSuccess || !subResult || !subResult.sessionDescription) {
+      throw new Error("Cloudflare SFU tracks not ready or unavailable from publisher");
+    }
+
     console.log("[Cloudflare SFU] Subscription requested. Offer received from SFU:", subResult.tracks);
 
     // 4. Set SFU Offer on Subscriber PeerConnection
@@ -869,13 +1111,14 @@ async function subscribeToRemoteSFUTracks(remotePublisherSessionId, trackNames) 
     console.log("[Cloudflare SFU] Subscriber renegotiation completed successfully!");
     isUsingSfu = true;
     handleConnectedState();
+    startAudioWatchdog();
   } catch (err) {
-    console.error("[Cloudflare SFU Error] Failed subscribing to remote tracks:", err);
+    console.error("[Cloudflare SFU Error] Failed subscribing to remote tracks, triggering P2P mesh fallback:", err.message);
     subscribedRemoteSessions.delete(remotePublisherSessionId);
+    fallbackToP2PMesh("SFU_SUBSCRIBE_FAILED");
   }
 }
 
-// ==========================================
 // 4. Fallback P2P Mesh Negotiation Core
 // ==========================================
 async function startCallNegotiation(isInitiator) {
@@ -946,34 +1189,7 @@ async function setupPeerConnection() {
   };
 
   peerConnection.ontrack = (event) => {
-    console.log(`[WebRTC] Remote track arrived (${event.track ? event.track.kind : 'stream'}).`);
-    let stream = (event.streams && event.streams[0]);
-    if (!stream && event.track) {
-      stream = new MediaStream([event.track]);
-    }
-
-    if (stream) {
-      const remoteAudio = document.getElementById('remoteAudio');
-      if (remoteAudio) {
-        remoteAudio.srcObject = stream;
-        remoteAudio.play().catch(e => {
-          console.warn('[WebRTC] Auto-play audio warning:', e);
-          const resumeAudio = () => {
-            remoteAudio.play().catch(() => {});
-            window.removeEventListener('click', resumeAudio);
-            window.removeEventListener('touchstart', resumeAudio);
-          };
-          window.addEventListener('click', resumeAudio, { once: true });
-          window.addEventListener('touchstart', resumeAudio, { once: true });
-        });
-        applyAudioRouting(isVideoCall ? 'speaker' : 'earpiece');
-      }
-      const remoteVideo = document.getElementById('remoteVideo');
-      if (remoteVideo) {
-        remoteVideo.srcObject = stream;
-        remoteVideo.play().catch(e => console.warn('[WebRTC] Auto-play video warning:', e));
-      }
-    }
+    handleRemoteTrack(event);
   };
 
   peerConnection.onconnectionstatechange = () => {
@@ -1843,13 +2059,16 @@ function toggleLocalMute() {
   }
 }
 
+// ==========================================
 // Audio Output Routing (Earpiece vs Loudspeaker)
+// ==========================================
 let currentAudioRoute = isVideoCall ? 'speaker' : 'earpiece';
 let activeAudioRoutingCtx = null;
 
 async function applyAudioRouting(targetMode) {
   currentAudioRoute = targetMode;
   const remoteAudio = document.getElementById('remoteAudio');
+  const remoteVideo = document.getElementById('remoteVideo');
 
   if (remoteAudio && typeof remoteAudio.setSinkId === 'function') {
     try {
@@ -1858,22 +2077,22 @@ async function applyAudioRouting(targetMode) {
 
       let chosenDeviceId = '';
       if (targetMode === 'earpiece') {
-        const earpiece = outputDevices.find(d => /earpiece|receiver|phone|handset|internal/i.test(d.label));
-        chosenDeviceId = earpiece ? earpiece.deviceId : 'default';
+        const earpiece = outputDevices.find(d => /earpiece|receiver|phone|handset/i.test(d.label));
+        if (earpiece) {
+          chosenDeviceId = earpiece.deviceId;
+        }
       } else {
-        const speaker = outputDevices.find(d => /speaker|loudspeaker|speakerphone|external/i.test(d.label));
+        const speaker = outputDevices.find(d => /speaker|loudspeaker/i.test(d.label));
         if (speaker) {
           chosenDeviceId = speaker.deviceId;
-        } else if (outputDevices.length > 1) {
-          const nonDefault = outputDevices.find(d => d.deviceId !== 'default');
-          chosenDeviceId = nonDefault ? nonDefault.deviceId : 'default';
-        } else {
-          chosenDeviceId = 'default';
         }
       }
 
       if (chosenDeviceId) {
         await remoteAudio.setSinkId(chosenDeviceId);
+        if (remoteVideo && typeof remoteVideo.setSinkId === 'function') {
+          await remoteVideo.setSinkId(chosenDeviceId);
+        }
       }
     } catch (sinkErr) {}
   }
@@ -1889,13 +2108,17 @@ async function toggleRemoteSpeaker() {
       const selected = await navigator.mediaDevices.selectAudioOutput();
       if (selected && selected.deviceId) {
         const remoteAudio = document.getElementById('remoteAudio');
+        const remoteVideo = document.getElementById('remoteVideo');
         if (remoteAudio && typeof remoteAudio.setSinkId === 'function') {
           await remoteAudio.setSinkId(selected.deviceId);
-          const isSpk = /speaker|loudspeaker/i.test(selected.label);
-          currentAudioRoute = isSpk ? 'speaker' : 'earpiece';
-          updateSpeakerButtonUI(currentAudioRoute);
-          return;
         }
+        if (remoteVideo && typeof remoteVideo.setSinkId === 'function') {
+          await remoteVideo.setSinkId(selected.deviceId);
+        }
+        const isSpk = /speaker|loudspeaker/i.test(selected.label);
+        currentAudioRoute = isSpk ? 'speaker' : 'earpiece';
+        updateSpeakerButtonUI(currentAudioRoute);
+        return;
       }
     } catch (e) {}
   }

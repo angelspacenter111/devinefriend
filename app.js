@@ -362,6 +362,13 @@ async function startServer() {
 			});
 
 			// Cloudflare Realtime SFU Track Announcement
+			// Coordinated Fallback from SFU to P2P Mesh
+			socket.on('switch-to-p2p', (data) => {
+				const roomId = (data && data.callId) || socket.callId || 'call_room';
+				console.log(`[Socket SFU] Peer ${socket.id} requested fallback to P2P Mesh in room ${roomId}`);
+				socket.to(roomId).emit('switch-to-p2p', data || {});
+			});
+
 			socket.on('cf-sfu-tracks-published', (data) => {
 				const roomId = (data && data.callId) || socket.callId || 'call_room';
 				console.log(`[Socket SFU] Peer ${socket.id} published tracks on session ${data.sessionId} in room ${roomId}`);
