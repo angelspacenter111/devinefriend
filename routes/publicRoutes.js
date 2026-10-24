@@ -13,4 +13,8 @@ router.get('/support', publicController.getSupport);
 router.get('/pricing', publicController.getPricing);
 router.get('/faq', publicController.getFaq);
 
+// Customer Ratings & Reviews Endpoints
+router.get('/api/reviews', publicController.getReviews);
+router.post('/api/reviews', publicController.submitReview);
+
 module.exports = router;

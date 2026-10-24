@@ -467,14 +467,8 @@
 							<i class="bi bi-chevron-right"></i>
 						</button>
 
-						<!-- Bottom Bar: Autoplay Toggle, Animated Pagination & Counter -->
+						<!-- Bottom Bar: Animated Pagination & Counter -->
 						<div class="vc-bottom-bar">
-							<!-- Autoplay Control -->
-							<button type="button" class="vc-autoplay-toggle" id="vcAutoplayToggle" aria-label="Pause Autoplay" title="Pause / Resume Carousel Autoplay">
-								<i class="bi bi-pause-circle-fill"></i>
-								<span class="vc-autoplay-label">Autoplay On</span>
-							</button>
-
 							<!-- Pagination Dots with Progress Countdown Fill -->
 							<div class="vc-pagination" id="vcPagination" role="tablist" aria-label="Video Carousel Slides">
 								<!-- Dynamically populated and animated by video-carousel.js -->
@@ -722,6 +716,176 @@
 						<p class="text-muted mb-4">— Talk. Be Heard. Feel Lighter. —</p>
 						<a href="/user/dashboard" class="btn btn-brand px-5 py-3 fs-5">Start a Conversation</a>
 					</div>
+				</div>
+			</section>
+
+			<!-- Customer Ratings & Reviews Section -->
+			<section id="customer-reviews" class="reviews-section position-relative overflow-hidden">
+				<div class="backdrop-glow"></div>
+				<div class="backdrop-glow-left"></div>
+
+				<div class="container-fluid px-xl-5 px-lg-4 px-md-3 px-2 position-relative z-3">
+					<!-- Section Header -->
+					<div class="text-center max-width-700 mx-auto mb-4">
+						<span class="badge-category mb-2">
+							<i class="bi bi-star-fill text-warning me-1"></i> Heartfelt Testimonials
+						</span>
+						<h2 class="fw-bold mb-3">Customer Ratings &amp; Real Reviews</h2>
+						<p class="text-muted mb-0">
+							See how compassionate, 1-on-1 confidential conversations have helped individuals find calm, peace of mind, and clarity.
+						</p>
+
+						<!-- Overall Rating Summary -->
+						<div class="reviews-summary-badge">
+							<div class="stars-gold">
+								<i class="bi bi-star-fill"></i>
+								<i class="bi bi-star-fill"></i>
+								<i class="bi bi-star-fill"></i>
+								<i class="bi bi-star-fill"></i>
+								<i class="bi bi-star-fill"></i>
+							</div>
+							<span class="rating-number"><%= typeof averageRating !== 'undefined' ? averageRating : '5.0' %> / 5.0</span>
+							<span class="rating-sub">Based on <%= typeof totalReviews !== 'undefined' ? totalReviews : 5 %>+ Verified Conversations</span>
+						</div>
+					</div>
+
+					<!-- Reviews Responsive Carousel Slider -->
+					<div class="reviews-carousel-wrapper">
+						<div class="reviews-viewport" id="reviewsViewport">
+							<div class="reviews-track" id="reviewsTrack">
+								<% if (typeof reviews !== 'undefined' && reviews.length > 0) { %>
+									<% reviews.forEach(function(item) { %>
+										<div class="review-card-slide">
+											<div class="review-card">
+												<i class="bi bi-quote review-quote-icon"></i>
+												<div>
+													<div class="review-card-top">
+														<div class="review-stars">
+															<% for(var i = 1; i <= 5; i++) { %>
+																<% if(i <= (item.rating || 5)) { %>
+																	<i class="bi bi-star-fill text-warning"></i>
+																<% } else { %>
+																	<i class="bi bi-star text-muted"></i>
+																<% } %>
+															<% } %>
+														</div>
+														<span class="review-verified-badge">
+															<i class="bi bi-patch-check-fill"></i> <%= item.badge || 'Verified Conversation' %>
+														</span>
+													</div>
+													<div class="review-comment-body">
+														<p class="review-comment-text">"<%= item.comment %>"</p>
+													</div>
+												</div>
+												<div class="review-author-row">
+													<div class="review-avatar-circle" style="background: <%= item.avatarColor || '#1769E0' %>;">
+														<%= item.name ? item.name.charAt(0).toUpperCase() : 'U' %>
+													</div>
+													<div class="review-author-info">
+														<h6 class="review-author-name"><%= item.name %></h6>
+														<span class="review-author-tag">
+															<%= item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Verified Companion User' %>
+														</span>
+													</div>
+												</div>
+											</div>
+										</div>
+									<% }); %>
+								<% } %>
+							</div>
+						</div>
+
+						<!-- Slider Navigation Controls -->
+						<div class="reviews-controls-bar">
+							<!-- Previous Button -->
+							<button type="button" class="rev-nav-btn" id="revPrevBtn" aria-label="Previous Reviews">
+								<i class="bi bi-chevron-left"></i>
+							</button>
+
+							<!-- Pagination Dots -->
+							<div class="reviews-dots-container" id="revDotsContainer">
+								<!-- Injected by reviews.js -->
+							</div>
+
+							
+
+							<!-- Next Button -->
+							<button type="button" class="rev-nav-btn" id="revNextBtn" aria-label="Next Reviews">
+								<i class="bi bi-chevron-right"></i>
+							</button>
+						</div>
+					</div>
+
+					<!-- Simple Review Submission Form -->
+					<div class="row justify-content-center">
+						<div class="col-xxl-12 col-lg-10 col-12">
+							<div class="review-form-card">
+								<div class="review-form-header">
+									<span class="badge-category mb-2">
+										<i class="bi bi-chat-heart-fill me-1"></i> Your Voice Matters
+									</span>
+									<h3 class="review-form-title">Share Your Experience with Ashu</h3>
+									<p class="review-form-subtitle">
+										Had a talk or call session? Your honest review helps others feel confident to reach out and speak their heart.
+									</p>
+								</div>
+
+								<!-- Alert box for success / error messages -->
+								<div id="reviewFormAlert" class="alert review-alert mb-3" role="alert"></div>
+
+								<form id="reviewSubmitForm" novalidate>
+									<!-- Honeypot anti-spam field -->
+									<input type="text" name="hp_website" class="hp-field" tabindex="-1" autocomplete="off">
+
+									<div class="row g-3 mb-3">
+										<div class="col-md-6">
+											<!-- Name Field -->
+											<label for="reviewNameInput" class="form-label form-label-custom">
+												Your Name <span class="text-danger">*</span>
+											</label>
+											<div class="review-input-group">
+												<i class="bi bi-person review-input-icon"></i>
+												<input type="text" class="form-control-review" id="reviewNameInput" name="name" placeholder="e.g. Rahul Sharma or Priya S." required minlength="2" maxlength="50" autocomplete="name">
+											</div>
+											<small class="text-muted d-block mt-1">You may use your first name or a nickname.</small>
+										</div>
+										<div class="col-md-6">
+											<!-- Interactive Star Rating Picker -->
+											<div class="star-rating-widget">
+												<label class="form-label-custom mb-1">Your Star Rating</label>
+												<div class="stars-interactive" role="radiogroup" aria-label="Star Rating 1 to 5">
+													<span class="star-choice" data-rating="1" title="1 Star"><i class="bi bi-star-fill"></i></span>
+													<span class="star-choice" data-rating="2" title="2 Stars"><i class="bi bi-star-fill"></i></span>
+													<span class="star-choice" data-rating="3" title="3 Stars"><i class="bi bi-star-fill"></i></span>
+													<span class="star-choice" data-rating="4" title="4 Stars"><i class="bi bi-star-fill"></i></span>
+													<span class="star-choice" data-rating="5" title="5 Stars"><i class="bi bi-star-fill"></i></span>
+												</div>
+												<input type="hidden" name="rating" id="reviewRatingInput" value="5">
+												<div class="star-rating-label text-primary-pink" id="starRatingLabel">5 Stars - Truly Wonderful &amp; Heartwarming!</div>
+											</div>
+										</div>
+									</div>
+
+									<!-- Review Comment Field -->
+									<div class="mb-4">
+										<label for="reviewCommentInput" class="form-label form-label-custom">
+											Your Review &amp; Experience <span class="text-danger">*</span>
+										</label>
+										<textarea class="form-control-review form-textarea-review" id="reviewCommentInput" name="comment" rows="4" placeholder="How did talking with Ashu help you? Describe how you felt before and after the conversation..." required minlength="5" maxlength="600"></textarea>
+										<div class="char-counter" id="reviewCharCounter">0 / 600 characters</div>
+									</div>
+
+									<!-- Submit Button -->
+									<div class="text-center">
+										<button type="submit" id="reviewSubmitBtn" class="btn btn-brand btn-submit-review px-5 py-3 shadow-brand">
+											<i class="bi bi-send-fill me-2"></i> Submit My Review
+										</button>
+									</div>
+								</form>
+							</div>
+						</div>
+					</div>
+
 				</div>
 			</section>
 

@@ -473,12 +473,13 @@
   transform: translateY(-50%) scale(0.96);
 }
 
-/* Bottom Bar: Pagination, Autoplay Status & Counter */
+/* Bottom Bar: Pagination & Counter */
 .vc-bottom-bar {
   margin-top: 1.75rem;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 2rem;
   padding: 0.6rem 1rem;
 }
 
