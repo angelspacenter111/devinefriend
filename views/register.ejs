@@ -28,20 +28,43 @@
             </div>
           <% } %>
 
-          <form action="/register" method="POST" class="auth-form-validate">
+          <form action="/register" method="POST" class="auth-form-validate" id="registration-form" novalidate>
             <div class="mb-3">
               <label for="register-name" class="form-label form-label-custom">Full Name (or Screen Name)</label>
               <div class="input-group">
                 <span class="input-group-text bg-white border-end-0 border-1" style="border-radius: 10px 0 0 10px; border-color: rgba(24,32,51,0.1);"><i class="bi bi-person text-muted"></i></span>
-                <input type="text" class="form-control form-control-custom border-start-0 ps-2" id="register-name" name="name" placeholder="John Doe" required style="border-radius: 0 10px 10px 0;">
+                <input type="text" class="form-control form-control-custom border-start-0 ps-2" id="register-name" name="name" value="<%= typeof formData !== 'undefined' && formData && formData.name ? formData.name : '' %>" placeholder="John Doe" required style="border-radius: 0 10px 10px 0;">
               </div>
             </div>
 
+            <!-- Dubai / UAE Mobile Number Field -->
             <div class="mb-3">
-              <label for="register-mobile" class="form-label form-label-custom">Mobile Number</label>
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label for="register-mobile" class="form-label form-label-custom mb-0">Mobile Number</label>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle py-1 px-2" style="font-size: 0.72rem; font-weight: 600;">
+                  🇦🇪 Dubai / UAE Only
+                </span>
+              </div>
               <div class="input-group">
-                <span class="input-group-text bg-white border-end-0 border-1" style="border-radius: 10px 0 0 10px; border-color: rgba(24,32,51,0.1);"><i class="bi bi-telephone text-muted"></i></span>
-                <input type="text" class="form-control form-control-custom border-start-0 ps-2" id="register-mobile" name="mobile" placeholder="+91 XXXXX XXXXX" required style="border-radius: 0 10px 10px 0;">
+                <span class="input-group-text bg-light border-end-0 border-1 fw-bold text-dark px-2.5 d-flex align-items-center gap-1" style="border-radius: 10px 0 0 10px; border-color: rgba(24,32,51,0.12); font-size: 0.92rem;">
+                  <span>🇦🇪</span>
+                  <span>+971</span>
+                </span>
+                <input type="tel" 
+                       class="form-control form-control-custom border-start-0 ps-2" 
+                       id="register-mobile" 
+                       name="mobile" 
+                       value="<%= typeof formData !== 'undefined' && formData && formData.mobile ? formData.mobile : '' %>"
+                       placeholder="50 123 4567" 
+                       maxlength="16"
+                       autocomplete="tel"
+                       required 
+                       style="border-radius: 0 10px 10px 0;">
+              </div>
+              <!-- Live validation feedback -->
+              <div id="mobile-uae-feedback" class="small mt-1 px-1 fw-medium" style="display: none; font-size: 0.82rem;"></div>
+              <div class="form-text text-muted small mt-1" style="font-size: 0.78rem;">
+                <i class="bi bi-info-circle me-1 text-primary"></i>Enter 9-digit UAE mobile (e.g. <strong>50 123 4567</strong> or <strong>050 123 4567</strong>). Etisalat & du: 050, 052, 054, 055, 056, 058.
               </div>
             </div>
 
@@ -49,7 +72,7 @@
               <label for="register-password" class="form-label form-label-custom">Password</label>
               <div class="input-group">
                 <span class="input-group-text bg-white border-end-0 border-1" style="border-radius: 10px 0 0 10px; border-color: rgba(24,32,51,0.1);"><i class="bi bi-lock text-muted"></i></span>
-                <input type="password" class="form-control form-control-custom border-start-0 ps-2" id="register-password" name="password" placeholder="••••••••" required style="border-radius: 0 10px 10px 0;">
+                <input type="password" class="form-control form-control-custom border-start-0 ps-2" id="register-password" name="password" placeholder="At least 6 characters" minlength="6" required style="border-radius: 0 10px 10px 0;">
               </div>
             </div>
 
@@ -57,20 +80,21 @@
               <label for="register-confirm" class="form-label form-label-custom">Confirm Password</label>
               <div class="input-group">
                 <span class="input-group-text bg-white border-end-0 border-1" style="border-radius: 10px 0 0 10px; border-color: rgba(24,32,51,0.1);"><i class="bi bi-lock-fill text-muted"></i></span>
-                <input type="password" class="form-control form-control-custom border-start-0 ps-2" id="register-confirm" name="confirmPassword" placeholder="••••••••" required style="border-radius: 0 10px 10px 0;">
+                <input type="password" class="form-control form-control-custom border-start-0 ps-2" id="register-confirm" name="confirmPassword" placeholder="••••••••" minlength="6" required style="border-radius: 0 10px 10px 0;">
               </div>
+              <div id="password-match-feedback" class="small mt-1 px-1 fw-medium" style="display: none; font-size: 0.82rem;"></div>
             </div>
 
             <div class="mb-4">
               <div class="form-check">
-                <input type="checkbox" class="form-check-input" id="terms-check" required>
+                <input type="checkbox" class="form-check-input" id="terms-check" required checked>
                 <label class="form-check-label text-muted small" for="terms-check">
                   I agree to the <a href="#" class="text-primary-blue fw-semibold">Terms of Service</a> & <a href="#" class="text-primary-blue fw-semibold">Privacy Policy</a>
                 </label>
               </div>
             </div>
 
-            <button type="submit" class="btn btn-brand w-100 py-3 mb-3">Create Account</button>
+            <button type="submit" id="btn-create-account" class="btn btn-brand w-100 py-3 mb-3">Create Account</button>
           </form>
 
           <div class="text-center mt-3 small">
@@ -88,5 +112,216 @@
   </div>
 
   <%- include('partials/scripts') %>
+
+  <!-- Dubai / UAE Mobile Validation & Real-time Formatting Script -->
+  <script>
+    (function () {
+      const mobileInput = document.getElementById('register-mobile');
+      const feedbackDiv = document.getElementById('mobile-uae-feedback');
+      const form = document.getElementById('registration-form');
+      const passwordInput = document.getElementById('register-password');
+      const confirmInput = document.getElementById('register-confirm');
+      const passFeedback = document.getElementById('password-match-feedback');
+
+      // Valid UAE Mobile Operators:
+      // Etisalat: 050, 054, 056
+      // du / Virgin: 052, 055, 058
+      const VALID_OPERATORS = ['50', '52', '54', '55', '56', '58'];
+
+      function checkUAEMobile(value) {
+        if (!value) {
+          return { valid: false, message: 'Please enter your mobile number.', status: 'empty' };
+        }
+
+        // Clean user input
+        let clean = value.replace(/[\s\-\(\)\.]/g, '');
+
+        // If user entered +971, 00971, or 971, strip it
+        if (clean.startsWith('+971')) clean = clean.slice(4);
+        else if (clean.startsWith('00971')) clean = clean.slice(5);
+        else if (clean.startsWith('971') && clean.length >= 11) clean = clean.slice(3);
+
+        // Remove leading 0 if present (e.g. 050... -> 50...)
+        if (clean.startsWith('0')) clean = clean.slice(1);
+
+        // Only digits allowed
+        if (!/^\d*$/.test(clean)) {
+          return { valid: false, message: 'Only numbers are allowed.', status: 'invalid' };
+        }
+
+        if (clean.length === 0) {
+          return { valid: false, message: 'Please enter your mobile number.', status: 'empty' };
+        }
+
+        // Check first digit: must be 5
+        if (clean[0] !== '5') {
+          return {
+            valid: false,
+            message: 'Dubai / UAE mobile numbers must start with 5 (e.g. 050, 052, 054, 055, 056, 058). International numbers are not accepted.',
+            status: 'invalid'
+          };
+        }
+
+        // Check operator code if at least 2 digits entered
+        if (clean.length >= 2) {
+          const op = clean.substring(0, 2);
+          if (!VALID_OPERATORS.includes(op)) {
+            return {
+              valid: false,
+              message: 'Invalid UAE operator prefix "0' + op + '". Allowed prefixes: 050, 052, 054, 055, 056, 058 (Etisalat & du).',
+              status: 'invalid'
+            };
+          }
+        }
+
+        // Check length
+        if (clean.length < 9) {
+          return {
+            valid: false,
+            message: 'Please enter all 9 digits. (Current: ' + clean.length + '/9 digits)',
+            status: 'incomplete'
+          };
+        }
+
+        if (clean.length > 9) {
+          return {
+            valid: false,
+            message: 'UAE mobile numbers have exactly 9 digits (excluding country code).',
+            status: 'invalid'
+          };
+        }
+
+        // Exactly 9 digits with valid operator code
+        const op = clean.substring(0, 2);
+        const p1 = clean.substring(2, 5);
+        const p2 = clean.substring(5, 9);
+        const formatted = '+971 ' + op + ' ' + p1 + ' ' + p2;
+
+        return {
+          valid: true,
+          formatted: formatted,
+          cleanDigits: clean,
+          message: 'Valid Dubai / UAE mobile number (' + formatted + ')',
+          status: 'valid'
+        };
+      }
+
+      function updateValidationUI() {
+        const result = checkUAEMobile(mobileInput.value);
+
+        if (result.status === 'empty') {
+          feedbackDiv.style.display = 'none';
+          mobileInput.classList.remove('is-valid', 'is-invalid');
+          return;
+        }
+
+        feedbackDiv.style.display = 'block';
+
+        if (result.valid) {
+          feedbackDiv.className = 'small mt-1 px-1 fw-medium text-success';
+          feedbackDiv.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>' + result.message;
+          mobileInput.classList.remove('is-invalid');
+          mobileInput.classList.add('is-valid');
+        } else if (result.status === 'incomplete') {
+          feedbackDiv.className = 'small mt-1 px-1 fw-medium text-muted';
+          feedbackDiv.innerHTML = '<i class="bi bi-pencil me-1"></i>' + result.message;
+          mobileInput.classList.remove('is-valid', 'is-invalid');
+        } else {
+          feedbackDiv.className = 'small mt-1 px-1 fw-medium text-danger';
+          feedbackDiv.innerHTML = '<i class="bi bi-exclamation-circle-fill me-1"></i>' + result.message;
+          mobileInput.classList.remove('is-valid');
+          mobileInput.classList.add('is-invalid');
+        }
+      }
+
+      // Format input nicely as the user types
+      mobileInput.addEventListener('input', function (e) {
+        let val = this.value;
+
+        // Automatically clean redundant +971 if user pasted it
+        if (val.includes('+971')) {
+          val = val.replace(/\+971/g, '').trim();
+          this.value = val;
+        }
+
+        updateValidationUI();
+      });
+
+      mobileInput.addEventListener('blur', function () {
+        const result = checkUAEMobile(this.value);
+        if (result.valid) {
+          // Format as 50 123 4567
+          const d = result.cleanDigits;
+          this.value = d.substring(0, 2) + ' ' + d.substring(2, 5) + ' ' + d.substring(5);
+        }
+        updateValidationUI();
+      });
+
+      // Password match validation
+      function checkPasswords() {
+        if (!confirmInput.value) {
+          passFeedback.style.display = 'none';
+          confirmInput.classList.remove('is-valid', 'is-invalid');
+          return true;
+        }
+        if (passwordInput.value !== confirmInput.value) {
+          passFeedback.style.display = 'block';
+          passFeedback.className = 'small mt-1 px-1 fw-medium text-danger';
+          passFeedback.innerHTML = '<i class="bi bi-exclamation-circle-fill me-1"></i>Passwords do not match.';
+          confirmInput.classList.remove('is-valid');
+          confirmInput.classList.add('is-invalid');
+          return false;
+        } else {
+          passFeedback.style.display = 'block';
+          passFeedback.className = 'small mt-1 px-1 fw-medium text-success';
+          passFeedback.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Passwords match.';
+          confirmInput.classList.remove('is-invalid');
+          confirmInput.classList.add('is-valid');
+          return true;
+        }
+      }
+
+      confirmInput.addEventListener('input', checkPasswords);
+      passwordInput.addEventListener('input', function () {
+        if (confirmInput.value) checkPasswords();
+      });
+
+      // Form Submit Validation
+      form.addEventListener('submit', function (e) {
+        const uaeResult = checkUAEMobile(mobileInput.value);
+
+        if (!uaeResult.valid) {
+          e.preventDefault();
+          e.stopPropagation();
+          mobileInput.focus();
+          mobileInput.classList.add('is-invalid');
+          feedbackDiv.style.display = 'block';
+          feedbackDiv.className = 'small mt-1 px-1 fw-medium text-danger';
+          feedbackDiv.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i>' + (uaeResult.message || 'Please enter a valid Dubai / UAE mobile number.');
+          return false;
+        }
+
+        if (passwordInput.value.length < 6) {
+          e.preventDefault();
+          passwordInput.focus();
+          passwordInput.classList.add('is-invalid');
+          alert('Password must be at least 6 characters long.');
+          return false;
+        }
+
+        if (passwordInput.value !== confirmInput.value) {
+          e.preventDefault();
+          confirmInput.focus();
+          checkPasswords();
+          return false;
+        }
+      });
+
+      // Run initial validation check if field has pre-filled value
+      if (mobileInput.value) {
+        updateValidationUI();
+      }
+    })();
+  </script>
 </body>
 </html>

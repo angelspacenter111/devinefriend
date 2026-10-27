@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
+const { parseUAEMobile, getUAEMobileVariants } = require('../services/phoneValidator');
 
 exports.getLogin = (req, res) => {
   if (req.session && req.session.userId) {
@@ -7,7 +8,8 @@ exports.getLogin = (req, res) => {
   }
   res.render('login', {
     title: 'Login - Talk With Ashu',
-    errorMessage: null
+    errorMessage: null,
+    formData: null
   });
 };
 
@@ -17,13 +19,16 @@ exports.getRegister = (req, res) => {
   }
   res.render('register', {
     title: 'Create Account - Talk With Ashu',
-    errorMessage: null
+    errorMessage: null,
+    formData: null
   });
 };
 
 exports.getForgotPassword = (req, res) => {
   res.render('forgot-password', {
-    title: 'Recover Password - Talk With Ashu'
+    title: 'Recover Password - Talk With Ashu',
+    errorMessage: null,
+    formData: null
   });
 };
 
@@ -35,17 +40,38 @@ exports.postLogin = async (req, res) => {
     if (!mobile || !password) {
       return res.render('login', {
         title: 'Login - Talk With Ashu',
-        errorMessage: 'Please enter all required fields.'
+        errorMessage: 'Please enter all required fields.',
+        formData: { mobile }
       });
     }
 
     const cleanMobile = mobile.trim();
-    const user = await User.findOne({ mobile: cleanMobile });
+    const uaeInfo = parseUAEMobile(cleanMobile);
+
+    let query;
+    if (uaeInfo.isValid) {
+      query = {
+        $or: [
+          { mobile: cleanMobile },
+          ...uaeInfo.allVariants.map(v => ({ mobile: v }))
+        ]
+      };
+    } else {
+      query = {
+        $or: [
+          { mobile: cleanMobile },
+          { mobile: cleanMobile.replace(/[^0-9]/g, '') }
+        ]
+      };
+    }
+
+    const user = await User.findOne(query);
 
     if (!user) {
       return res.render('login', {
         title: 'Login - Talk With Ashu',
-        errorMessage: 'Invalid mobile number or password.'
+        errorMessage: 'Invalid mobile number or password.',
+        formData: { mobile }
       });
     }
 
@@ -53,14 +79,16 @@ exports.postLogin = async (req, res) => {
     if (!isMatch) {
       return res.render('login', {
         title: 'Login - Talk With Ashu',
-        errorMessage: 'Invalid mobile number or password.'
+        errorMessage: 'Invalid mobile number or password.',
+        formData: { mobile }
       });
     }
 
     if (user.isBlocked) {
       return res.render('login', {
         title: 'Login - Talk With Ashu',
-        errorMessage: 'Your account is suspended. Please contact customer support.'
+        errorMessage: 'Your account is suspended. Please contact customer support.',
+        formData: { mobile }
       });
     }
 
@@ -76,7 +104,8 @@ exports.postLogin = async (req, res) => {
     console.error('[Login Error]', error);
     res.render('login', {
       title: 'Login - Talk With Ashu',
-      errorMessage: 'An error occurred during login. Please try again.'
+      errorMessage: 'An error occurred during login. Please try again.',
+      formData: { mobile: req.body.mobile }
     });
   }
 };
@@ -84,30 +113,58 @@ exports.postLogin = async (req, res) => {
 // POST User registration
 exports.postRegister = async (req, res) => {
   try {
-    const { name, mobile, password } = req.body;
+    const { name, mobile, password, confirmPassword } = req.body;
 
     if (!name || !mobile || !password) {
       return res.render('register', {
         title: 'Create Account - Talk With Ashu',
-        errorMessage: 'Please fill all required fields.'
+        errorMessage: 'Please fill all required fields.',
+        formData: { name, mobile }
       });
     }
 
-    const cleanMobile = mobile.trim();
-    
-    // Check if user already exists
-    const userExists = await User.findOne({ mobile: cleanMobile });
+    // Dubai / UAE Mobile Number Validation
+    const uaeInfo = parseUAEMobile(mobile);
+    if (!uaeInfo.isValid) {
+      return res.render('register', {
+        title: 'Create Account - Talk With Ashu',
+        errorMessage: uaeInfo.message,
+        formData: { name, mobile }
+      });
+    }
+
+    if (confirmPassword && password !== confirmPassword) {
+      return res.render('register', {
+        title: 'Create Account - Talk With Ashu',
+        errorMessage: 'Passwords do not match.',
+        formData: { name, mobile }
+      });
+    }
+
+    if (password.length < 6) {
+      return res.render('register', {
+        title: 'Create Account - Talk With Ashu',
+        errorMessage: 'Password must be at least 6 characters long.',
+        formData: { name, mobile }
+      });
+    }
+
+    // Check if user already exists across any variant of this UAE number
+    const userExists = await User.findOne({
+      mobile: { $in: uaeInfo.allVariants }
+    });
     if (userExists) {
       return res.render('register', {
         title: 'Create Account - Talk With Ashu',
-        errorMessage: 'Mobile number is already registered.'
+        errorMessage: 'This UAE mobile number is already registered. Please log in.',
+        formData: { name, mobile }
       });
     }
 
-    // Create and save new user (credits defaults to 5)
+    // Create and save new user (credits defaults to 5) with formatted UAE mobile number
     const newUser = new User({
       name: name.trim(),
-      mobile: cleanMobile,
+      mobile: uaeInfo.internationalFormatted,
       password: password // pre-save hook handles hashing
     });
 
@@ -134,7 +191,8 @@ exports.postRegister = async (req, res) => {
     console.error('[Registration Error]', error);
     res.render('register', {
       title: 'Create Account - Talk With Ashu',
-      errorMessage: 'An error occurred during registration. Please try again.'
+      errorMessage: 'An error occurred during registration. Please try again.',
+      formData: { name: req.body.name, mobile: req.body.mobile }
     });
   }
 };

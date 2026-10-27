@@ -105,7 +105,7 @@ export const LoginScreen = ({ onNavigateRegister, onNavigateForgotPassword, onNa
               <Ionicons name="call-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Enter 10-digit mobile"
+                placeholder="e.g. 50 123 4567 or 050 123 4567"
                 placeholderTextColor={COLORS.textMuted}
                 keyboardType="phone-pad"
                 value={mobile}
@@ -113,7 +113,7 @@ export const LoginScreen = ({ onNavigateRegister, onNavigateForgotPassword, onNa
                   setMobile(text);
                   setErrorMsg('');
                 }}
-                maxLength={10}
+                maxLength={16}
               />
             </View>
           </View>

@@ -31,8 +31,17 @@ export const RegisterScreen = ({ onNavigateLogin }) => {
       return;
     }
 
-    if (mobile.trim().length < 10) {
-      setErrorMsg('Please enter a valid 10-digit mobile number.');
+    const isValidUAEMobile = (val) => {
+      let clean = (val || '').replace(/[\s\-\(\)\.]/g, '');
+      if (clean.startsWith('+971')) clean = clean.slice(4);
+      else if (clean.startsWith('00971')) clean = clean.slice(5);
+      else if (clean.startsWith('971') && clean.length >= 11) clean = clean.slice(3);
+      if (clean.startsWith('0')) clean = clean.slice(1);
+      return /^5[024568]\d{7}$/.test(clean);
+    };
+
+    if (!isValidUAEMobile(mobile.trim())) {
+      setErrorMsg('Please enter a valid Dubai / UAE mobile number (e.g. 50 123 4567 or 050 123 4567). Allowed prefixes: 050, 052, 054, 055, 056, 058.');
       return;
     }
 
@@ -107,12 +116,17 @@ export const RegisterScreen = ({ onNavigateLogin }) => {
 
           {/* Mobile Number */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Mobile Number</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <Text style={styles.label}>Mobile Number</Text>
+              <Text style={{ fontSize: 11, color: COLORS.primary || '#1769E0', fontWeight: 'bold' }}>🇦🇪 UAE Only</Text>
+            </View>
             <View style={styles.inputWrapper}>
-              <Ionicons name="call-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
+              <View style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: 12, paddingRight: 6 }}>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: COLORS.textPrimary }}>🇦🇪 +971</Text>
+              </View>
               <TextInput
-                style={styles.input}
-                placeholder="10-digit mobile number"
+                style={[styles.input, { paddingLeft: 6 }]}
+                placeholder="50 123 4567"
                 placeholderTextColor={COLORS.textMuted}
                 keyboardType="phone-pad"
                 value={mobile}
@@ -120,9 +134,12 @@ export const RegisterScreen = ({ onNavigateLogin }) => {
                   setMobile(text);
                   setErrorMsg('');
                 }}
-                maxLength={10}
+                maxLength={16}
               />
             </View>
+            <Text style={{ fontSize: 11, color: COLORS.textMuted, marginTop: 4 }}>
+              Enter 9-digit UAE mobile (050, 052, 054, 055, 056, 058)
+            </Text>
           </View>
 
           {/* Password */}

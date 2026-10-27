@@ -30,11 +30,12 @@ function getRandomNumber(min, max) {
 }
 
 function generateMobile() {
+  const prefix = getRandomElement(["50", "52", "54", "55", "56", "58"]);
   let num = "";
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 7; i++) {
     num += getRandomNumber(0, 9);
   }
-  return `+91 ${num.substring(0, 5)} ${num.substring(5)}`;
+  return `+971 ${prefix} ${num.substring(0, 3)} ${num.substring(3)}`;
 }
 
 function generateDuration() {

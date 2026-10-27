@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../../models/User');
 const Transaction = require('../../models/Transaction');
 const { JWT_SECRET } = require('../middleware/apiAuth');
+const { parseUAEMobile, getUAEMobileVariants } = require('../../services/phoneValidator');
 
 const generateToken = (user) => {
   return jwt.sign(
@@ -28,11 +29,12 @@ exports.register = async (req, res) => {
       });
     }
 
-    const cleanMobile = mobile.toString().trim();
-    if (cleanMobile.length < 10) {
+    // Dubai / UAE Mobile Number Validation
+    const uaeInfo = parseUAEMobile(mobile);
+    if (!uaeInfo.isValid) {
       return res.status(400).json({
         success: false,
-        message: 'Please enter a valid 10-digit mobile number.'
+        message: uaeInfo.message
       });
     }
 
@@ -43,17 +45,20 @@ exports.register = async (req, res) => {
       });
     }
 
-    const existingUser = await User.findOne({ mobile: cleanMobile });
+    // Check if account already exists with any variant of this UAE number
+    const existingUser = await User.findOne({
+      mobile: { $in: uaeInfo.allVariants }
+    });
     if (existingUser) {
       return res.status(409).json({
         success: false,
-        message: 'An account with this mobile number already exists. Please log in.'
+        message: 'An account with this UAE mobile number already exists. Please log in.'
       });
     }
 
     const newUser = new User({
       name: name.trim(),
-      mobile: cleanMobile,
+      mobile: uaeInfo.internationalFormatted,
       password: password
     });
 
@@ -108,7 +113,26 @@ exports.login = async (req, res) => {
     }
 
     const cleanMobile = mobile.toString().trim();
-    const user = await User.findOne({ mobile: cleanMobile });
+    const uaeInfo = parseUAEMobile(cleanMobile);
+
+    let query;
+    if (uaeInfo.isValid) {
+      query = {
+        $or: [
+          { mobile: cleanMobile },
+          ...uaeInfo.allVariants.map(v => ({ mobile: v }))
+        ]
+      };
+    } else {
+      query = {
+        $or: [
+          { mobile: cleanMobile },
+          { mobile: cleanMobile.replace(/[^0-9]/g, '') }
+        ]
+      };
+    }
+
+    const user = await User.findOne(query);
 
     if (!user) {
       return res.status(401).json({
@@ -192,7 +216,27 @@ exports.forgotPassword = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ mobile: mobile.toString().trim() });
+    const cleanMobile = mobile.toString().trim();
+    const uaeInfo = parseUAEMobile(cleanMobile);
+
+    let query;
+    if (uaeInfo.isValid) {
+      query = {
+        $or: [
+          { mobile: cleanMobile },
+          ...uaeInfo.allVariants.map(v => ({ mobile: v }))
+        ]
+      };
+    } else {
+      query = {
+        $or: [
+          { mobile: cleanMobile },
+          { mobile: cleanMobile.replace(/[^0-9]/g, '') }
+        ]
+      };
+    }
+
+    const user = await User.findOne(query);
     if (!user) {
       return res.status(404).json({
         success: false,

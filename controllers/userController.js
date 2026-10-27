@@ -1,3 +1,4 @@
+const { parseUAEMobile } = require('../services/phoneValidator');
 const User = require('../models/User');
 const Call = require('../models/Call');
 const Transaction = require('../models/Transaction');
@@ -481,7 +482,20 @@ exports.postProfile = async (req, res) => {
 
     // Check mobile availability if modified
     if (cleanMobile !== user.mobile) {
-      const mobileExists = await User.findOne({ mobile: cleanMobile });
+      const uaeInfo = parseUAEMobile(cleanMobile);
+      if (!uaeInfo.isValid) {
+        return res.render('user/profile', {
+          title: 'Profile Settings - Talk With Ashu',
+          activeTab: 'profile',
+          user,
+          successMessage: null,
+          errorMessage: uaeInfo.message
+        });
+      }
+      const mobileExists = await User.findOne({
+        _id: { $ne: user._id },
+        mobile: { $in: uaeInfo.allVariants }
+      });
       if (mobileExists) {
         return res.render('user/profile', {
           title: 'Profile Settings - Talk With Ashu',
@@ -491,11 +505,11 @@ exports.postProfile = async (req, res) => {
           errorMessage: 'Mobile number is already in use by another account.'
         });
       }
+      user.mobile = uaeInfo.internationalFormatted;
     }
 
     user.name = name.trim();
     user.email = (email || '').trim();
-    user.mobile = cleanMobile;
     
     await user.save();
 
