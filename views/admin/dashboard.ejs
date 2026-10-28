@@ -23,7 +23,7 @@
           <div class="header-stat-pill">
             <i class="bi bi-cash-stack text-success fs-5"></i>
             <div>
-              <small class="text-muted d-block lh-1" style="font-size: 0.68rem; text-transform: uppercase; font-weight: 700;">Today's Income</small>
+              <small class="text-muted d-block lh-1" style="font-size: 0.68rem; text-transform: uppercase; font-weight: 700;">Today's Income (<%= typeof displayDate !== 'undefined' ? displayDate : 'Today' %>)</small>
               <strong class="text-success fs-6">AED <%= ((typeof stats !== 'undefined' && stats && stats.todayRevenue) || 0).toLocaleString('en-US') %></strong>
             </div>
           </div>
@@ -55,7 +55,7 @@
                 <!-- Grouped Status Badges -->
                 <div class="d-flex align-items-center gap-2 mb-3">
                   <span class="badge rounded-pill px-3 py-1.5 text-white border" style="background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.22) !important; font-size: 0.75rem; font-weight: 600;">
-                    <i class="bi bi-calendar-check me-1.5"></i> Today's Summary
+                    <i class="bi bi-calendar-check me-1.5"></i> Today (<%= typeof displayDate !== 'undefined' ? displayDate : 'Today' %>)
                   </span>
                   <span class="badge bg-success text-white rounded-pill px-3 py-1.5 d-inline-flex align-items-center" style="font-size: 0.75rem; font-weight: 600;">
                     <span class="status-indicator-dot online me-1.5 bg-white"></span> Live Tracking
@@ -86,6 +86,8 @@
                   <span><i class="bi bi-clock-history text-warning me-1"></i> <strong class="text-white"><%= ((typeof stats !== 'undefined' && stats && stats.minsToday) || 0) %></strong> mins talk time</span>
                   <span class="text-white-20">•</span>
                   <span><i class="bi bi-bag-check text-success me-1"></i> <strong class="text-white"><%= ((typeof stats !== 'undefined' && stats && stats.todayRechargesCount) || 0) %></strong> recharge packs bought</span>
+                  <span class="text-white-20">•</span>
+                  <span><i class="bi bi-person-plus text-info me-1"></i> <strong class="text-white"><%= ((typeof stats !== 'undefined' && stats && stats.newUsersToday) || 0) %></strong> new clients registered</span>
                 </div>
               </div>
 
@@ -162,7 +164,7 @@
                 </div>
                 <div class="mt-2 pt-2 border-top">
                   <span class="badge bg-primary-subtle text-primary rounded-pill px-2.5 py-1 fw-semibold small">
-                    <i class="bi bi-activity me-1"></i>Live & Completed
+                    <i class="bi bi-check-circle-fill me-1"></i><%= stats.completedCallsToday %> Completed
                   </span>
                 </div>
               </div>
@@ -182,7 +184,7 @@
                 </div>
                 <div class="mt-2 pt-2 border-top">
                   <span class="badge bg-purple-subtle text-purple rounded-pill px-2.5 py-1 fw-semibold small">
-                    <i class="bi bi-people me-1"></i><%= stats.totalUsers %> Total Clients
+                    <i class="bi bi-person-plus-fill me-1"></i><%= stats.newUsersToday %> New Clients Today
                   </span>
                 </div>
               </div>
@@ -190,16 +192,16 @@
 
           </div>
 
-          <!-- 3. PLATFORM CUMULATIVE METRICS STRIP -->
+          <!-- 3. TODAY'S KEY ENGAGEMENT HIGHLIGHTS (ONLY TODAY) -->
           <div class="row g-3 g-md-4 mb-4">
             <div class="col-sm-4">
               <div class="app-card mb-0 p-3.5 p-md-4 d-flex align-items-center gap-3">
                 <div class="rounded-3 bg-primary-subtle text-primary p-3 fs-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
-                  <i class="bi bi-people-fill"></i>
+                  <i class="bi bi-person-plus-fill"></i>
                 </div>
                 <div>
-                  <span class="text-muted small d-block fw-medium">Total Registered Clients</span>
-                  <h4 class="fw-extrabold text-dark mb-0"><%= stats.totalUsers %> Users</h4>
+                  <span class="text-muted small d-block fw-medium">Clients Joined Today</span>
+                  <h4 class="fw-extrabold text-dark mb-0"><%= stats.newUsersToday %> Clients</h4>
                 </div>
               </div>
             </div>
@@ -207,11 +209,11 @@
             <div class="col-sm-4">
               <div class="app-card mb-0 p-3.5 p-md-4 d-flex align-items-center gap-3">
                 <div class="rounded-3 bg-purple-subtle text-purple p-3 fs-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
-                  <i class="bi bi-telephone-fill"></i>
+                  <i class="bi bi-telephone-check-fill"></i>
                 </div>
                 <div>
-                  <span class="text-muted small d-block fw-medium">All-Time Calls Placed</span>
-                  <h4 class="fw-extrabold text-dark mb-0"><%= stats.totalCalls %> Calls</h4>
+                  <span class="text-muted small d-block fw-medium">Completed Consultations Today</span>
+                  <h4 class="fw-extrabold text-dark mb-0"><%= stats.completedCallsToday %> Calls</h4>
                 </div>
               </div>
             </div>
@@ -219,11 +221,11 @@
             <div class="col-sm-4">
               <div class="app-card mb-0 p-3.5 p-md-4 d-flex align-items-center gap-3">
                 <div class="rounded-3 bg-success-subtle text-success p-3 fs-3 d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
-                  <i class="bi bi-cash-stack"></i>
+                  <i class="bi bi-stopwatch-fill"></i>
                 </div>
                 <div>
-                  <span class="text-muted small d-block fw-medium">All-Time Net Revenue</span>
-                  <h4 class="fw-extrabold text-success mb-0">AED <%= ((typeof stats !== 'undefined' && stats && stats.totalRevenue) || 0).toLocaleString('en-US') %></h4>
+                  <span class="text-muted small d-block fw-medium">Talk Time Today</span>
+                  <h4 class="fw-extrabold text-success mb-0"><%= stats.minsToday %> Minutes</h4>
                 </div>
               </div>
             </div>
@@ -300,13 +302,16 @@
             <div class="col-lg-7">
               <div class="app-card p-0 overflow-hidden h-100">
                 <div class="p-3.5 px-4 d-flex align-items-center justify-content-between border-bottom bg-white">
-                  <h5 class="fw-bold mb-0 text-dark">Recent Consultations</h5>
+                  <div class="d-flex align-items-center gap-2">
+                    <h5 class="fw-bold mb-0 text-dark">Today's Consultations</h5>
+                    <span class="badge bg-light text-muted border rounded-pill px-2 py-0.5 small">Today</span>
+                  </div>
                   <a href="/admin/calls" class="small fw-semibold text-primary text-decoration-none">View All Logs</a>
                 </div>
 
                 <% if (recentCalls.length === 0) { %>
                   <div class="text-center py-5 px-3">
-                    <p class="text-muted small mb-0">No calls registered yet.</p>
+                    <p class="text-muted small mb-0">No calls recorded today yet.</p>
                   </div>
                 <% } else { %>
                   <div class="app-list-group border-0 rounded-0">
@@ -324,7 +329,7 @@
                           </div>
                           <div>
                             <strong class="d-block text-dark small"><%= clientName %></strong>
-                            <small class="text-muted font-monospace"><%= call.callId %> • <%= call.time %></small>
+                            <small class="text-muted font-monospace"><%= call.callId %> • <%= (call.startTime || call.date) ? new Date(call.startTime || call.date).toLocaleTimeString('en-US', { timeZone: 'Asia/Dubai', hour: '2-digit', minute: '2-digit', hour12: true }) : (call.time || '') %></small>
                           </div>
                         </div>
                         <div class="text-end">
@@ -342,13 +347,16 @@
             <div class="col-lg-5">
               <div class="app-card p-0 overflow-hidden h-100">
                 <div class="p-3.5 px-4 d-flex align-items-center justify-content-between border-bottom bg-white">
-                  <h5 class="fw-bold mb-0 text-dark">Newly Joined Clients</h5>
+                  <div class="d-flex align-items-center gap-2">
+                    <h5 class="fw-bold mb-0 text-dark">Clients Joined Today</h5>
+                    <span class="badge bg-light text-muted border rounded-pill px-2 py-0.5 small">Today</span>
+                  </div>
                   <a href="/admin/users" class="small fw-semibold text-primary text-decoration-none">Manage Users</a>
                 </div>
 
                 <% if (recentUsers.length === 0) { %>
                   <div class="text-center py-5 px-3">
-                    <p class="text-muted small mb-0">No users found.</p>
+                    <p class="text-muted small mb-0">No new clients registered today yet.</p>
                   </div>
                 <% } else { %>
                   <div class="app-list-group border-0 rounded-0">

@@ -85,34 +85,52 @@ exports.login = async (req, res) => {
 // GET /api/admin/dashboard
 exports.getDashboard = async (req, res) => {
   try {
-    const totalUsers = await User.countDocuments({ role: { $ne: 'admin' } });
-    const totalCalls = await Call.countDocuments();
-    const completedCalls = await Call.find({ status: 'Completed' });
-    const missedCalls = await Call.countDocuments({ status: { $in: ['Missed', 'Rejected', 'Cancelled'] } });
+    const now = new Date();
+    // Dubai Timezone (GST, UTC+4)
+    const dubaiDateString = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' });
+    const startOfToday = new Date(`${dubaiDateString}T00:00:00.000+04:00`);
+    const endOfToday = new Date(`${dubaiDateString}T23:59:59.999+04:00`);
+    const todayDateFilter = { $gte: startOfToday, $lte: endOfToday };
+
+    const displayDate = now.toLocaleDateString('en-GB', {
+      timeZone: 'Asia/Dubai',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    }) + ' (Dubai)';
+
+    const newUsersToday = await User.countDocuments({ role: { $ne: 'admin' }, joined: todayDateFilter });
+    const callsToday = await Call.countDocuments({ date: todayDateFilter });
+    const completedCalls = await Call.find({ date: todayDateFilter, status: 'Completed' });
+    const missedCalls = await Call.countDocuments({ date: todayDateFilter, status: { $in: ['Missed', 'Rejected', 'Cancelled'] } });
 
     const totalMinutes = Math.round(completedCalls.reduce((acc, c) => acc + parseMins(c.duration), 0));
 
-    // Revenue calculation from completed payment transactions
-    const successfulPayments = await PaymentTransaction.find({ status: { $in: ['captured', 'authorized', 'Successful'] } });
-    const totalRevenue = successfulPayments.reduce((acc, p) => acc + (p.amount || 0), 0);
+    // Revenue calculation from completed payment transactions strictly today in Dubai
+    const successfulPayments = await PaymentTransaction.find({
+      createdAt: todayDateFilter,
+      status: { $in: ['captured', 'authorized', 'Successful', 'CAPTURED'] }
+    });
+    const todayRevenue = successfulPayments.reduce((acc, p) => acc + (p.amount || 0), 0);
 
-    const recentCalls = await Call.find()
+    const recentCalls = await Call.find({ date: todayDateFilter })
       .populate('user', 'name mobile')
-      .sort({ createdAt: -1 })
-      .limit(6);
+      .sort({ date: -1 })
+      .limit(10);
 
     const presenceInfo = callService.getAdvisorPresenceInfo();
 
     return res.json({
       success: true,
       data: {
+        displayDate,
         stats: {
-          totalUsers,
-          totalCalls,
+          totalUsers: newUsersToday, // Today's new users
+          totalCalls: callsToday,    // Today's calls
           completedCallsCount: completedCalls.length,
           missedCallsCount: missedCalls,
-          totalMinutes,
-          totalRevenue: Math.round(totalRevenue)
+          totalMinutes,              // Today's talk minutes
+          totalRevenue: Math.round(todayRevenue) // Today's revenue
         },
         presence: presenceInfo,
         recentCalls
@@ -124,7 +142,6 @@ exports.getDashboard = async (req, res) => {
   }
 };
 
-// GET /api/admin/users
 exports.getUsers = async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);

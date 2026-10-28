@@ -131,7 +131,7 @@
                   <div class="d-flex align-items-center justify-content-between mb-2">
                     <div>
                       <strong class="d-block text-dark small"><%= userName %></strong>
-                      <small class="text-muted"><%= userMobile ? userMobile + ' • ' : '' %><%= call.date ? new Date(call.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '' %> <%= call.time %></small>
+                      <small class="text-muted"><%= userMobile ? userMobile + ' • ' : '' %><%= call.date ? new Date(call.date).toLocaleDateString('en-GB', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short' }) : '' %> <%= call.time %></small>
                     </div>
                     <div class="text-end">
                       <strong class="text-dark d-block small"><%= call.duration %></strong>
@@ -210,7 +210,7 @@
                       <td><span class="text-muted small"><%= advisorName %></span></td>
                       <td><span class="badge bg-light text-secondary border rounded-pill px-2 py-0.5 small"><%= call.callType || 'Voice' %></span></td>
                       <td>
-                        <span class="d-block text-dark"><%= call.date ? new Date(call.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '' %></span>
+                        <span class="d-block text-dark"><%= call.date ? new Date(call.date).toLocaleDateString('en-GB', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric' }) : '' %></span>
                         <small class="text-muted"><%= call.time %></small>
                       </td>
                       <td><span class="fw-semibold"><%= call.duration %></span></td>

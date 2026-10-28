@@ -4,6 +4,7 @@
  */
 
 require('dotenv').config();
+process.env.TZ = process.env.TZ || 'Asia/Dubai';
 const express = require('express');
 const path = require('path');
 const http = require('http');

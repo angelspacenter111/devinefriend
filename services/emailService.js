@@ -26,8 +26,8 @@ class EmailService {
     }
 
     const now = new Date();
-    const formattedTime = now.toLocaleString('en-IN', {
-      timeZone: 'Asia/Kolkata',
+    const formattedTime = now.toLocaleString('en-GB', {
+      timeZone: 'Asia/Dubai',
       dateStyle: 'medium',
       timeStyle: 'short'
     });

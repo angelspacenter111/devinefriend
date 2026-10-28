@@ -53,7 +53,7 @@
                 lastStatusIcon = "bi-x-circle-fill";
               }
               const advisorName = (latestCall.admin && latestCall.admin.name) ? latestCall.admin.name : (latestCall.receiverName || 'Talk With Ashu');
-              const callDateFormatted = latestCall.date ? new Date(latestCall.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+              const callDateFormatted = latestCall.date ? new Date(latestCall.date).toLocaleDateString('en-GB', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric' }) : '';
             %>
             <div class="app-card border-0 shadow-sm p-4 mb-4 position-relative overflow-hidden" style="border-left: 5px solid #E91E8F !important;">
               <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
@@ -174,7 +174,7 @@
                       <div>
                         <strong class="d-block text-dark small"><%= companion %></strong>
                         <small class="text-muted">
-                          <%= call.date ? new Date(call.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '' %> • <%= call.time %>
+                          <%= call.date ? new Date(call.date).toLocaleDateString('en-GB', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric' }) : '' %> • <%= call.time %>
                         </small>
                       </div>
                     </div>
@@ -224,7 +224,7 @@
                           </span>
                         </td>
                         <td><span class="badge bg-light text-secondary border rounded-pill px-2 py-0.5 small"><%= call.callType || 'Voice' %></span></td>
-                        <td><%= call.date ? new Date(call.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '' %></td>
+                        <td><%= call.date ? new Date(call.date).toLocaleDateString('en-GB', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric' }) : '' %></td>
                         <td><%= call.time %></td>
                         <td><span class="fw-semibold"><%= call.duration %></span></td>
                         <td><span class="fw-bold text-purple"><%= call.credits %> Coins</span></td>

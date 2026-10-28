@@ -77,7 +77,7 @@ async function initiateCall({ user, callType = 'Voice' }) {
 
   const callId = generateCallId();
   const now = new Date();
-  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const timeStr = now.toLocaleTimeString('en-US', { timeZone: 'Asia/Dubai', hour: '2-digit', minute: '2-digit', hour12: true });
 
   const call = new Call({
     callId,

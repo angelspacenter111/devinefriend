@@ -155,7 +155,7 @@ export const AdminDashboardScreen = ({ onNavigateTab }) => {
             <Ionicons name="people" size={22} color={COLORS.primaryLight} />
           </View>
           <Text style={styles.metricValue}>{stats.totalUsers}</Text>
-          <Text style={styles.metricLabel}>Total Users</Text>
+          <Text style={styles.metricLabel}>New Users Today</Text>
         </TouchableOpacity>
 
         {/* Metric 2: Total Calls */}
@@ -168,7 +168,7 @@ export const AdminDashboardScreen = ({ onNavigateTab }) => {
             <Ionicons name="call" size={22} color={COLORS.secondary} />
           </View>
           <Text style={styles.metricValue}>{stats.totalCalls}</Text>
-          <Text style={styles.metricLabel}>Total Calls</Text>
+          <Text style={styles.metricLabel}>Calls Today</Text>
         </TouchableOpacity>
 
         {/* Metric 3: Total Minutes */}
@@ -177,7 +177,7 @@ export const AdminDashboardScreen = ({ onNavigateTab }) => {
             <Ionicons name="time" size={22} color="#10b981" />
           </View>
           <Text style={styles.metricValue}>{stats.totalMinutes}m</Text>
-          <Text style={styles.metricLabel}>Minutes Talked</Text>
+          <Text style={styles.metricLabel}>Minutes Today</Text>
         </View>
 
         {/* Metric 4: Total Revenue */}
@@ -190,7 +190,7 @@ export const AdminDashboardScreen = ({ onNavigateTab }) => {
             <Ionicons name="wallet" size={22} color="#fbbf24" />
           </View>
           <Text style={styles.metricValue}>AED {stats.totalRevenue}</Text>
-          <Text style={styles.metricLabel}>Revenue Earned</Text>
+          <Text style={styles.metricLabel}>Today's Revenue</Text>
         </TouchableOpacity>
       </View>
 
@@ -223,7 +223,7 @@ export const AdminDashboardScreen = ({ onNavigateTab }) => {
 
       {/* Recent Calls Stream */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Recent Conversations</Text>
+        <Text style={styles.sectionTitle}>Today's Conversations</Text>
         <TouchableOpacity onPress={() => onNavigateTab('calls')}>
           <Text style={styles.viewAllText}>View All</Text>
         </TouchableOpacity>
@@ -234,8 +234,8 @@ export const AdminDashboardScreen = ({ onNavigateTab }) => {
       ) : recentCalls.length === 0 ? (
         <View style={styles.emptyCard}>
           <Ionicons name="headset-outline" size={36} color={COLORS.textMuted} />
-          <Text style={styles.emptyTitle}>No call logs yet</Text>
-          <Text style={styles.emptySub}>Calls initiated by web users will appear here.</Text>
+          <Text style={styles.emptyTitle}>No call logs today yet</Text>
+          <Text style={styles.emptySub}>Calls initiated today will appear here.</Text>
         </View>
       ) : (
         recentCalls.map((call) => (

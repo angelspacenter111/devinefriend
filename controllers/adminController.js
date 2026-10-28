@@ -140,26 +140,54 @@ exports.postLogin = async (req, res) => {
 
 exports.getDashboard = async (req, res) => {
   try {
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
+    const now = new Date();
+    // Dubai Timezone (GST, UTC+4)
+    const dubaiDateString = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' }); // 'YYYY-MM-DD'
+    const startOfToday = new Date(`${dubaiDateString}T00:00:00.000+04:00`);
+    const endOfToday = new Date(`${dubaiDateString}T23:59:59.999+04:00`);
+    const todayDateFilter = { $gte: startOfToday, $lte: endOfToday };
 
-    // 1. Today's stats
-    const newUsersToday = (await User.countDocuments({ role: 'user', joined: { $gte: startOfToday } })) || 0;
-    const callsToday = (await Call.countDocuments({ date: { $gte: startOfToday } })) || 0;
+    // Format human-friendly display date for console header in Dubai time
+    const displayDate = now.toLocaleDateString('en-GB', {
+      timeZone: 'Asia/Dubai',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    }) + ' (Dubai)';
+
+    // 1. Today's user registrations (Strictly Today in Dubai)
+    const newUsersToday = (await User.countDocuments({ role: 'user', joined: todayDateFilter })) || 0;
     
-    const callsTodayList = (await Call.find({ date: { $gte: startOfToday }, status: 'Completed' }).populate('user')) || [];
+    // 2. Today's calls & consultation duration (Strictly Today in Dubai)
+    const callsToday = (await Call.countDocuments({ date: todayDateFilter })) || 0;
+    const callsTodayList = (await Call.find({ date: todayDateFilter, status: 'Completed' }).populate('user')) || [];
+    const completedCallsToday = callsTodayList.length;
     const minsToday = callsTodayList.reduce((acc, c) => acc + parseMins(c.duration), 0);
     const minsTodayRounded = Math.round(minsToday) || 0;
     const creditsUsedToday = callsTodayList.reduce((acc, c) => acc + (c.credits || 0), 0);
 
-    const txnsTodayList = (await Transaction.find({ date: { $gte: startOfToday }, type: 'credit', status: { $in: ['Successful', 'Completed'] } })) || [];
+    // 3. Strictly ACTUAL paid recharge packs bought today (excluding Welcome Bonus / Free Signup Coins)
+    const txnsTodayList = (await Transaction.find({
+      date: todayDateFilter,
+      type: 'credit',
+      status: { $in: ['Successful', 'Completed'] },
+      desc: { $not: /Welcome Bonus/i },
+      $or: [
+        { referenceType: 'PAYMENT' },
+        { paymentTransaction: { $ne: null } },
+        { amount: { $regex: /[1-9]/ } }
+      ]
+    })) || [];
+
+    // Sum of credits purchased via actual paid recharge packs
     const creditsBoughtToday = txnsTodayList.reduce((acc, t) => acc + ((t && t.credits) || 0), 0);
+    // Sum of revenue from actual paid recharge packs
     const todayRevenue = txnsTodayList.reduce((acc, t) => {
       const val = parseInt(((t && t.amount) || '').replace(/[^0-9]/g, ''), 10) || 0;
       return acc + val;
     }, 0);
 
-    // User-wise credit usage today (konsa user ne kitne credits use kiye)
+    // 4. User-wise credit usage today (Only callers from today in Dubai)
     const userUsageMap = {};
     callsTodayList.forEach(call => {
       const u = call.user;
@@ -182,41 +210,23 @@ exports.getDashboard = async (req, res) => {
     });
     const todayUserUsageList = Object.values(userUsageMap).sort((a, b) => b.creditsUsed - a.creditsUsed);
 
-    // 2. Cumulative Stats
-    const totalUsers = (await User.countDocuments({ role: 'user' })) || 0;
-    const totalCalls = (await Call.countDocuments({})) || 0;
-    
-    const completedCalls = (await Call.find({ status: 'Completed' })) || [];
-    const totalMins = completedCalls.reduce((acc, c) => acc + parseMins(c.duration), 0);
-    const totalMinsRounded = Math.round(totalMins) || 0;
-    const totalCreditsUsed = completedCalls.reduce((acc, c) => acc + (c.credits || 0), 0);
-
-    const recharges = (await Transaction.find({ type: 'credit', status: { $in: ['Successful', 'Completed'] } })) || [];
-    const totalRevenue = recharges.reduce((acc, t) => {
-      const val = parseInt(((t && t.amount) || '').replace(/[^0-9]/g, ''), 10) || 0;
-      return acc + val;
-    }, 0);
-
-    // 3. Recent 5 users, recent 5 calls
-    const recentUsers = (await User.find({ role: 'user' }).sort({ joined: -1 }).limit(5)) || [];
-    const recentCalls = (await Call.find({}).populate('user').sort({ date: -1 }).limit(5)) || [];
+    // 5. Feeds strictly filtered for TODAY ONLY in Dubai
+    const recentUsers = (await User.find({ role: 'user', joined: todayDateFilter }).sort({ joined: -1 }).limit(10)) || [];
+    const recentCalls = (await Call.find({ date: todayDateFilter }).populate('user').sort({ date: -1 }).limit(10)) || [];
 
     res.render('admin/dashboard', {
       title: 'Talk With Ashu Console - Talk With Ashu Control',
       activeTab: 'dashboard',
+      displayDate,
       stats: {
         newUsersToday,
         callsToday,
+        completedCallsToday,
         minsToday: minsTodayRounded,
         creditsToday: creditsBoughtToday,
         creditsUsedToday,
         todayRevenue,
-        todayRechargesCount: txnsTodayList.length || 0,
-        totalUsers,
-        totalCalls,
-        totalMins: totalMinsRounded,
-        totalRevenue,
-        totalCreditsUsed
+        todayRechargesCount: txnsTodayList.length || 0
       },
       todayUserUsageList,
       recentUsers,
@@ -951,11 +961,11 @@ exports.getCallDetails = async (req, res) => {
         failedAtStage: failedAtStage,
         errorCode: errorCode,
         errorDetails: call.errorDetails || '',
-        date: call.date ? call.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+        date: call.date ? call.date.toLocaleDateString('en-GB', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric' }) : '',
         time: call.time,
-        startTime: call.startTime ? new Date(call.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : (call.time || 'N/A'),
-        connectedTime: call.connectedTime ? new Date(call.connectedTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Not Connected',
-        endTime: call.endTime ? new Date(call.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'N/A',
+        startTime: call.startTime ? new Date(call.startTime).toLocaleTimeString('en-US', { timeZone: 'Asia/Dubai', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) : (call.time || 'N/A'),
+        connectedTime: call.connectedTime ? new Date(call.connectedTime).toLocaleTimeString('en-US', { timeZone: 'Asia/Dubai', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) : 'Not Connected',
+        endTime: call.endTime ? new Date(call.endTime).toLocaleTimeString('en-US', { timeZone: 'Asia/Dubai', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) : 'N/A',
         duration: call.duration || '00:00',
         durationSeconds: call.durationSeconds || 0,
         creditRate: call.creditRate || 1,
@@ -963,7 +973,7 @@ exports.getCallDetails = async (req, res) => {
         creditStatus: call.creditStatus || 'none',
         transactionId: call.transaction ? call.transaction.txnId : 'None',
         connectionLogs: logs.map(l => ({
-          timestamp: l.timestamp ? new Date(l.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '',
+          timestamp: l.timestamp ? new Date(l.timestamp).toLocaleTimeString('en-US', { timeZone: 'Asia/Dubai', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) : '',
           role: l.role,
           eventType: l.eventType,
           severity: l.severity,

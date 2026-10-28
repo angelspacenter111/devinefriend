@@ -116,7 +116,7 @@
                     <span class="small text-muted"><i class="bi bi-telephone me-1"></i><%= usr.callCount %> calls</span>
                     <span class="fw-bold text-purple small" title="Current Wallet Balance"><span class="user-credits-val"><%= usr.credits %></span> Avail</span>
                     <span class="badge bg-warning-subtle text-dark border rounded-pill px-2 py-0.5 small" title="Coins consumed in consultations"><i class="bi bi-coin text-warning me-1"></i><%= usr.creditsUsed || 0 %> coins used</span>
-                    <span class="small text-muted"><%= usr.joined ? usr.joined.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '' %></span>
+                    <span class="small text-muted"><%= usr.joined ? usr.joined.toLocaleDateString('en-GB', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short' }) : '' %></span>
                   </div>
 
                   <div class="d-flex gap-2 justify-content-end">
@@ -187,7 +187,7 @@
                         </span>
                       </td>
                       <td><%= usr.callCount %> calls</td>
-                      <td><%= usr.joined ? usr.joined.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '' %></td>
+                      <td><%= usr.joined ? usr.joined.toLocaleDateString('en-GB', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric' }) : '' %></td>
                       <td><span class="badge <%= badgeClass %> status-badge rounded-pill px-2.5 py-1.5"><%= statusText %></span></td>
                       <td>
                         <div class="d-flex gap-1.5">

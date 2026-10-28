@@ -114,7 +114,7 @@
                         <span class="fw-bold <%= isCredit ? 'text-success' : 'text-danger' %> small d-block">
                           <%= isCredit ? '+' : '-' %><%= txn.credits %> Coins
                         </span>
-                        <small class="text-muted font-monospace"><%= txn.date ? txn.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '' %></small>
+                        <small class="text-muted font-monospace"><%= txn.date ? txn.date.toLocaleDateString('en-GB', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short' }) : '' %></small>
                       </div>
                     </div>
 
@@ -169,7 +169,7 @@
                       %>
                       <tr>
                         <td><span class="fw-semibold"><%= txn.txnId %></span></td>
-                        <td><%= txn.date ? txn.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '' %></td>
+                        <td><%= txn.date ? txn.date.toLocaleDateString('en-GB', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric' }) : '' %></td>
                         <td><%= txn.user ? txn.user.name : 'Deleted User' %> (<%= txn.user ? txn.user._id.toString().substring(18) : 'N/A' %>)</td>
                         <td><%= txn.desc %></td>
                         <td><%- creditFormatted %></td>
