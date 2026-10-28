@@ -19,6 +19,7 @@ export const RegisterScreen = ({ onNavigateLogin }) => {
 
   const [name, setName] = useState('');
   const [mobile, setMobile] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -26,8 +27,19 @@ export const RegisterScreen = ({ onNavigateLogin }) => {
   const [errorMsg, setErrorMsg] = useState('');
 
   const handleRegister = async () => {
-    if (!name.trim() || !mobile.trim() || !password) {
+    const cleanPass = password ? password.trim() : '';
+    const cleanConf = confirmPassword ? confirmPassword.trim() : '';
+
+    const cleanEmail = email ? email.trim().toLowerCase() : '';
+
+    if (!name.trim() || !mobile.trim() || !cleanEmail || !cleanPass) {
       setErrorMsg('Please fill in all required fields.');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      setErrorMsg('Please enter a valid email address.');
       return;
     }
 
@@ -42,12 +54,12 @@ export const RegisterScreen = ({ onNavigateLogin }) => {
       return;
     }
 
-    if (password.length < 6) {
+    if (cleanPass.length < 6) {
       setErrorMsg('Password must be at least 6 characters.');
       return;
     }
 
-    if (password !== confirmPassword) {
+    if (cleanPass !== cleanConf) {
       setErrorMsg('Passwords do not match.');
       return;
     }
@@ -56,7 +68,7 @@ export const RegisterScreen = ({ onNavigateLogin }) => {
     setIsLoading(true);
 
     try {
-      await register(name.trim(), cleanMobile, password);
+      await register(name.trim(), cleanMobile, cleanPass, cleanEmail);
     } catch (err) {
       setErrorMsg(err.message || 'Registration failed. Please try again.');
     } finally {
@@ -111,7 +123,28 @@ export const RegisterScreen = ({ onNavigateLogin }) => {
             </View>
           </View>
 
-          {/* Contact Number */}
+                    {/* Email Address */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Email Address</Text>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="mail-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="name@example.com"
+                placeholderTextColor={COLORS.textMuted}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  setErrorMsg('');
+                }}
+              />
+            </View>
+          </View>
+
+{/* Contact Number */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Contact Number</Text>
             <View style={styles.inputWrapper}>
@@ -142,6 +175,8 @@ export const RegisterScreen = ({ onNavigateLogin }) => {
                 placeholder="At least 6 characters"
                 placeholderTextColor={COLORS.textMuted}
                 secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
                 value={password}
                 onChangeText={(text) => {
                   setPassword(text);
@@ -171,6 +206,8 @@ export const RegisterScreen = ({ onNavigateLogin }) => {
                 placeholder="Repeat your password"
                 placeholderTextColor={COLORS.textMuted}
                 secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
                 value={confirmPassword}
                 onChangeText={(text) => {
                   setConfirmPassword(text);

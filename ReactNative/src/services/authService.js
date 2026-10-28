@@ -6,8 +6,8 @@ export const authService = {
     return res.data;
   },
 
-  register: async (name, mobile, password) => {
-    const res = await apiClient.post('/auth/register', { name, mobile, password });
+  register: async (name, mobile, password, email) => {
+    const res = await apiClient.post('/auth/register', { name, mobile, password, email });
     return res.data;
   },
 

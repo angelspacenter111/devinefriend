@@ -46,6 +46,7 @@
 												maxlength="10"
 												inputmode="numeric"
 												pattern="[0-9]*"
+												autocomplete="tel"
 												required
 												style="border-radius: 0 10px 10px 0;">
 										</div>
@@ -59,9 +60,18 @@
 												style="border-radius: 10px 0 0 10px; border-color: rgba(24,32,51,0.1);"><i
 													class="bi bi-lock text-muted"></i></span>
 											<input type="password"
-												class="form-control form-control-custom border-start-0 ps-2"
-												id="login-password" name="password" placeholder="••••••••" required
-												style="border-radius: 0 10px 10px 0;">
+												class="form-control form-control-custom border-start-0 border-end-0 ps-2"
+												id="login-password" 
+												name="password" 
+												placeholder="••••••••" 
+												autocomplete="current-password"
+												autocapitalize="none"
+												autocorrect="off"
+												spellcheck="false"
+												required>
+											<button type="button" class="input-group-text bg-white border-start-0 border-1 toggle-password-btn" data-target="login-password" style="border-radius: 0 10px 10px 0; border-color: rgba(24,32,51,0.1); cursor: pointer;">
+												<i class="bi bi-eye text-muted"></i>
+											</button>
 										</div>
 									</div>
 
@@ -99,7 +109,26 @@
 		<script>
 			(function () {
 				const mobileInput = document.getElementById('login-mobile');
+				const passwordInput = document.getElementById('login-password');
 				const form = document.getElementById('login-form');
+
+				// Password toggle visibility
+				document.querySelectorAll('.toggle-password-btn').forEach(btn => {
+					btn.addEventListener('click', function () {
+						const targetId = this.getAttribute('data-target');
+						const targetInput = document.getElementById(targetId);
+						const icon = this.querySelector('i');
+						if (targetInput.type === 'password') {
+							targetInput.type = 'text';
+							icon.classList.remove('bi-eye');
+							icon.classList.add('bi-eye-slash');
+						} else {
+							targetInput.type = 'password';
+							icon.classList.remove('bi-eye-slash');
+							icon.classList.add('bi-eye');
+						}
+					});
+				});
 
 				// Only numeric values accepted and maximum 10 digits
 				if (mobileInput) {

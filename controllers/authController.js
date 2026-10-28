@@ -37,7 +37,9 @@ exports.postLogin = async (req, res) => {
   try {
     const { mobile, password } = req.body;
     
-    if (!mobile || !password) {
+    const cleanPassword = (password !== undefined && password !== null) ? password.toString().trim() : '';
+
+    if (!mobile || !cleanPassword) {
       return res.render('login', {
         title: 'Login - Talk With Ashu',
         errorMessage: 'Please enter all required fields.',
@@ -86,7 +88,11 @@ exports.postLogin = async (req, res) => {
       });
     }
 
-    const isMatch = await user.comparePassword(password);
+    let isMatch = await user.comparePassword(cleanPassword);
+    if (!isMatch && password) {
+      isMatch = await user.comparePassword(password);
+    }
+
     if (!isMatch) {
       return res.render('login', {
         title: 'Login - Talk With Ashu',
@@ -124,13 +130,26 @@ exports.postLogin = async (req, res) => {
 // POST User registration
 exports.postRegister = async (req, res) => {
   try {
-    const { name, mobile, password, confirmPassword } = req.body;
+    const { name, mobile, email, password, confirmPassword } = req.body;
 
-    if (!name || !mobile || !password) {
+    const cleanPassword = (password !== undefined && password !== null) ? password.toString().trim() : '';
+    const cleanConfirm = (confirmPassword !== undefined && confirmPassword !== null) ? confirmPassword.toString().trim() : '';
+    const cleanEmail = (email !== undefined && email !== null) ? email.toString().trim().toLowerCase() : '';
+
+    if (!name || !mobile || !cleanEmail || !cleanPassword) {
       return res.render('register', {
         title: 'Create Account - Talk With Ashu',
         errorMessage: 'Please fill all required fields.',
-        formData: { name, mobile }
+        formData: { name, mobile, email: cleanEmail }
+      });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      return res.render('register', {
+        title: 'Create Account - Talk With Ashu',
+        errorMessage: 'Please enter a valid email address.',
+        formData: { name, mobile, email: cleanEmail }
       });
     }
 
@@ -140,7 +159,7 @@ exports.postRegister = async (req, res) => {
       return res.render('register', {
         title: 'Create Account - Talk With Ashu',
         errorMessage: 'Contact number must contain only numeric digits.',
-        formData: { name, mobile }
+        formData: { name, mobile, email: cleanEmail }
       });
     }
 
@@ -148,25 +167,25 @@ exports.postRegister = async (req, res) => {
       return res.render('register', {
         title: 'Create Account - Talk With Ashu',
         errorMessage: 'Contact number cannot exceed 10 digits.',
-        formData: { name, mobile }
+        formData: { name, mobile, email: cleanEmail }
       });
     }
 
     const cleanMobile = rawMobile;
 
-    if (confirmPassword && password !== confirmPassword) {
-      return res.render('register', {
-        title: 'Create Account - Talk With Ashu',
-        errorMessage: 'Passwords do not match.',
-        formData: { name, mobile }
-      });
-    }
-
-    if (password.length < 6) {
+    if (cleanPassword.length < 6) {
       return res.render('register', {
         title: 'Create Account - Talk With Ashu',
         errorMessage: 'Password must be at least 6 characters long.',
-        formData: { name, mobile }
+        formData: { name, mobile, email: cleanEmail }
+      });
+    }
+
+    if (confirmPassword && cleanPassword !== cleanConfirm) {
+      return res.render('register', {
+        title: 'Create Account - Talk With Ashu',
+        errorMessage: 'Passwords do not match.',
+        formData: { name, mobile, email: cleanEmail }
       });
     }
 
@@ -179,22 +198,27 @@ exports.postRegister = async (req, res) => {
     const userExists = await User.findOne({
       $or: [
         { mobile: cleanMobile },
-        { mobile: { $in: checkVariants } }
+        { mobile: { $in: checkVariants } },
+        { email: cleanEmail }
       ]
     });
     if (userExists) {
+      const isEmailDuplicate = userExists.email && userExists.email.toLowerCase() === cleanEmail;
       return res.render('register', {
         title: 'Create Account - Talk With Ashu',
-        errorMessage: 'This contact number is already registered. Please log in.',
-        formData: { name, mobile }
+        errorMessage: isEmailDuplicate
+          ? 'This email address is already registered. Please log in.'
+          : 'This contact number is already registered. Please log in.',
+        formData: { name, mobile, email: cleanEmail }
       });
     }
 
-    // Create and save new user (credits defaults to 5) with clean numeric contact number
+    // Create and save new user (credits defaults to 5) with clean numeric contact number & trimmed password
     const newUser = new User({
       name: name.trim(),
       mobile: cleanMobile,
-      password: password // pre-save hook handles hashing
+      email: cleanEmail,
+      password: cleanPassword
     });
 
     const savedUser = await newUser.save();
@@ -221,7 +245,7 @@ exports.postRegister = async (req, res) => {
     res.render('register', {
       title: 'Create Account - Talk With Ashu',
       errorMessage: 'An error occurred during registration. Please try again.',
-      formData: { name: req.body.name, mobile: req.body.mobile }
+      formData: { name: req.body.name, mobile: req.body.mobile, email: req.body.email }
     });
   }
 };

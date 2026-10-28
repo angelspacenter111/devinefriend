@@ -20,6 +20,7 @@ const userSchema = new mongoose.Schema({
   email: {
     type: String,
     trim: true,
+    lowercase: true,
     default: ''
   },
   credits: {
@@ -48,13 +49,32 @@ const userSchema = new mongoose.Schema({
 // Hash password before saving
 userSchema.pre('save', async function() {
   if (!this.isModified('password')) return;
+  if (this.password && typeof this.password === 'string') {
+    this.password = this.password.trim();
+  }
   const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+  this.password = await bcrypt.hash(String(this.password), salt);
 });
 
-// Match password
+// Match password safely with whitespace and type tolerance
 userSchema.methods.comparePassword = async function(candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password);
+  if (candidatePassword === undefined || candidatePassword === null) return false;
+  const rawCandidate = String(candidatePassword);
+  const trimmedCandidate = rawCandidate.trim();
+
+  try {
+    // 1. Try trimmed candidate first
+    if (await bcrypt.compare(trimmedCandidate, this.password)) {
+      return true;
+    }
+    // 2. Fallback to raw candidate if candidate contained untrimmed whitespace
+    if (trimmedCandidate !== rawCandidate && await bcrypt.compare(rawCandidate, this.password)) {
+      return true;
+    }
+  } catch (err) {
+    console.error('[User comparePassword error]', err.message);
+  }
+  return false;
 };
 
 module.exports = mongoose.model('User', userSchema);

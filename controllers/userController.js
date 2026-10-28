@@ -532,7 +532,11 @@ exports.postChangePassword = async (req, res) => {
     const { currentPassword, newPassword, confirmPassword } = req.body;
     const user = req.user;
 
-    if (!currentPassword || !newPassword || !confirmPassword) {
+    const cleanCurr = (currentPassword !== undefined && currentPassword !== null) ? currentPassword.toString().trim() : '';
+    const cleanNew = (newPassword !== undefined && newPassword !== null) ? newPassword.toString().trim() : '';
+    const cleanConf = (confirmPassword !== undefined && confirmPassword !== null) ? confirmPassword.toString().trim() : '';
+
+    if (!cleanCurr || !cleanNew || !cleanConf) {
       return res.render('user/profile', {
         title: 'Profile Settings - Talk With Ashu',
         activeTab: 'profile',
@@ -542,7 +546,7 @@ exports.postChangePassword = async (req, res) => {
       });
     }
 
-    if (newPassword !== confirmPassword) {
+    if (cleanNew !== cleanConf) {
       return res.render('user/profile', {
         title: 'Profile Settings - Talk With Ashu',
         activeTab: 'profile',
@@ -552,7 +556,20 @@ exports.postChangePassword = async (req, res) => {
       });
     }
 
-    const isMatch = await user.comparePassword(currentPassword);
+    if (cleanNew.length < 6) {
+      return res.render('user/profile', {
+        title: 'Profile Settings - Talk With Ashu',
+        activeTab: 'profile',
+        user,
+        successMessage: null,
+        errorMessage: 'New password must be at least 6 characters long.'
+      });
+    }
+
+    let isMatch = await user.comparePassword(cleanCurr);
+    if (!isMatch && currentPassword) {
+      isMatch = await user.comparePassword(currentPassword);
+    }
     if (!isMatch) {
       return res.render('user/profile', {
         title: 'Profile Settings - Talk With Ashu',
@@ -564,7 +581,7 @@ exports.postChangePassword = async (req, res) => {
     }
 
     // Set new password (pre-save handles hash)
-    user.password = newPassword;
+    user.password = cleanNew;
     await user.save();
 
     res.render('user/profile', {

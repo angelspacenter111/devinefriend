@@ -106,21 +106,27 @@ exports.changePassword = async (req, res) => {
     const user = req.user;
     const { currentPassword, newPassword } = req.body;
 
-    if (!currentPassword || !newPassword) {
+    const cleanCurr = (currentPassword !== undefined && currentPassword !== null) ? currentPassword.toString().trim() : '';
+    const cleanNew = (newPassword !== undefined && newPassword !== null) ? newPassword.toString().trim() : '';
+
+    if (!cleanCurr || !cleanNew) {
       return res.status(400).json({
         success: false,
         message: 'Current password and new password are required.'
       });
     }
 
-    if (newPassword.length < 6) {
+    if (cleanNew.length < 6) {
       return res.status(400).json({
         success: false,
         message: 'New password must be at least 6 characters.'
       });
     }
 
-    const isMatch = await user.comparePassword(currentPassword);
+    let isMatch = await user.comparePassword(cleanCurr);
+    if (!isMatch && currentPassword) {
+      isMatch = await user.comparePassword(currentPassword);
+    }
     if (!isMatch) {
       return res.status(400).json({
         success: false,
@@ -128,7 +134,7 @@ exports.changePassword = async (req, res) => {
       });
     }
 
-    user.password = newPassword;
+    user.password = cleanNew;
     await user.save();
 
     return res.json({

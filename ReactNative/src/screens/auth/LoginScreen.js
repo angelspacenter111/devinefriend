@@ -40,7 +40,8 @@ export const LoginScreen = ({ onNavigateRegister, onNavigateForgotPassword, onNa
 
   const handleLogin = async () => {
     const cleanMobile = mobile.replace(/[^0-9]/g, '').slice(0, 10);
-    if (!cleanMobile || !password) {
+    const cleanPassword = password ? password.trim() : '';
+    if (!cleanMobile || !cleanPassword) {
       setErrorMsg('Please enter both contact number and password.');
       return;
     }
@@ -54,7 +55,7 @@ export const LoginScreen = ({ onNavigateRegister, onNavigateForgotPassword, onNa
     setIsLoading(true);
 
     try {
-      await login(cleanMobile, password);
+      await login(cleanMobile, cleanPassword);
     } catch (err) {
       setErrorMsg(err.message || 'Login failed. Please check credentials.');
     } finally {
@@ -140,6 +141,8 @@ export const LoginScreen = ({ onNavigateRegister, onNavigateForgotPassword, onNa
                 placeholder="Enter your password"
                 placeholderTextColor={COLORS.textMuted}
                 secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
                 value={password}
                 onChangeText={(text) => {
                   setPassword(text);

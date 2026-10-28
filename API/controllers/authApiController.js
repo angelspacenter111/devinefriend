@@ -20,12 +20,23 @@ const generateToken = (user) => {
 // POST /api/auth/register
 exports.register = async (req, res) => {
   try {
-    const { name, mobile, password } = req.body;
+    const { name, mobile, email, password } = req.body;
 
-    if (!name || !mobile || !password) {
+    const cleanPassword = (password !== undefined && password !== null) ? password.toString().trim() : '';
+    const cleanEmail = (email !== undefined && email !== null) ? email.toString().trim().toLowerCase() : '';
+
+    if (!name || !mobile || !cleanEmail || !cleanPassword) {
       return res.status(400).json({
         success: false,
-        message: 'Name, contact number, and password are required.'
+        message: 'Name, email, contact number, and password are required.'
+      });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid email address.'
       });
     }
 
@@ -46,7 +57,7 @@ exports.register = async (req, res) => {
 
     const cleanMobile = rawMobile;
 
-    if (password.length < 6) {
+    if (cleanPassword.length < 6) {
       return res.status(400).json({
         success: false,
         message: 'Password must be at least 6 characters.'
@@ -62,20 +73,25 @@ exports.register = async (req, res) => {
     const existingUser = await User.findOne({
       $or: [
         { mobile: cleanMobile },
-        { mobile: { $in: checkVariants } }
+        { mobile: { $in: checkVariants } },
+        { email: cleanEmail }
       ]
     });
     if (existingUser) {
+      const isEmailMatch = existingUser.email && existingUser.email.toLowerCase() === cleanEmail;
       return res.status(409).json({
         success: false,
-        message: 'An account with this contact number already exists. Please log in.'
+        message: isEmailMatch
+          ? 'An account with this email address already exists. Please log in.'
+          : 'An account with this contact number already exists. Please log in.'
       });
     }
 
     const newUser = new User({
       name: name.trim(),
       mobile: cleanMobile,
-      password: password
+      email: cleanEmail,
+      password: cleanPassword
     });
 
     const savedUser = await newUser.save();
@@ -121,7 +137,9 @@ exports.login = async (req, res) => {
   try {
     const { mobile, password } = req.body;
 
-    if (!mobile || !password) {
+    const cleanPassword = (password !== undefined && password !== null) ? password.toString().trim() : '';
+
+    if (!mobile || !cleanPassword) {
       return res.status(400).json({
         success: false,
         message: 'Contact number and password are required.'
@@ -166,11 +184,15 @@ exports.login = async (req, res) => {
       });
     }
 
-    const isMatch = await user.comparePassword(password);
+    let isMatch = await user.comparePassword(cleanPassword);
+    if (!isMatch && password) {
+      isMatch = await user.comparePassword(password);
+    }
+
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid mobile number or password.'
+        message: 'Invalid contact number or password.'
       });
     }
 
@@ -234,10 +256,19 @@ exports.getMe = async (req, res) => {
 exports.forgotPassword = async (req, res) => {
   try {
     const { mobile, newPassword } = req.body;
-    if (!mobile || !newPassword) {
+    const cleanNewPass = (newPassword !== undefined && newPassword !== null) ? newPassword.toString().trim() : '';
+
+    if (!mobile || !cleanNewPass) {
       return res.status(400).json({
         success: false,
         message: 'Contact number and new password are required.'
+      });
+    }
+
+    if (cleanNewPass.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters.'
       });
     }
 
@@ -269,7 +300,7 @@ exports.forgotPassword = async (req, res) => {
       });
     }
 
-    user.password = newPassword;
+    user.password = cleanNewPass;
     await user.save();
 
     return res.json({

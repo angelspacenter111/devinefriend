@@ -65,8 +65,8 @@ export const AuthProvider = ({ children }) => {
     return res;
   };
 
-  const register = async (name, mobile, password) => {
-    const res = await authService.register(name, mobile, password);
+  const register = async (name, mobile, password, email) => {
+    const res = await authService.register(name, mobile, password, email);
     if (res && res.token && res.user) {
       setToken(res.token);
       setUser(res.user);

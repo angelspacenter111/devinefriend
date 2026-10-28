@@ -37,6 +37,23 @@
               </div>
             </div>
 
+            <!-- Email Address Field -->
+            <div class="mb-3">
+              <label for="register-email" class="form-label form-label-custom">Email Address</label>
+              <div class="input-group">
+                <span class="input-group-text bg-white border-end-0 border-1" style="border-radius: 10px 0 0 10px; border-color: rgba(24,32,51,0.1);"><i class="bi bi-envelope text-muted"></i></span>
+                <input type="email" 
+                       class="form-control form-control-custom border-start-0 ps-2" 
+                       id="register-email" 
+                       name="email" 
+                       value="<%= typeof formData !== 'undefined' && formData && formData.email ? formData.email : '' %>"
+                       placeholder="name@example.com" 
+                       autocomplete="email"
+                       required 
+                       style="border-radius: 0 10px 10px 0;">
+              </div>
+            </div>
+
             <!-- Contact Number Field -->
             <div class="mb-3">
               <label for="register-mobile" class="form-label form-label-custom">Contact Number</label>
@@ -61,7 +78,20 @@
               <label for="register-password" class="form-label form-label-custom">Password</label>
               <div class="input-group">
                 <span class="input-group-text bg-white border-end-0 border-1" style="border-radius: 10px 0 0 10px; border-color: rgba(24,32,51,0.1);"><i class="bi bi-lock text-muted"></i></span>
-                <input type="password" class="form-control form-control-custom border-start-0 ps-2" id="register-password" name="password" placeholder="At least 6 characters" minlength="6" required style="border-radius: 0 10px 10px 0;">
+                <input type="password" 
+                       class="form-control form-control-custom border-start-0 border-end-0 ps-2" 
+                       id="register-password" 
+                       name="password" 
+                       placeholder="At least 6 characters" 
+                       minlength="6" 
+                       autocomplete="new-password"
+                       autocapitalize="none"
+                       autocorrect="off"
+                       spellcheck="false"
+                       required>
+                <button type="button" class="input-group-text bg-white border-start-0 border-1 toggle-password-btn" data-target="register-password" style="border-radius: 0 10px 10px 0; border-color: rgba(24,32,51,0.1); cursor: pointer;">
+                  <i class="bi bi-eye text-muted"></i>
+                </button>
               </div>
             </div>
 
@@ -69,7 +99,20 @@
               <label for="register-confirm" class="form-label form-label-custom">Confirm Password</label>
               <div class="input-group">
                 <span class="input-group-text bg-white border-end-0 border-1" style="border-radius: 10px 0 0 10px; border-color: rgba(24,32,51,0.1);"><i class="bi bi-lock-fill text-muted"></i></span>
-                <input type="password" class="form-control form-control-custom border-start-0 ps-2" id="register-confirm" name="confirmPassword" placeholder="••••••••" minlength="6" required style="border-radius: 0 10px 10px 0;">
+                <input type="password" 
+                       class="form-control form-control-custom border-start-0 border-end-0 ps-2" 
+                       id="register-confirm" 
+                       name="confirmPassword" 
+                       placeholder="••••••••" 
+                       minlength="6" 
+                       autocomplete="new-password"
+                       autocapitalize="none"
+                       autocorrect="off"
+                       spellcheck="false"
+                       required>
+                <button type="button" class="input-group-text bg-white border-start-0 border-1 toggle-password-btn" data-target="register-confirm" style="border-radius: 0 10px 10px 0; border-color: rgba(24,32,51,0.1); cursor: pointer;">
+                  <i class="bi bi-eye text-muted"></i>
+                </button>
               </div>
               <div id="password-match-feedback" class="small mt-1 px-1 fw-medium" style="display: none; font-size: 0.82rem;"></div>
             </div>
@@ -105,11 +148,31 @@
   <!-- Form Validation & Input Formatting Script -->
   <script>
     (function () {
+      const nameInput = document.getElementById('register-name');
+      const emailInput = document.getElementById('register-email');
       const mobileInput = document.getElementById('register-mobile');
       const form = document.getElementById('registration-form');
       const passwordInput = document.getElementById('register-password');
       const confirmInput = document.getElementById('register-confirm');
       const passFeedback = document.getElementById('password-match-feedback');
+
+      // Password toggle visibility
+      document.querySelectorAll('.toggle-password-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+          const targetId = this.getAttribute('data-target');
+          const targetInput = document.getElementById(targetId);
+          const icon = this.querySelector('i');
+          if (targetInput.type === 'password') {
+            targetInput.type = 'text';
+            icon.classList.remove('bi-eye');
+            icon.classList.add('bi-eye-slash');
+          } else {
+            targetInput.type = 'password';
+            icon.classList.remove('bi-eye-slash');
+            icon.classList.add('bi-eye');
+          }
+        });
+      });
 
       // Only numeric values accepted and maximum 10 digits
       if (mobileInput) {
@@ -120,12 +183,14 @@
 
       // Password match validation
       function checkPasswords() {
-        if (!confirmInput.value) {
+        const p1 = passwordInput.value.trim();
+        const p2 = confirmInput.value.trim();
+        if (!p2) {
           passFeedback.style.display = 'none';
           confirmInput.classList.remove('is-valid', 'is-invalid');
           return true;
         }
-        if (passwordInput.value !== confirmInput.value) {
+        if (p1 !== p2) {
           passFeedback.style.display = 'block';
           passFeedback.className = 'small mt-1 px-1 fw-medium text-danger';
           passFeedback.innerHTML = '<i class="bi bi-exclamation-circle-fill me-1"></i>Passwords do not match.';
@@ -149,6 +214,30 @@
 
       // Form Submit Validation
       form.addEventListener('submit', function (e) {
+        if (nameInput && !nameInput.value.trim()) {
+          e.preventDefault();
+          e.stopPropagation();
+          nameInput.focus();
+          nameInput.classList.add('is-invalid');
+          alert('Please enter your full name or screen name.');
+          return false;
+        }
+        if (nameInput) nameInput.classList.remove('is-invalid');
+
+        const emailVal = emailInput ? emailInput.value.trim().toLowerCase() : '';
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailVal || !emailRegex.test(emailVal)) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (emailInput) {
+            emailInput.focus();
+            emailInput.classList.add('is-invalid');
+          }
+          alert('Please enter a valid email address.');
+          return false;
+        }
+        if (emailInput) emailInput.classList.remove('is-invalid');
+
         const val = mobileInput.value.trim();
 
         if (!val || !/^\d+$/.test(val)) {
@@ -171,7 +260,10 @@
 
         mobileInput.classList.remove('is-invalid');
 
-        if (passwordInput.value.length < 6) {
+        const cleanPass = passwordInput.value.trim();
+        const cleanConf = confirmInput.value.trim();
+
+        if (cleanPass.length < 6) {
           e.preventDefault();
           passwordInput.focus();
           passwordInput.classList.add('is-invalid');
@@ -179,7 +271,7 @@
           return false;
         }
 
-        if (passwordInput.value !== confirmInput.value) {
+        if (cleanPass !== cleanConf) {
           e.preventDefault();
           confirmInput.focus();
           checkPasswords();
