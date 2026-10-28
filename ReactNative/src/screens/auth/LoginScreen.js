@@ -39,8 +39,14 @@ export const LoginScreen = ({ onNavigateRegister, onNavigateForgotPassword, onNa
   }, []);
 
   const handleLogin = async () => {
-    if (!mobile.trim() || !password) {
-      setErrorMsg('Please enter both mobile number and password.');
+    const cleanMobile = mobile.replace(/[^0-9]/g, '').slice(0, 10);
+    if (!cleanMobile || !password) {
+      setErrorMsg('Please enter both contact number and password.');
+      return;
+    }
+
+    if (mobile.replace(/[^0-9]/g, '').length > 10) {
+      setErrorMsg('Contact number cannot exceed 10 digits.');
       return;
     }
 
@@ -48,7 +54,7 @@ export const LoginScreen = ({ onNavigateRegister, onNavigateForgotPassword, onNa
     setIsLoading(true);
 
     try {
-      await login(mobile.trim(), password);
+      await login(cleanMobile, password);
     } catch (err) {
       setErrorMsg(err.message || 'Login failed. Please check credentials.');
     } finally {
@@ -98,22 +104,23 @@ export const LoginScreen = ({ onNavigateRegister, onNavigateForgotPassword, onNa
             </View>
           ) : null}
 
-          {/* Mobile Input */}
+          {/* Contact Number Input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Mobile Number</Text>
+            <Text style={styles.label}>Contact Number</Text>
             <View style={styles.inputWrapper}>
               <Ionicons name="call-outline" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="e.g. 50 123 4567 or 050 123 4567"
+                placeholder="Enter contact number"
                 placeholderTextColor={COLORS.textMuted}
-                keyboardType="phone-pad"
+                keyboardType="numeric"
                 value={mobile}
                 onChangeText={(text) => {
-                  setMobile(text);
+                  const numeric = text.replace(/[^0-9]/g, '').slice(0, 10);
+                  setMobile(numeric);
                   setErrorMsg('');
                 }}
-                maxLength={16}
+                maxLength={10}
               />
             </View>
           </View>

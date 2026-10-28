@@ -45,32 +45,43 @@ exports.postLogin = async (req, res) => {
       });
     }
 
-    const cleanMobile = mobile.trim();
-    const uaeInfo = parseUAEMobile(cleanMobile);
+    const rawMobile = mobile.toString().trim();
+    const cleanMobile = rawMobile.replace(/\D/g, '').slice(0, 10);
 
-    let query;
-    if (uaeInfo.isValid) {
-      query = {
-        $or: [
-          { mobile: cleanMobile },
-          ...uaeInfo.allVariants.map(v => ({ mobile: v }))
-        ]
-      };
-    } else {
-      query = {
-        $or: [
-          { mobile: cleanMobile },
-          { mobile: cleanMobile.replace(/[^0-9]/g, '') }
-        ]
-      };
+    if (!cleanMobile) {
+      return res.render('login', {
+        title: 'Login - Talk With Ashu',
+        errorMessage: 'Please enter a valid numeric contact number.',
+        formData: { mobile }
+      });
     }
 
-    const user = await User.findOne(query);
+    if (rawMobile.replace(/\D/g, '').length > 10) {
+      return res.render('login', {
+        title: 'Login - Talk With Ashu',
+        errorMessage: 'Contact number cannot exceed 10 digits.',
+        formData: { mobile }
+      });
+    }
+
+    // Support clean number lookup as well as existing legacy UAE formats in DB
+    const uaeInfo = parseUAEMobile(cleanMobile);
+    const queryVariants = [cleanMobile, rawMobile];
+    if (uaeInfo && uaeInfo.isValid && uaeInfo.allVariants) {
+      queryVariants.push(...uaeInfo.allVariants);
+    }
+
+    const user = await User.findOne({
+      $or: [
+        { mobile: cleanMobile },
+        { mobile: { $in: queryVariants } }
+      ]
+    });
 
     if (!user) {
       return res.render('login', {
         title: 'Login - Talk With Ashu',
-        errorMessage: 'Invalid mobile number or password.',
+        errorMessage: 'Invalid contact number or password.',
         formData: { mobile }
       });
     }
@@ -79,7 +90,7 @@ exports.postLogin = async (req, res) => {
     if (!isMatch) {
       return res.render('login', {
         title: 'Login - Talk With Ashu',
-        errorMessage: 'Invalid mobile number or password.',
+        errorMessage: 'Invalid contact number or password.',
         formData: { mobile }
       });
     }
@@ -123,15 +134,25 @@ exports.postRegister = async (req, res) => {
       });
     }
 
-    // Dubai / UAE Mobile Number Validation
-    const uaeInfo = parseUAEMobile(mobile);
-    if (!uaeInfo.isValid) {
+    // Only numeric value validation, maximum 10 digits
+    const rawMobile = mobile.toString().trim();
+    if (!/^\d+$/.test(rawMobile)) {
       return res.render('register', {
         title: 'Create Account - Talk With Ashu',
-        errorMessage: uaeInfo.message,
+        errorMessage: 'Contact number must contain only numeric digits.',
         formData: { name, mobile }
       });
     }
+
+    if (rawMobile.length > 10) {
+      return res.render('register', {
+        title: 'Create Account - Talk With Ashu',
+        errorMessage: 'Contact number cannot exceed 10 digits.',
+        formData: { name, mobile }
+      });
+    }
+
+    const cleanMobile = rawMobile;
 
     if (confirmPassword && password !== confirmPassword) {
       return res.render('register', {
@@ -149,22 +170,30 @@ exports.postRegister = async (req, res) => {
       });
     }
 
-    // Check if user already exists across any variant of this UAE number
+    // Check if user already exists
+    const uaeInfo = parseUAEMobile(cleanMobile);
+    const checkVariants = [cleanMobile];
+    if (uaeInfo && uaeInfo.isValid && uaeInfo.allVariants) {
+      checkVariants.push(...uaeInfo.allVariants);
+    }
     const userExists = await User.findOne({
-      mobile: { $in: uaeInfo.allVariants }
+      $or: [
+        { mobile: cleanMobile },
+        { mobile: { $in: checkVariants } }
+      ]
     });
     if (userExists) {
       return res.render('register', {
         title: 'Create Account - Talk With Ashu',
-        errorMessage: 'This UAE mobile number is already registered. Please log in.',
+        errorMessage: 'This contact number is already registered. Please log in.',
         formData: { name, mobile }
       });
     }
 
-    // Create and save new user (credits defaults to 5) with formatted UAE mobile number
+    // Create and save new user (credits defaults to 5) with clean numeric contact number
     const newUser = new User({
       name: name.trim(),
-      mobile: uaeInfo.internationalFormatted,
+      mobile: cleanMobile,
       password: password // pre-save hook handles hashing
     });
 

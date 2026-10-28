@@ -25,18 +25,26 @@ exports.register = async (req, res) => {
     if (!name || !mobile || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Name, mobile number, and password are required.'
+        message: 'Name, contact number, and password are required.'
       });
     }
 
-    // Dubai / UAE Mobile Number Validation
-    const uaeInfo = parseUAEMobile(mobile);
-    if (!uaeInfo.isValid) {
+    const rawMobile = mobile.toString().trim();
+    if (!/^\d+$/.test(rawMobile)) {
       return res.status(400).json({
         success: false,
-        message: uaeInfo.message
+        message: 'Contact number must contain only numeric digits.'
       });
     }
+
+    if (rawMobile.length > 10) {
+      return res.status(400).json({
+        success: false,
+        message: 'Contact number cannot exceed 10 digits.'
+      });
+    }
+
+    const cleanMobile = rawMobile;
 
     if (password.length < 6) {
       return res.status(400).json({
@@ -45,20 +53,28 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Check if account already exists with any variant of this UAE number
+    // Check if account already exists
+    const uaeInfo = parseUAEMobile(cleanMobile);
+    const checkVariants = [cleanMobile];
+    if (uaeInfo && uaeInfo.isValid && uaeInfo.allVariants) {
+      checkVariants.push(...uaeInfo.allVariants);
+    }
     const existingUser = await User.findOne({
-      mobile: { $in: uaeInfo.allVariants }
+      $or: [
+        { mobile: cleanMobile },
+        { mobile: { $in: checkVariants } }
+      ]
     });
     if (existingUser) {
       return res.status(409).json({
         success: false,
-        message: 'An account with this UAE mobile number already exists. Please log in.'
+        message: 'An account with this contact number already exists. Please log in.'
       });
     }
 
     const newUser = new User({
       name: name.trim(),
-      mobile: uaeInfo.internationalFormatted,
+      mobile: cleanMobile,
       password: password
     });
 
@@ -108,36 +124,45 @@ exports.login = async (req, res) => {
     if (!mobile || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Mobile number and password are required.'
+        message: 'Contact number and password are required.'
       });
     }
 
-    const cleanMobile = mobile.toString().trim();
-    const uaeInfo = parseUAEMobile(cleanMobile);
+    const rawMobile = mobile.toString().trim();
+    const cleanMobile = rawMobile.replace(/\D/g, '').slice(0, 10);
 
-    let query;
-    if (uaeInfo.isValid) {
-      query = {
-        $or: [
-          { mobile: cleanMobile },
-          ...uaeInfo.allVariants.map(v => ({ mobile: v }))
-        ]
-      };
-    } else {
-      query = {
-        $or: [
-          { mobile: cleanMobile },
-          { mobile: cleanMobile.replace(/[^0-9]/g, '') }
-        ]
-      };
+    if (!cleanMobile) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please enter a valid numeric contact number.'
+      });
     }
 
-    const user = await User.findOne(query);
+    if (rawMobile.replace(/\D/g, '').length > 10) {
+      return res.status(400).json({
+        success: false,
+        message: 'Contact number cannot exceed 10 digits.'
+      });
+    }
+
+    // Support clean numeric search as well as legacy formatted variants if previously registered
+    const uaeInfo = parseUAEMobile(cleanMobile);
+    const queryVariants = [cleanMobile, rawMobile];
+    if (uaeInfo && uaeInfo.isValid && uaeInfo.allVariants) {
+      queryVariants.push(...uaeInfo.allVariants);
+    }
+
+    const user = await User.findOne({
+      $or: [
+        { mobile: cleanMobile },
+        { mobile: { $in: queryVariants } }
+      ]
+    });
 
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid mobile number or password.'
+        message: 'Invalid contact number or password.'
       });
     }
 
@@ -212,7 +237,7 @@ exports.forgotPassword = async (req, res) => {
     if (!mobile || !newPassword) {
       return res.status(400).json({
         success: false,
-        message: 'Mobile number and new password are required.'
+        message: 'Contact number and new password are required.'
       });
     }
 
@@ -240,7 +265,7 @@ exports.forgotPassword = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'No account found with this mobile number.'
+        message: 'No account found with this contact number.'
       });
     }
 

@@ -31,24 +31,23 @@
 							</div>
 							<% } %>
 
-								<form action="/login" method="POST" class="auth-form-validate">
+								<form action="/login" method="POST" class="auth-form-validate" id="login-form">
 									<div class="mb-3">
-										<label for="login-mobile" class="form-label form-label-custom">Mobile
-											Number</label>
+										<label for="login-mobile" class="form-label form-label-custom">Contact Number</label>
 										<div class="input-group">
 											<span class="input-group-text bg-white border-end-0 border-1"
 												style="border-radius: 10px 0 0 10px; border-color: rgba(24,32,51,0.1);"><i
 													class="bi bi-telephone text-muted"></i></span>
-											<input type="text"
+											<input type="tel"
 												class="form-control form-control-custom border-start-0 ps-2"
 												id="login-mobile" name="mobile"
 												value="<%= typeof formData !== 'undefined' && formData && formData.mobile ? formData.mobile : '' %>"
-												placeholder="XX XXX XXXX" required
+												placeholder="Enter contact number" 
+												maxlength="10"
+												inputmode="numeric"
+												pattern="[0-9]*"
+												required
 												style="border-radius: 0 10px 10px 0;">
-										</div>
-										<div class="form-text text-muted small mt-1" style="font-size: 0.78rem;">
-											Enter your UAE mobile number (e.g. <strong>050 123 4567</strong> or
-											<strong>50 123 4567</strong>).
 										</div>
 									</div>
 
@@ -95,6 +94,47 @@
 		</div>
 
 		<%- include('partials/scripts') %>
+
+		<!-- Contact Number Validation & Input Formatting Script -->
+		<script>
+			(function () {
+				const mobileInput = document.getElementById('login-mobile');
+				const form = document.getElementById('login-form');
+
+				// Only numeric values accepted and maximum 10 digits
+				if (mobileInput) {
+					mobileInput.addEventListener('input', function () {
+						this.value = this.value.replace(/\D/g, '').slice(0, 10);
+					});
+				}
+
+				if (form && mobileInput) {
+					form.addEventListener('submit', function (e) {
+						const val = mobileInput.value.trim();
+
+						if (!val || !/^\d+$/.test(val)) {
+							e.preventDefault();
+							e.stopPropagation();
+							mobileInput.focus();
+							mobileInput.classList.add('is-invalid');
+							alert('Please enter a valid numeric contact number.');
+							return false;
+						}
+
+						if (val.length > 10) {
+							e.preventDefault();
+							e.stopPropagation();
+							mobileInput.focus();
+							mobileInput.classList.add('is-invalid');
+							alert('Contact number cannot exceed 10 digits.');
+							return false;
+						}
+
+						mobileInput.classList.remove('is-invalid');
+					});
+				}
+			})();
+		</script>
 	</body>
 
 </html>

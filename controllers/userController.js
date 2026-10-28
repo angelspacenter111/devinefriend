@@ -480,7 +480,7 @@ exports.postProfile = async (req, res) => {
 
     const cleanMobile = mobile.trim();
 
-    // Check mobile availability if modified
+    // Check contact number availability if modified
     if (cleanMobile !== user.mobile) {
       const uaeInfo = parseUAEMobile(cleanMobile);
       if (!uaeInfo.isValid) {
@@ -502,10 +502,10 @@ exports.postProfile = async (req, res) => {
           activeTab: 'profile',
           user,
           successMessage: null,
-          errorMessage: 'Mobile number is already in use by another account.'
+          errorMessage: 'Contact number is already in use by another account.'
         });
       }
-      user.mobile = uaeInfo.internationalFormatted;
+      user.mobile = uaeInfo.digits;
     }
 
     user.name = name.trim();
