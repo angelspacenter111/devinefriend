@@ -245,6 +245,37 @@ exports.updateUserCredits = async (req, res) => {
   }
 };
 
+// POST /api/admin/users/:id/password
+exports.updateUserPassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { password } = req.body;
+
+    const cleanPassword = (password !== undefined && password !== null) ? password.toString().trim() : '';
+    if (!cleanPassword || cleanPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    user.password = cleanPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    return res.json({
+      success: true,
+      message: `Password updated successfully for ${user.name}.`
+    });
+  } catch (error) {
+    console.error('[API Admin Update Password Error]', error);
+    return res.status(500).json({ success: false, message: 'Failed to update user password.' });
+  }
+};
+
 // GET /api/admin/calls
 exports.getCalls = async (req, res) => {
   try {

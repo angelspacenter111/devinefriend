@@ -15,6 +15,12 @@ router.post('/register', authController.postRegister);
 
 router.get('/logout', authController.logout);
 
+// Forgot Password Flow
 router.get('/forgot-password', authController.getForgotPassword);
+router.post('/forgot-password', authController.postForgotPassword);
+
+// Reset Password Flow
+router.get('/reset-password/:token', authController.getResetPassword);
+router.post('/reset-password/:token', authController.postResetPassword);
 
 module.exports = router;

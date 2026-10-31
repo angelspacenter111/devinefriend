@@ -13,6 +13,7 @@ router.get('/dashboard', adminApiController.getDashboard);
 router.get('/users', adminApiController.getUsers);
 router.post('/users/:id/block', adminApiController.toggleUserBlock);
 router.post('/users/:id/credits', adminApiController.updateUserCredits);
+router.post('/users/:id/password', adminApiController.updateUserPassword);
 
 router.get('/calls', adminApiController.getCalls);
 router.get('/transactions', adminApiController.getTransactions);

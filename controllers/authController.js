@@ -1,5 +1,7 @@
+const crypto = require('crypto');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
+const EmailService = require('../services/emailService');
 const { parseUAEMobile, getUAEMobileVariants } = require('../services/phoneValidator');
 
 exports.getLogin = (req, res) => {
@@ -8,7 +10,8 @@ exports.getLogin = (req, res) => {
   }
   res.render('login', {
     title: 'Login - Talk With Ashu',
-    errorMessage: null,
+    errorMessage: (req.query && req.query.error) ? req.query.error : null,
+    successMessage: (req.query && req.query.success) ? req.query.success : null,
     formData: null
   });
 };
@@ -26,10 +29,202 @@ exports.getRegister = (req, res) => {
 
 exports.getForgotPassword = (req, res) => {
   res.render('forgot-password', {
-    title: 'Recover Password - Talk With Ashu',
-    errorMessage: null,
+    title: 'Forgot Password - Talk With Ashu',
+    errorMessage: (req.query && req.query.error) ? req.query.error : null,
+    successMessage: (req.query && req.query.success) ? req.query.success : null,
     formData: null
   });
+};
+
+// POST: Request password reset link via email
+exports.postForgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const cleanEmail = (email !== undefined && email !== null) ? email.toString().trim().toLowerCase() : '';
+
+    if (!cleanEmail) {
+      return res.render('forgot-password', {
+        title: 'Forgot Password - Talk With Ashu',
+        errorMessage: 'Please enter your registered email address.',
+        successMessage: null,
+        formData: { email: '' }
+      });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      return res.render('forgot-password', {
+        title: 'Forgot Password - Talk With Ashu',
+        errorMessage: 'Please enter a valid email address.',
+        successMessage: null,
+        formData: { email: cleanEmail }
+      });
+    }
+
+    const user = await User.findOne({ email: cleanEmail });
+
+    if (!user) {
+      return res.render('forgot-password', {
+        title: 'Forgot Password - Talk With Ashu',
+        errorMessage: 'No account found with this email address. Please make sure you entered your registered email.',
+        successMessage: null,
+        formData: { email: cleanEmail }
+      });
+    }
+
+    // Generate secure crypto token
+    const token = crypto.randomBytes(32).toString('hex');
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour expiration
+    await user.save();
+
+    // Construct reset password link
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.headers['x-forwarded-host'] || req.get('host');
+    const resetUrl = `${protocol}://${host}/reset-password/${token}`;
+
+    // Send email via EmailJS
+    try {
+      await EmailService.sendPasswordResetEmail({
+        name: user.name,
+        email: user.email,
+        resetUrl
+      });
+      console.log(`[Forgot Password] Reset link sent to ${user.email} (${resetUrl})`);
+    } catch (mailErr) {
+      console.warn('[Forgot Password] EmailJS dispatch notice:', mailErr.message);
+      return res.render('forgot-password', {
+        title: 'Forgot Password - Talk With Ashu',
+        errorMessage: 'Unable to deliver password reset email right now. Please try again or contact support.',
+        successMessage: null,
+        formData: { email: cleanEmail }
+      });
+    }
+
+    return res.render('forgot-password', {
+      title: 'Forgot Password - Talk With Ashu',
+      errorMessage: null,
+      successMessage: `A password reset link has been sent to ${user.email}. Please check your inbox and spam folder.`,
+      formData: null
+    });
+  } catch (error) {
+    console.error('[Forgot Password Error]', error);
+    return res.render('forgot-password', {
+      title: 'Forgot Password - Talk With Ashu',
+      errorMessage: 'An unexpected error occurred. Please try again later.',
+      successMessage: null,
+      formData: { email: req.body.email || '' }
+    });
+  }
+};
+
+// GET: Display reset password form
+exports.getResetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    if (!token) {
+      return res.redirect('/forgot-password?error=Invalid+password+reset+token.');
+    }
+
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.render('forgot-password', {
+        title: 'Forgot Password - Talk With Ashu',
+        errorMessage: 'Password reset link is invalid or has expired. Please request a new one.',
+        successMessage: null,
+        formData: null
+      });
+    }
+
+    return res.render('reset-password', {
+      title: 'Reset Password - Talk With Ashu',
+      errorMessage: null,
+      token,
+      userEmail: user.email
+    });
+  } catch (error) {
+    console.error('[Get Reset Password Error]', error);
+    return res.redirect('/forgot-password?error=An+error+occurred.+Please+try+again.');
+  }
+};
+
+// POST: Update password via reset token
+exports.postResetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password, confirmPassword } = req.body;
+
+    const cleanPassword = (password !== undefined && password !== null) ? password.toString().trim() : '';
+    const cleanConfirm = (confirmPassword !== undefined && confirmPassword !== null) ? confirmPassword.toString().trim() : '';
+
+    if (!cleanPassword || !cleanConfirm) {
+      return res.render('reset-password', {
+        title: 'Reset Password - Talk With Ashu',
+        errorMessage: 'Please fill in all password fields.',
+        token,
+        userEmail: ''
+      });
+    }
+
+    if (cleanPassword.length < 6) {
+      return res.render('reset-password', {
+        title: 'Reset Password - Talk With Ashu',
+        errorMessage: 'Password must be at least 6 characters long.',
+        token,
+        userEmail: ''
+      });
+    }
+
+    if (cleanPassword !== cleanConfirm) {
+      return res.render('reset-password', {
+        title: 'Reset Password - Talk With Ashu',
+        errorMessage: 'Passwords do not match.',
+        token,
+        userEmail: ''
+      });
+    }
+
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.render('forgot-password', {
+        title: 'Forgot Password - Talk With Ashu',
+        errorMessage: 'Password reset link is invalid or has expired. Please request a new one.',
+        successMessage: null,
+        formData: null
+      });
+    }
+
+    // Update password (pre-save hook will hash it with bcrypt)
+    user.password = cleanPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    console.log(`[Password Reset Success] Password changed for ${user.name} (${user.email || user.mobile})`);
+
+    return res.render('login', {
+      title: 'Login - Talk With Ashu',
+      errorMessage: null,
+      successMessage: 'Your password has been successfully reset! Please log in with your new password.',
+      formData: { mobile: user.mobile }
+    });
+  } catch (error) {
+    console.error('[Post Reset Password Error]', error);
+    return res.render('reset-password', {
+      title: 'Reset Password - Talk With Ashu',
+      errorMessage: 'An error occurred while resetting your password. Please try again.',
+      token: req.params.token,
+      userEmail: ''
+    });
+  }
 };
 
 // POST User login verification

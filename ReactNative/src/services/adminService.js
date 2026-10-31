@@ -26,6 +26,11 @@ export const adminService = {
     return res.data;
   },
 
+  updateUserPassword: async (userId, password) => {
+    const res = await apiClient.post(`/admin/users/${userId}/password`, { password });
+    return res.data;
+  },
+
   getCalls: async (params = {}) => {
     const res = await apiClient.get('/admin/calls', { params });
     return res.data;

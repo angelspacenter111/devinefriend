@@ -7,5 +7,6 @@ router.post('/register', authApiController.register);
 router.post('/login', authApiController.login);
 router.get('/me', requireApiAuth, authApiController.getMe);
 router.post('/forgot-password', authApiController.forgotPassword);
+router.post('/reset-password', authApiController.resetPassword);
 
 module.exports = router;

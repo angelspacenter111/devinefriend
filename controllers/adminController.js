@@ -1,3 +1,4 @@
+const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const Call = require('../models/Call');
@@ -1094,6 +1095,60 @@ exports.postUpdateCredits = async (req, res) => {
   } catch (error) {
     console.error('[Admin User Credits Update Error]', error);
     return res.status(500).json({ success: false, message: 'Server error updating coins.' });
+  }
+};
+
+// POST Update User Password by Admin
+exports.postUpdateUserPassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const body = req.body || {};
+    const password = body.password !== undefined ? body.password : body.newPassword;
+    const confirmPassword = body.confirmPassword !== undefined ? body.confirmPassword : body.confirm;
+
+    const cleanPassword = (password !== undefined && password !== null) ? password.toString().trim() : '';
+    const cleanConfirm = (confirmPassword !== undefined && confirmPassword !== null) ? confirmPassword.toString().trim() : '';
+
+    if (!cleanPassword || cleanPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
+    }
+
+    if (cleanConfirm && cleanPassword !== cleanConfirm) {
+      return res.status(400).json({ success: false, message: 'Passwords do not match.' });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID format.' });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(cleanPassword, salt);
+
+    await User.updateOne(
+      { _id: id },
+      {
+        $set: {
+          password: hashedPassword,
+          resetPasswordToken: null,
+          resetPasswordExpires: null
+        }
+      }
+    );
+
+    console.log(`[Admin User Password Update] Admin updated password for user: ${user.name} (${user.mobile})`);
+
+    return res.status(200).json({
+      success: true,
+      message: `Password updated successfully for ${user.name}.`
+    });
+  } catch (error) {
+    console.error('[Admin Update User Password Error]', error);
+    return res.status(500).json({ success: false, message: error.message || 'Server error updating password.' });
   }
 };
 

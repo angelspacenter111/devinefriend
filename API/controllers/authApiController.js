@@ -1,3 +1,5 @@
+const crypto = require('crypto');
+const EmailService = require('../../services/emailService');
 const jwt = require('jsonwebtoken');
 const User = require('../../models/User');
 const Transaction = require('../../models/Transaction');
@@ -252,10 +254,97 @@ exports.getMe = async (req, res) => {
   }
 };
 
+// POST /api/auth/reset-password
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    const cleanPassword = (password !== undefined && password !== null) ? password.toString().trim() : '';
+
+    if (!token || !cleanPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Token and new password are required.'
+      });
+    }
+
+    if (cleanPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters.'
+      });
+    }
+
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password reset link is invalid or has expired.'
+      });
+    }
+
+    user.password = cleanPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    return res.json({
+      success: true,
+      message: 'Password reset successfully. You can now log in.'
+    });
+  } catch (error) {
+    console.error('[API Reset Password Error]', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to reset password.'
+    });
+  }
+};
+
 // POST /api/auth/forgot-password
 exports.forgotPassword = async (req, res) => {
   try {
-    const { mobile, newPassword } = req.body;
+    const { email, mobile, newPassword } = req.body;
+
+    // Email-based reset link request (Primary)
+    if (email) {
+      const cleanEmail = email.toString().trim().toLowerCase();
+      const user = await User.findOne({ email: cleanEmail });
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'No account found with this email address.'
+        });
+      }
+
+      const token = crypto.randomBytes(32).toString('hex');
+      user.resetPasswordToken = token;
+      user.resetPasswordExpires = new Date(Date.now() + 3600000);
+      await user.save();
+
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const host = req.headers['x-forwarded-host'] || req.get('host');
+      const resetUrl = `${protocol}://${host}/reset-password/${token}`;
+
+      try {
+        await EmailService.sendPasswordResetEmail({
+          name: user.name,
+          email: user.email,
+          resetUrl
+        });
+      } catch (err) {
+        console.warn('[API Forgot Password] EmailJS dispatch error:', err.message);
+      }
+
+      return res.json({
+        success: true,
+        message: `A password reset link has been sent to ${user.email}.`,
+        resetUrl // provided for API convenience in dev/testing
+      });
+    }
     const cleanNewPass = (newPassword !== undefined && newPassword !== null) ? newPassword.toString().trim() : '';
 
     if (!mobile || !cleanNewPass) {

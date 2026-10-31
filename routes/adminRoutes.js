@@ -33,6 +33,7 @@ router.post('/end-call', adminController.postEndCall);
 router.post('/log-call-issue', adminController.postLogCallIssue);
 router.post('/users/block/:id', adminController.postToggleBlock);
 router.post('/users/update-wallet/:id', adminController.postUpdateCredits);
+router.post('/users/update-password/:id', adminController.postUpdateUserPassword);
 
 // Pricing configuration endpoints
 router.post('/pricing/update/:id', adminController.postUpdatePricing);
@@ -41,4 +42,3 @@ router.post('/pricing/add', adminController.postAddPricing);
 router.post('/pricing/delete/:id', adminController.postDeletePricing);
 
 module.exports = router;
-

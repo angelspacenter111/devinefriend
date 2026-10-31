@@ -31,6 +31,9 @@ export const AdminUsersScreen = () => {
   const [creditAmount, setCreditAmount] = useState('10');
   const [creditReason, setCreditReason] = useState('Support bonus');
   const [isUpdatingCredit, setIsUpdatingCredit] = useState(false);
+  const [selectedUserForPassword, setSelectedUserForPassword] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
   const fetchUsers = async (pageNum = 1, append = false) => {
     try {
@@ -96,6 +99,24 @@ export const AdminUsersScreen = () => {
         }
       ]
     );
+  };
+
+  const handleSavePassword = async () => {
+    if (!newPassword || newPassword.trim().length < 6) {
+      Alert.alert('Validation Error', 'Password must be at least 6 characters.');
+      return;
+    }
+    try {
+      setIsUpdatingPassword(true);
+      const res = await adminService.updateUserPassword(selectedUserForPassword._id, newPassword.trim());
+      Alert.alert('Success', res.message || 'Password updated successfully.');
+      setSelectedUserForPassword(null);
+      setNewPassword('');
+    } catch (err) {
+      Alert.alert('Error', err.message || 'Failed to update password.');
+    } finally {
+      setIsUpdatingPassword(false);
+    }
   };
 
   const handleSaveCredits = async () => {
@@ -172,6 +193,18 @@ export const AdminUsersScreen = () => {
           >
             <Ionicons name="add" size={14} color="#fff" />
             <Text style={styles.btnActionText}>Credits</Text>
+          </TouchableOpacity>
+
+          {/* Change Password Button */}
+          <TouchableOpacity
+            style={styles.pwdAdjustBtn}
+            onPress={() => {
+              setSelectedUserForPassword(item);
+              setNewPassword('');
+            }}
+          >
+            <Ionicons name="key-outline" size={13} color="#f59e0b" />
+            <Text style={styles.pwdBtnText}>Pass</Text>
           </TouchableOpacity>
 
           {/* Block / Unblock Button */}
@@ -467,6 +500,22 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: '700'
+  },
+  pwdAdjustBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    backgroundColor: 'rgba(245, 158, 11, 0.08)'
+  },
+  pwdBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#f59e0b'
   },
   blockBtn: {
     flexDirection: 'row',
