@@ -522,6 +522,14 @@ function initializeCallerFlow() {
     if (audioWatchdogTimer) { clearTimeout(audioWatchdogTimer); audioWatchdogTimer = null; }
     if (pubPeerConnection) { try { pubPeerConnection.close(); } catch (e) {} pubPeerConnection = null; }
     if (subPeerConnection) { try { subPeerConnection.close(); } catch (e) {} subPeerConnection = null; }
+
+    // Flush any pending ICE candidates if peer connection is ready
+    if (peerConnection && peerConnection.remoteDescription && peerConnection.remoteDescription.type && webIceQueue.length > 0) {
+      for (const cand of webIceQueue) {
+        try { peerConnection.addIceCandidate(new RTCIceCandidate(cand)); } catch (e) {}
+      }
+      webIceQueue = [];
+    }
   });
 
   socket.off('cf-sfu-remote-tracks-available').on('cf-sfu-remote-tracks-available', async (data) => {
@@ -632,6 +640,19 @@ function initializeReceiverFlow() {
       }
 
       await setupPeerConnection();
+
+      // Ensure local tracks are attached before setting remote description so transceivers negotiate two-way sendrecv
+      const stream = await getMicrophoneAccess();
+      if (stream && peerConnection) {
+        const existingSenders = peerConnection.getSenders();
+        stream.getTracks().forEach(track => {
+          const alreadyAdded = existingSenders.some(s => s.track && s.track.id === track.id);
+          if (!alreadyAdded) {
+            try { peerConnection.addTrack(track, stream); } catch (e) {}
+          }
+        });
+      }
+
       await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
 
       if (webIceQueue.length > 0) {
@@ -639,17 +660,6 @@ function initializeReceiverFlow() {
           try { await peerConnection.addIceCandidate(new RTCIceCandidate(cand)); } catch (e) {}
         }
         webIceQueue = [];
-      }
-
-      const senders = peerConnection.getSenders();
-      const hasTracks = senders.some(s => s.track);
-      if (!hasTracks) {
-        const stream = await getMicrophoneAccess();
-        if (stream && peerConnection) {
-          stream.getTracks().forEach(track => {
-            try { peerConnection.addTrack(track, stream); } catch (e) {}
-          });
-        }
       }
 
       const answer = await peerConnection.createAnswer();
@@ -1305,12 +1315,14 @@ socket.off('receive-answer').on('receive-answer', async (data) => {
 });
 
 socket.off('receive-candidate').on('receive-candidate', async (data) => {
-  if (isUsingSfu || isTerminalState(currentCallState)) return;
+  if (isTerminalState(currentCallState)) return;
   if (!data || !data.candidate) return;
 
-  if (peerConnection && peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
+  // Buffer candidates safely so they are never lost even if peer demotes from SFU to P2P mesh
+  if (peerConnection && peerConnection.remoteDescription && peerConnection.remoteDescription.type && !isUsingSfu) {
     try {
-      await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+      const candidatePayload = typeof data.candidate === 'object' ? data.candidate : { candidate: data.candidate };
+      await peerConnection.addIceCandidate(new RTCIceCandidate(candidatePayload));
     } catch (e) {}
   } else {
     webIceQueue.push(data.candidate);

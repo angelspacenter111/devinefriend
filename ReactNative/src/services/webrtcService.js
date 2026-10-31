@@ -19,15 +19,56 @@ export const RTC_CONFIG = {
       username: 'openrelay',
       credential: 'openrelay'
     },
-    // STUN servers for standard networks
+    // Standard Anycast STUN servers
+    { urls: 'stun:stun.cloudflare.com:3478' },
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
     { urls: 'stun:stun3.l.google.com:19302' },
-    { urls: 'stun:stun.cloudflare.com:3478' }
+    { urls: 'stun:stun4.l.google.com:19302' }
   ],
+  bundlePolicy: 'max-bundle',
+  rtcpMuxPolicy: 'require',
+  iceTransportPolicy: 'all',
   iceCandidatePoolSize: 10
 };
+
+/**
+ * Opus Audio SDP Optimization for Crystal Clear Voice Calling & Packet Loss Recovery
+ * - useinbandfec=1: Opus In-band Forward Error Correction (recovers lost audio packets without robotic distortion)
+ * - usedtx=1: Discontinuous Transmission (saves cellular data during pauses)
+ * - maxaveragebitrate=32000: High definition 32kbps speech encoding
+ * - stereo=0: Pure mono speech (avoids earpiece phase cancellation)
+ */
+function optimizeOpusSDP(sdp) {
+  if (!sdp || typeof sdp !== 'string') return sdp;
+  try {
+    const opusMatch = sdp.match(/a=rtpmap:(\d+)\s+opus\/48000/i);
+    if (!opusMatch) return sdp;
+    const pt = opusMatch[1];
+    const fmtpRegex = new RegExp(`a=fmtp:${pt}\\s+([^\\r\\n]+)`, 'i');
+    const opusParams = 'minptime=10;useinbandfec=1;usedtx=1;stereo=0;sprop-stereo=0;maxaveragebitrate=32000';
+
+    if (fmtpRegex.test(sdp)) {
+      return sdp.replace(fmtpRegex, (match, existingParams) => {
+        let updated = existingParams;
+        if (!/useinbandfec=/i.test(updated)) updated += ';useinbandfec=1';
+        if (!/usedtx=/i.test(updated)) updated += ';usedtx=1';
+        if (!/maxaveragebitrate=/i.test(updated)) updated += ';maxaveragebitrate=32000';
+        if (!/stereo=/i.test(updated)) updated += ';stereo=0';
+        return `a=fmtp:${pt} ${updated}`;
+      });
+    } else {
+      return sdp.replace(
+        new RegExp(`(a=rtpmap:${pt}\\s+opus\\/48000\\/2[\\r\\n]+)`, 'i'),
+        `$1a=fmtp:${pt} ${opusParams}\r\n`
+      );
+    }
+  } catch (e) {
+    console.warn('[WebRTC Service] Could not optimize SDP:', e.message);
+    return sdp;
+  }
+}
 
 export const webrtcService = {
   /**
@@ -45,7 +86,9 @@ export const webrtcService = {
           ? {
               echoCancellation: true,
               noiseSuppression: true,
-              autoGainControl: true
+              autoGainControl: true,
+              sampleRate: 48000,
+              channelCount: 1
             }
           : false,
         video: video
@@ -183,17 +226,22 @@ export const webrtcService = {
   },
 
   /**
-   * Create and set local answer SDP (returns clean plain object for socket serialization)
+   * Create and set local answer SDP with Opus optimization (returns clean plain object for socket serialization)
    */
   createAnswer: async (pc) => {
     if (!pc) throw new Error('PeerConnection is not initialized');
     try {
       const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      console.log('[WebRTC Service] Created and set local answer SDP');
-      return {
+      const optimizedSdp = optimizeOpusSDP(answer.sdp);
+      const optimizedAnswer = new RTCSessionDescription({
         type: answer.type || 'answer',
-        sdp: answer.sdp
+        sdp: optimizedSdp
+      });
+      await pc.setLocalDescription(optimizedAnswer);
+      console.log('[WebRTC Service] Created and set optimized local answer SDP');
+      return {
+        type: optimizedAnswer.type,
+        sdp: optimizedAnswer.sdp
       };
     } catch (err) {
       console.error('[WebRTC Service] Failed to create answer:', err);
@@ -202,17 +250,22 @@ export const webrtcService = {
   },
 
   /**
-   * Create and set local offer SDP (returns clean plain object for socket serialization)
+   * Create and set local offer SDP with Opus optimization (returns clean plain object for socket serialization)
    */
   createOffer: async (pc, options = {}) => {
     if (!pc) throw new Error('PeerConnection is not initialized');
     try {
       const offer = await pc.createOffer(options);
-      await pc.setLocalDescription(offer);
-      console.log('[WebRTC Service] Created and set local offer SDP');
-      return {
+      const optimizedSdp = optimizeOpusSDP(offer.sdp);
+      const optimizedOffer = new RTCSessionDescription({
         type: offer.type || 'offer',
-        sdp: offer.sdp
+        sdp: optimizedSdp
+      });
+      await pc.setLocalDescription(optimizedOffer);
+      console.log('[WebRTC Service] Created and set optimized local offer SDP');
+      return {
+        type: optimizedOffer.type,
+        sdp: optimizedOffer.sdp
       };
     } catch (err) {
       console.error('[WebRTC Service] Failed to create offer:', err);
@@ -221,23 +274,41 @@ export const webrtcService = {
   },
 
   /**
-   * Add ICE Candidate received from remote peer
+   * Add ICE Candidate received from remote peer with cross-platform sanitization
    */
   addIceCandidate: async (pc, candidateInit) => {
     if (!pc || !candidateInit) return;
     try {
-      const candidatePayload = {
-        candidate: candidateInit.candidate,
-        sdpMid: candidateInit.sdpMid,
-        sdpMLineIndex: candidateInit.sdpMLineIndex
-      };
-      if (!candidatePayload.candidate) {
-        console.warn('[WebRTC Service] Skipping empty candidate');
+      // Handle both flat and nested candidate objects safely
+      const rawCand = (typeof candidateInit === 'object' && candidateInit.candidate !== undefined)
+        ? (typeof candidateInit.candidate === 'object' && candidateInit.candidate !== null ? candidateInit.candidate.candidate : candidateInit.candidate)
+        : candidateInit;
+
+      if (!rawCand || typeof rawCand !== 'string' || rawCand.trim() === '') {
+        console.log('[WebRTC Service] Skipping empty/end-of-candidates candidate');
         return;
       }
-      const candidate = new RTCIceCandidate(candidatePayload);
+
+      const sdpMid = candidateInit.sdpMid !== undefined
+        ? candidateInit.sdpMid
+        : (candidateInit.candidate?.sdpMid || '0');
+
+      const rawIndex = candidateInit.sdpMLineIndex !== undefined
+        ? candidateInit.sdpMLineIndex
+        : candidateInit.candidate?.sdpMLineIndex;
+
+      const sdpMLineIndex = (rawIndex !== null && rawIndex !== undefined && !isNaN(parseInt(rawIndex, 10)))
+        ? parseInt(rawIndex, 10)
+        : 0;
+
+      const candidate = new RTCIceCandidate({
+        candidate: rawCand,
+        sdpMid: String(sdpMid),
+        sdpMLineIndex: sdpMLineIndex
+      });
+
       await pc.addIceCandidate(candidate);
-      console.log('[WebRTC Service] Added remote ICE candidate');
+      console.log('[WebRTC Service] Added remote ICE candidate successfully');
     } catch (err) {
       console.warn('[WebRTC Service] Error adding ICE candidate:', err.message);
     }

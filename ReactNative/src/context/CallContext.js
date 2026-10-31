@@ -3,6 +3,7 @@ import { Vibration, Platform } from 'react-native';
 import socketService from '../services/socketService';
 import callService from '../services/callService';
 import webrtcService from '../services/webrtcService';
+import { getServerUrl } from '../config/api';
 import { useAuth } from './AuthContext';
 
 const CallContext = createContext();
@@ -57,6 +58,7 @@ export const CallProvider = ({ children }) => {
 
   // Initialize socket and listen to advisor presence
   useEffect(() => {
+    webrtcService.fetchIceServers(getServerUrl()).catch(() => {});
     const socket = socketService.connect();
 
     const handleAdvisorStatus = (data) => {
@@ -121,6 +123,9 @@ export const CallProvider = ({ children }) => {
       setCallStatusText('Connecting...');
       const targetId = data.adminId;
       targetPeerIdRef.current = targetId;
+
+      // Coordinate direct P2P mesh with high-priority TURNS on Port 443
+      socketService.emit('switch-to-p2p', { callId: activeCallRef.current?.callId });
 
       try {
         const pc = webrtcService.createPeerConnection({

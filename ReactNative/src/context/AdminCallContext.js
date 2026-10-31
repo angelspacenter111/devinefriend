@@ -5,6 +5,8 @@ import * as Notifications from 'expo-notifications';
 import socketService from '../services/socketService';
 import webrtcService from '../services/webrtcService';
 import notificationService from '../services/notificationService';
+import ringtoneService from '../services/ringtoneService';
+import { getServerUrl } from '../config/api';
 import { useAuth } from './AuthContext';
 
 const AdminCallContext = createContext();
@@ -143,6 +145,7 @@ export const AdminCallProvider = ({ children }) => {
   };
 
   const stopRinging = () => {
+    ringtoneService.stopRingtone();
     notificationService.dismissCallNotifications();
     if (Platform.OS !== 'web') {
       try {
@@ -216,6 +219,9 @@ export const AdminCallProvider = ({ children }) => {
 
     setCallPhase('incoming');
     setIncomingCall(callInfo);
+
+    // Play loud incoming call ringtone
+    ringtoneService.startRingtone();
 
     // Show local notification banner
     notificationService.showLocalCallNotification(callInfo);
@@ -359,6 +365,7 @@ export const AdminCallProvider = ({ children }) => {
     socketService.connect();
 
     const sendAccept = () => {
+      socketService.emit('switch-to-p2p', { callId: callPayload.callId });
       socketService.emit('admin-join', {
         adminId: adminIdentity.id,
         adminName: adminIdentity.name,
@@ -469,6 +476,7 @@ export const AdminCallProvider = ({ children }) => {
   // 1. GLOBAL NOTIFICATION HANDLING (Runs on Mount, Handles Background & Closed App Cold Starts)
   useEffect(() => {
     notificationService.init();
+    webrtcService.fetchIceServers(getServerUrl()).catch(() => {});
 
     // Check cold start from closed app notification tap
     Notifications.getLastNotificationResponseAsync().then((response) => {
