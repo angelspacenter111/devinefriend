@@ -1,9 +1,14 @@
-import {
-  RTCPeerConnection,
-  RTCIceCandidate,
-  RTCSessionDescription,
-  mediaDevices
-} from 'react-native-webrtc';
+let WebRTC = {};
+try {
+  WebRTC = require('react-native-webrtc');
+} catch (e) {
+  console.warn('[WebRTC Service] Native WebRTC module not available:', e.message);
+}
+
+const RTCPeerConnection = WebRTC.RTCPeerConnection;
+const RTCIceCandidate = WebRTC.RTCIceCandidate;
+const RTCSessionDescription = WebRTC.RTCSessionDescription;
+const mediaDevices = WebRTC.mediaDevices;
 
 export const RTC_CONFIG = {
   iceServers: [

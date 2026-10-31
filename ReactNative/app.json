@@ -6,9 +6,9 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": false,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bitcode": false
     },
     "android": {
       "adaptiveIcon": {
@@ -33,18 +33,11 @@
         "android.permission.WAKE_LOCK",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.POST_NOTIFICATIONS",
-        "android.permission.FOREGROUND_SERVICE",
-        "android.permission.FOREGROUND_SERVICE_PHONE_CALL",
-        "android.permission.MANAGE_OWN_CALLS"
+        "android.permission.SYSTEM_ALERT_WINDOW"
       ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "ba4e869c-76a1-4f66-95b0-c79dad48d99e"
-      }
     },
     "plugins": [
       "expo-font",
@@ -65,6 +58,12 @@
           "color": "#1769E0"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "c5a13aa2-8507-4d87-a0fa-389cc29d0b68"
+      }
+    },
+    "owner": "dhyeyrathod111"
   }
 }

@@ -1,20 +1,32 @@
 import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import apiClient from './api';
 
-// Configure foreground notification presentation
-Notifications.setNotificationHandler({
-  handleNotification: async (notification) => {
-    return {
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-      shouldShowBanner: true,
-      shouldShowList: true
-    };
+let Notifications = {};
+try {
+  Notifications = require('expo-notifications');
+} catch (e) {
+  console.warn('[NotificationService] expo-notifications require error:', e.message);
+}
+
+// Configure foreground notification presentation safely
+try {
+  if (Notifications && typeof Notifications.setNotificationHandler === 'function') {
+    Notifications.setNotificationHandler({
+      handleNotification: async (notification) => {
+        return {
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: false,
+          shouldShowBanner: true,
+          shouldShowList: true
+        };
+      }
+    });
   }
-});
+} catch (handlerErr) {
+  console.warn('[NotificationService] setNotificationHandler warning:', handlerErr.message);
+}
 
 class NotificationService {
   constructor() {
@@ -36,10 +48,10 @@ class NotificationService {
         await Notifications.setNotificationChannelAsync('incoming-calls', {
           name: 'Incoming Phone Calls',
           description: 'High-priority full-screen incoming call ringtones and alerts',
-          importance: Notifications.AndroidImportance.MAX,
+          importance: Notifications.AndroidImportance?.MAX ?? 5,
           vibrationPattern: [0, 1000, 800, 1000, 800, 1000],
           lightColor: '#1769E0',
-          lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+          lockscreenVisibility: Notifications.AndroidNotificationVisibility?.PUBLIC ?? 1,
           sound: 'default',
           bypassDnd: true,
           enableVibrate: true,
