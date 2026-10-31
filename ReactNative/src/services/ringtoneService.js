@@ -1,11 +1,17 @@
-import { Audio } from 'expo-av';
 import { Platform } from 'react-native';
+
+let AudioModule = null;
+try {
+  const ExpoAv = require('expo-av');
+  AudioModule = ExpoAv.Audio;
+} catch (e) {
+  console.warn('[RingtoneService] expo-av not available:', e.message);
+}
 
 class RingtoneService {
   constructor() {
     this.soundObject = null;
     this.isPlaying = false;
-    this.loadingPromise = null;
   }
 
   /**
@@ -18,9 +24,14 @@ class RingtoneService {
     try {
       console.log('[RingtoneService] 🔔 Starting audible incoming call ringtone...');
 
+      if (!AudioModule) {
+        console.warn('[RingtoneService] Audio module not initialized, skipping audio playback');
+        return;
+      }
+
       // Configure system audio session for ringtone
       try {
-        await Audio.setAudioModeAsync({
+        await AudioModule.setAudioModeAsync({
           allowsRecordingIOS: false,
           playsInSilentModeIOS: true,
           staysActiveInBackground: true,
@@ -41,15 +52,32 @@ class RingtoneService {
       }
 
       // Load bundled high-quality ringtone WAV
-      const ringtoneSource = require('../assets/sounds/ringtone.wav');
-      const { sound } = await Audio.Sound.createAsync(
-        ringtoneSource,
-        {
-          isLooping: true,
-          volume: 1.0,
-          shouldPlay: true
+      let sound = null;
+      try {
+        const ringtoneSource = require('../assets/sounds/ringtone.wav');
+        const res = await AudioModule.Sound.createAsync(
+          ringtoneSource,
+          {
+            isLooping: true,
+            volume: 1.0,
+            shouldPlay: true
+          }
+        );
+        sound = res.sound;
+      } catch (assetErr) {
+        console.warn('[RingtoneService] Asset require error, trying android raw resource:', assetErr.message);
+        if (Platform.OS === 'android') {
+          const res = await AudioModule.Sound.createAsync(
+            { uri: 'android.resource://com.dhyey.ReactNative/raw/ringtone' },
+            {
+              isLooping: true,
+              volume: 1.0,
+              shouldPlay: true
+            }
+          );
+          sound = res.sound;
         }
-      );
+      }
 
       this.soundObject = sound;
       console.log('[RingtoneService] ✅ Incoming call ringtone is now actively playing');

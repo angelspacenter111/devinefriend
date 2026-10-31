@@ -19,7 +19,7 @@ import { getServerUrl, setServerHost, loadSavedServerHost, ENV_SERVER_URL } from
 import socketService from '../../services/socketService';
 import notificationService from '../../services/notificationService';
 
-export const AdminLoginScreen = () => {
+export const AdminLoginScreen = ({ onSwitchToUserPortal }) => {
   const { adminLogin } = useAuth();
 
   const [identifier, setIdentifier] = useState(''); // Email or Mobile
@@ -174,6 +174,19 @@ export const AdminLoginScreen = () => {
               </>
             )}
           </TouchableOpacity>
+
+          {/* Switch to Client Calling App */}
+          {onSwitchToUserPortal ? (
+            <TouchableOpacity
+              style={styles.switchUserBtn}
+              onPress={onSwitchToUserPortal}
+              activeOpacity={0.75}
+            >
+              <Ionicons name="phone-portrait-outline" size={14} color={COLORS.secondary} />
+              <Text style={styles.switchUserText}>Switch to Client Calling App</Text>
+              <Ionicons name="arrow-forward" size={13} color={COLORS.secondary} />
+            </TouchableOpacity>
+          ) : null}
 
           {/* Server Config Row inside Card */}
           <TouchableOpacity

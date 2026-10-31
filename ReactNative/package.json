@@ -28,6 +28,7 @@
   },
   "private": true,
   "devDependencies": {
+    "@react-native-community/cli": "^20.2.0",
     "eas-cli": "^27.2.0"
   }
 }

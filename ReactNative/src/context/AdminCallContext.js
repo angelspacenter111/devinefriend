@@ -32,6 +32,26 @@ export const AdminCallProvider = ({ children }) => {
   const incomingCallRef = useRef(null);
   const iceQueueRef = useRef([]);
   const acquiringMediaRef = useRef(null);
+  const heartbeatTimerRef = useRef(null);
+
+  const startHeartbeat = () => {
+    if (heartbeatTimerRef.current) clearInterval(heartbeatTimerRef.current);
+    heartbeatTimerRef.current = setInterval(() => {
+      if (activeCallRef.current && socketService.isConnected) {
+        socketService.emit('call-heartbeat', {
+          callId: activeCallRef.current.callId,
+          role: 'admin'
+        });
+      }
+    }, 10000);
+  };
+
+  const stopHeartbeat = () => {
+    if (heartbeatTimerRef.current) {
+      clearInterval(heartbeatTimerRef.current);
+      heartbeatTimerRef.current = null;
+    }
+  };
 
   // Keep refs in sync
   useEffect(() => {
@@ -45,6 +65,7 @@ export const AdminCallProvider = ({ children }) => {
   // Clean WebRTC resources safely
   const cleanupWebRTC = () => {
     console.log('[AdminCallContext] Cleaning up WebRTC...');
+    stopHeartbeat();
     webrtcService.cleanup({
       pc: peerConnectionRef.current,
       localStream: localStreamRef.current
@@ -126,6 +147,7 @@ export const AdminCallProvider = ({ children }) => {
           setCallPhase('connected');
           setCallStatusText('In Conversation');
           startTimer();
+          startHeartbeat();
           socketService.emit('call-connected', {
             callId: activeCallRef.current?.callId
           });
@@ -259,6 +281,7 @@ export const AdminCallProvider = ({ children }) => {
     setCallPhase('connected');
     setCallStatusText('In Conversation');
     startTimer();
+    startHeartbeat();
     if (data?.callerName) {
       setActiveCall((prev) => (prev ? { ...prev, callerName: data.callerName } : prev));
     }

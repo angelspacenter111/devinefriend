@@ -6,12 +6,12 @@ import apiClient from './api';
 // Configure foreground notification presentation
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
-    const isCall = notification?.request?.content?.data?.type === 'INCOMING_CALL';
     return {
       shouldShowAlert: true,
       shouldPlaySound: true,
       shouldSetBadge: false,
-      priority: Notifications.AndroidNotificationPriority.MAX
+      shouldShowBanner: true,
+      shouldShowList: true
     };
   }
 });
@@ -172,7 +172,6 @@ class NotificationService {
           title: `📞 Incoming ${callData?.callType || 'Voice'} Call`,
           body: `${callerName} is calling... Tap to answer`,
           sound: 'default',
-          priority: Notifications.AndroidNotificationPriority.MAX,
           categoryIdentifier: 'INCOMING_CALL_CATEGORY',
           channelId: 'incoming-calls',
           data: {

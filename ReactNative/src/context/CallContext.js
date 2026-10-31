@@ -33,13 +33,34 @@ export const CallProvider = ({ children }) => {
   const targetPeerIdRef = useRef(null);
   const activeCallRef = useRef(null);
   const iceQueueRef = useRef([]);
+  const heartbeatTimerRef = useRef(null);
 
   useEffect(() => {
     activeCallRef.current = activeCall;
   }, [activeCall]);
 
+  const startHeartbeat = () => {
+    if (heartbeatTimerRef.current) clearInterval(heartbeatTimerRef.current);
+    heartbeatTimerRef.current = setInterval(() => {
+      if (activeCallRef.current && socketService.isConnected) {
+        socketService.emit('call-heartbeat', {
+          callId: activeCallRef.current.callId,
+          role: 'user'
+        });
+      }
+    }, 10000);
+  };
+
+  const stopHeartbeat = () => {
+    if (heartbeatTimerRef.current) {
+      clearInterval(heartbeatTimerRef.current);
+      heartbeatTimerRef.current = null;
+    }
+  };
+
   const cleanupWebRTC = () => {
     console.log('[CallContext] Cleaning up WebRTC...');
+    stopHeartbeat();
     if (Platform.OS !== 'web') {
       try {
         Vibration.cancel();
@@ -148,6 +169,7 @@ export const CallProvider = ({ children }) => {
               setCallPhase('connected');
               setCallStatusText('In Conversation');
               startTimer();
+              startHeartbeat();
               socketService.emit('call-connected', {
                 callId: activeCallRef.current?.callId
               });
@@ -220,6 +242,7 @@ export const CallProvider = ({ children }) => {
       setCallPhase('connected');
       setCallStatusText('In Conversation');
       startTimer();
+      startHeartbeat();
     };
 
     const handleCallRejected = (data) => {
