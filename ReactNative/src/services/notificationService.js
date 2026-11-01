@@ -60,23 +60,29 @@ class NotificationService {
         console.log('[NotificationService] Android "incoming-calls" channel configured');
       }
 
-      // 2. Setup Interactive Notification Actions (Accept / Decline) like WhatsApp
-      await Notifications.setNotificationCategoryAsync('INCOMING_CALL_CATEGORY', [
-        {
-          identifier: 'ACCEPT_CALL',
-          buttonTitle: '🟢 Accept Call',
-          options: {
-            opensAppToForeground: true
-          }
-        },
-        {
-          identifier: 'DECLINE_CALL',
-          buttonTitle: '🔴 Decline',
-          options: {
-            opensAppToForeground: false
-          }
+      // 2. Setup Interactive Notification Actions (Accept / Decline) on iOS (Android handles this via channels)
+      if (Platform.OS === 'ios' && typeof Notifications.setNotificationCategoryAsync === 'function') {
+        try {
+          await Notifications.setNotificationCategoryAsync('INCOMING_CALL_CATEGORY', [
+            {
+              identifier: 'ACCEPT_CALL',
+              buttonTitle: '🟢 Accept Call',
+              options: {
+                opensAppToForeground: true
+              }
+            },
+            {
+              identifier: 'DECLINE_CALL',
+              buttonTitle: '🔴 Decline',
+              options: {
+                opensAppToForeground: false
+              }
+            }
+          ]);
+        } catch (catErr) {
+          console.warn('[NotificationService] setNotificationCategoryAsync warning:', catErr.message);
         }
-      ]);
+      }
 
       this.isInitialized = true;
     } catch (err) {

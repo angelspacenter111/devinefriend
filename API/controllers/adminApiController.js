@@ -28,12 +28,21 @@ exports.login = async (req, res) => {
     }
 
     const identifier = mobile.toString().trim();
+    const cleanDigits = identifier.replace(/[^0-9]/g, '');
+    const clean10 = cleanDigits.slice(-10);
+    const variants = [identifier, cleanDigits];
+    if (clean10.length === 10) {
+      variants.push(
+        clean10,
+        `+91 ${clean10}`,
+        `+91${clean10}`,
+        `+91 ${clean10.slice(0, 5)} ${clean10.slice(5)}`
+      );
+    }
     const user = await User.findOne({
       $or: [
-        { mobile: identifier },
-        { email: identifier.toLowerCase() },
-        { mobile: '+91 ' + identifier },
-        { mobile: identifier.replace(/[^0-9]/g, '') }
+        { mobile: { $in: variants } },
+        { email: identifier.toLowerCase() }
       ]
     });
 

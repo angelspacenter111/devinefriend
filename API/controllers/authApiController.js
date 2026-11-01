@@ -149,33 +149,41 @@ exports.login = async (req, res) => {
     }
 
     const rawMobile = mobile.toString().trim();
-    const cleanMobile = rawMobile.replace(/\D/g, '').slice(0, 10);
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawMobile);
+    const queryVariants = [rawMobile];
 
-    if (!cleanMobile) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please enter a valid numeric contact number.'
-      });
-    }
+    if (!isEmail) {
+      const cleanDigits = rawMobile.replace(/\D/g, '');
+      const cleanMobile = cleanDigits.slice(-10);
 
-    if (rawMobile.replace(/\D/g, '').length > 10) {
-      return res.status(400).json({
-        success: false,
-        message: 'Contact number cannot exceed 10 digits.'
-      });
-    }
+      if (!cleanMobile) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please enter a valid numeric contact number or email address.'
+        });
+      }
 
-    // Support clean numeric search as well as legacy formatted variants if previously registered
-    const uaeInfo = parseUAEMobile(cleanMobile);
-    const queryVariants = [cleanMobile, rawMobile];
-    if (uaeInfo && uaeInfo.isValid && uaeInfo.allVariants) {
-      queryVariants.push(...uaeInfo.allVariants);
+      queryVariants.push(cleanDigits, cleanMobile);
+
+      if (cleanMobile.length === 10) {
+        queryVariants.push(
+          `+91 ${cleanMobile}`,
+          `+91${cleanMobile}`,
+          `+91 ${cleanMobile.slice(0, 5)} ${cleanMobile.slice(5)}`
+        );
+      }
+
+      // Support UAE mobile variants as well
+      const uaeInfo = parseUAEMobile(cleanMobile);
+      if (uaeInfo && uaeInfo.isValid && uaeInfo.allVariants) {
+        queryVariants.push(...uaeInfo.allVariants);
+      }
     }
 
     const user = await User.findOne({
       $or: [
-        { mobile: cleanMobile },
-        { mobile: { $in: queryVariants } }
+        { mobile: { $in: queryVariants } },
+        { email: rawMobile.toLowerCase() }
       ]
     });
 

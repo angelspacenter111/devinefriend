@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as SplashScreen from 'expo-splash-screen';
 import ErrorBoundary from './src/components/ErrorBoundary';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { CallProvider } from './src/context/CallContext';
@@ -36,8 +37,10 @@ function RootNavigator() {
 
 export default function App() {
   useEffect(() => {
+    // Hide splash screen smoothly once root app mounts
+    SplashScreen.hideAsync().catch(() => {});
     // Initialize notification channels (incoming-calls) and action categories
-    notificationService.init();
+    notificationService.init().catch(() => {});
   }, []);
 
   return (
