@@ -65,6 +65,19 @@ async function initiateCall({ user, callType = 'Voice' }) {
   }
 
   const isVideo = (callType === 'Video');
+
+  // Verify Video Calling availability if requested
+  if (isVideo) {
+    const settingService = require('./settingService');
+    const isVideoEnabled = await settingService.isVideoCallEnabled();
+    if (!isVideoEnabled) {
+      logStructured('CALL_FAILED', { reason: 'VIDEO_CALL_DISABLED', userId: freshUser._id });
+      const err = new Error('Video calling is currently disabled by Ashu. Please connect via voice call.');
+      err.code = 'VIDEO_CALL_DISABLED';
+      throw err;
+    }
+  }
+
   const creditRate = isVideo ? 2 : 1; // Video calls consume 2 coins/minute, Voice calls 1 coin/minute
   const minRequired = creditRate;
 
@@ -586,9 +599,11 @@ function isAdvisorOnline() {
 }
 
 function getAdvisorPresenceInfo() {
+  const settingService = require('./settingService');
   return {
     isOnline: activeAdminSockets.size > 0,
-    count: activeAdminSockets.size
+    count: activeAdminSockets.size,
+    isVideoCallEnabled: settingService.isVideoCallEnabledSync()
   };
 }
 
@@ -628,6 +643,21 @@ async function checkCallAccess(userId, requiredCredits = 1, callType = 'Voice') 
       code: 'USER_BLOCKED',
       message: 'Account has been suspended. Please contact support.'
     };
+  }
+
+  // If requesting Video call, verify that Video Calling is enabled
+  if (callType === 'Video') {
+    const settingService = require('./settingService');
+    const isVideoEnabled = await settingService.isVideoCallEnabled();
+    if (!isVideoEnabled) {
+      return {
+        allowed: false,
+        code: 'VIDEO_CALL_DISABLED',
+        message: 'Video calling is currently disabled by Ashu. Please connect via voice call.',
+        credits: user.credits,
+        requiredCredits: minCredits
+      };
+    }
   }
 
   if (user.credits < minCredits) {

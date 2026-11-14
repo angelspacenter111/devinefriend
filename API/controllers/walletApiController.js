@@ -183,8 +183,10 @@ exports.verifyPayment = async (req, res) => {
 
     return res.json({
       success: true,
-      message: 'Payment verified successfully. Credits added to your account.',
-      creditsAdded: verificationResult.paymentTransaction?.credits || 0,
+      message: verificationResult.message || 'Payment verified successfully. Credits added to your account.',
+      creditsAdded: (verificationResult.paymentTransaction?.credits || 0) + (verificationResult.bonusCredits || 0),
+      isFirstRecharge: verificationResult.isFirstRecharge || false,
+      bonusCredits: verificationResult.bonusCredits || 0,
       newBalance: updatedUser.credits
     });
   } catch (error) {

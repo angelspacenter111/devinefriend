@@ -26,4 +26,8 @@ router.post('/pricing/:id/toggle', adminApiController.togglePricing);
 router.post('/push-token', adminApiController.updatePushToken);
 router.post('/test-push', adminApiController.testPushNotification);
 
+// Platform Settings (Video Calling feature toggle)
+router.get('/settings', adminApiController.getSettings);
+router.post('/settings/toggle-video-call', adminApiController.toggleVideoCall);
+
 module.exports = router;

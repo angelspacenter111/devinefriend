@@ -74,6 +74,17 @@
                 </a>
               </li>
               <li>
+                <a class="dropdown-item rounded-3 py-2 d-flex align-items-center justify-content-between" href="/admin/settings">
+                  <div class="d-flex align-items-center gap-2">
+                    <i class="bi <%= typeof isVideoCallEnabled !== 'undefined' && isVideoCallEnabled ? 'bi-camera-video-fill text-success' : 'bi-camera-video-off-fill text-danger' %>"></i>
+                    <span>Video Calls</span>
+                  </div>
+                  <span class="badge <%= typeof isVideoCallEnabled !== 'undefined' && isVideoCallEnabled ? 'bg-success' : 'bg-danger' %> rounded-pill px-2 py-0.5" style="font-size: 0.7rem;">
+                    <%= typeof isVideoCallEnabled !== 'undefined' && isVideoCallEnabled ? 'ON' : 'OFF' %>
+                  </span>
+                </a>
+              </li>
+              <li>
                 <hr class="dropdown-divider my-1">
               </li>
               <li>

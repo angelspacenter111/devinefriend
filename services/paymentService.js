@@ -278,16 +278,36 @@ async function fulfillPaymentIdempotent({
   const beforeUser = await User.findById(lockedPayment.user);
   const balanceBefore = beforeUser ? beforeUser.credits : 0;
 
-  // Atomically increment credits
+  // Determine if this is the user's first recharge
+  // Policy: Free 5 coins are now awarded strictly on the FIRST recharge!
+  const priorCapturedCount = await PaymentTransaction.countDocuments({
+    user: lockedPayment.user,
+    status: 'CAPTURED',
+    _id: { $ne: lockedPayment._id }
+  });
+
+  const isFirstRecharge = (!beforeUser || !beforeUser.hasReceivedFirstRechargeBonus) && priorCapturedCount === 0;
+  const bonusCredits = isFirstRecharge ? 5 : 0;
+  const totalCreditsToAdd = lockedPayment.credits + bonusCredits;
+
+  // Atomically increment credits and mark first recharge bonus as granted
+  const userUpdatePayload = {
+    $inc: { credits: totalCreditsToAdd }
+  };
+  if (isFirstRecharge) {
+    userUpdatePayload.$set = { hasReceivedFirstRechargeBonus: true };
+  }
+
   const updatedUser = await User.findByIdAndUpdate(
     lockedPayment.user,
-    { $inc: { credits: lockedPayment.credits } },
+    userUpdatePayload,
     { returnDocument: 'after' }
   );
 
-  const balanceAfter = updatedUser ? updatedUser.credits : balanceBefore + lockedPayment.credits;
+  const balanceAfterRecharge = balanceBefore + lockedPayment.credits;
+  const balanceAfterBonus = updatedUser ? updatedUser.credits : balanceBefore + totalCreditsToAdd;
 
-  // Record traceable Ledger entry in Transaction collection
+  // Record traceable Ledger entry for the recharge pack
   const txnDoc = new Transaction({
     txnId: generateTxnId(),
     user: lockedPayment.user,
@@ -297,7 +317,7 @@ async function fulfillPaymentIdempotent({
     amount: `AED ${lockedPayment.amount.toLocaleString('en-US')}`,
     status: 'Successful',
     balanceBefore: balanceBefore,
-    balanceAfter: balanceAfter,
+    balanceAfter: balanceAfterRecharge,
     referenceType: 'PAYMENT',
     referenceId: stripePaymentIntentId || stripeSessionId || lockedPayment.stripeSessionId,
     paymentTransaction: lockedPayment._id
@@ -305,11 +325,37 @@ async function fulfillPaymentIdempotent({
 
   await txnDoc.save();
 
+  // If this is the user's first recharge, award the 5 Free Bonus Coins in ledger
+  if (isFirstRecharge) {
+    const bonusTxn = new Transaction({
+      txnId: generateTxnId(),
+      user: lockedPayment.user,
+      desc: 'First Recharge Bonus (5 Free Coins)',
+      type: 'credit',
+      credits: 5,
+      amount: 'AED 0',
+      status: 'Successful',
+      balanceBefore: balanceAfterRecharge,
+      balanceAfter: balanceAfterBonus,
+      referenceType: 'BONUS',
+      referenceId: stripePaymentIntentId || stripeSessionId || lockedPayment.stripeSessionId
+    });
+
+    await bonusTxn.save();
+    console.log(`[Payment] First recharge bonus of 5 free coins successfully credited to user ${lockedPayment.user}`);
+  }
+
+  const successMessage = isFirstRecharge
+    ? `Payment successful! Added ${lockedPayment.credits} coins + 5 Free Bonus Coins on your first recharge!`
+    : `Payment successful! Added ${lockedPayment.credits} coins to your account.`;
+
   return {
     success: true,
     alreadyProcessed: false,
-    message: `Payment successful! Added ${lockedPayment.credits} coins to your account.`,
-    credits: updatedUser.credits,
+    message: successMessage,
+    credits: updatedUser ? updatedUser.credits : balanceAfterBonus,
+    isFirstRecharge,
+    bonusCredits,
     paymentTransaction: lockedPayment
   };
 }

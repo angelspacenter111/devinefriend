@@ -15,6 +15,7 @@ const session = require('express-session');
 const { MongoStore } = require('connect-mongo');
 const connectDB = require('./config/db');
 const callService = require('./services/callService');
+const settingService = require('./services/settingService');
 const pushNotificationService = require('./services/pushNotificationService');
 const apiRoutes = require('./API');
 
@@ -24,6 +25,7 @@ async function startServer() {
 	try {
 		// 1. Connect to MongoDB Atlas (blocks until successful or fails/exits)
 		await connectDB();
+		await settingService.initSettings();
 
 		const app = express();
 
@@ -46,6 +48,7 @@ async function startServer() {
 			pingInterval: 15000,
 			transports: ['websocket', 'polling']
 		});
+		settingService.setIoInstance(io);
 
 		// Enable Cross-Origin Resource Sharing (for React Native and Mobile apps)
 		app.use(cors());
@@ -79,10 +82,11 @@ async function startServer() {
 			}
 		}));
 
-		// Make session variables and live advisor presence available in all EJS templates
+		// Make session variables, live advisor presence, and video calling setting available in all EJS templates
 		app.use((req, res, next) => {
 			res.locals.session = req.session;
 			res.locals.isAdvisorOnline = callService.isAdvisorOnline();
+			res.locals.isVideoCallEnabled = settingService.isVideoCallEnabledSync();
 			next();
 		});
 
@@ -161,6 +165,17 @@ async function startServer() {
 				socket.userId = data.userId;
 				socket.callType = data.callType || 'Voice';
 				socket.role = data.role || 'user';
+
+				// If user attempts to join a Video Call while video calling is disabled by Ashu
+				if (socket.callType === 'Video' && !settingService.isVideoCallEnabledSync()) {
+					console.log(`[Socket] Blocked video call join for ${data.callId} because video calling is disabled by Ashu`);
+					socket.emit('call-error', {
+						callId: data.callId,
+						code: 'VIDEO_CALL_DISABLED',
+						message: 'Video calling is currently disabled by Ashu. Please connect via voice call.'
+					});
+					return;
+				}
 
 				// Clear disconnect grace timer if client reconnected
 				if (data.callId && callDisconnectTimers.has(data.callId)) {

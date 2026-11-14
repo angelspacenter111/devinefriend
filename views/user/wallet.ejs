@@ -40,6 +40,20 @@
       <main class="main-content-inner">
         <div class="app-container">
 
+          <!-- First Recharge Welcome Bonus Offer -->
+          <% if (typeof user !== 'undefined' && user && !user.hasReceivedFirstRechargeBonus) { %>
+            <div class="alert border-0 rounded-4 mb-4 p-3 shadow-sm d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: linear-gradient(135deg, #EEF2FF 0%, #F5F1FF 100%); border-left: 4px solid #6366F1 !important;">
+              <div class="d-flex align-items-center gap-2.5">
+                <span class="fs-4">🎁</span>
+                <div>
+                  <strong class="text-dark small d-block">First Recharge Welcome Offer Available!</strong>
+                  <span class="text-muted small">You will receive <strong>5 Extra Free Coins</strong> automatically credited on your very first recharge!</span>
+                </div>
+              </div>
+              <a href="/user/buy-credits" class="btn btn-sm btn-brand rounded-pill px-3 py-1.5 app-tap-active">Recharge & Claim</a>
+            </div>
+          <% } %>
+
           <!-- 1. Apple Wallet Style Balance Card -->
           <div class="apple-wallet-card shadow-lg mb-4">
             <div class="d-flex align-items-center justify-content-between mb-4">

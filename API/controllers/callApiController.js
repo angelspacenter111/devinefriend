@@ -35,9 +35,23 @@ exports.initiateCall = async (req, res) => {
     }
 
     const { callType } = req.body;
+    const requestedType = (callType === 'Video' || callType === 'video') ? 'Video' : 'Voice';
+
+    if (requestedType === 'Video') {
+      const settingService = require('../../services/settingService');
+      const isVideoEnabled = await settingService.isVideoCallEnabled();
+      if (!isVideoEnabled) {
+        return res.status(403).json({
+          success: false,
+          code: 'VIDEO_CALL_DISABLED',
+          message: 'Video calling is currently disabled by admin. Please use voice call.'
+        });
+      }
+    }
+
     const call = await callService.initiateCall({
       user,
-      callType: callType || 'Voice'
+      callType: requestedType
     });
 
     return res.status(201).json({

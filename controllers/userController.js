@@ -42,7 +42,8 @@ exports.getDashboard = async (req, res) => {
       user,
       calls,
       totalCalls,
-      totalMins: totalMinsRounded
+      totalMins: totalMinsRounded,
+      queryError: req.query.error || null
     });
   } catch (error) {
     console.error('[Dashboard Error]', error);
@@ -135,6 +136,16 @@ exports.getCall = async (req, res) => {
   try {
     const user = req.user;
     const requestedType = (req.query.type === 'video' || req.query.callType === 'Video') ? 'Video' : 'Voice';
+
+    // If Video call is requested, verify if video calling is enabled by admin
+    if (requestedType === 'Video') {
+      const settingService = require('../services/settingService');
+      const isVideoEnabled = await settingService.isVideoCallEnabled();
+      if (!isVideoEnabled) {
+        return res.redirect('/user/dashboard?error=video_disabled');
+      }
+    }
+
     const minCredits = requestedType === 'Video' ? 2 : 1;
 
     if (user.credits < minCredits) {
@@ -154,6 +165,9 @@ exports.getCall = async (req, res) => {
     });
   } catch (error) {
     console.error('[User Call Initiation Error]', error);
+    if (error.code === 'VIDEO_CALL_DISABLED') {
+      return res.redirect('/user/dashboard?error=video_disabled');
+    }
     if (error.code === 'INSUFFICIENT_CREDITS') {
       const type = (req.query.type === 'video' || req.query.callType === 'Video') ? 'video' : 'voice';
       const need = type === 'video' ? 2 : 1;

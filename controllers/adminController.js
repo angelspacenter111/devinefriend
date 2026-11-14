@@ -6,6 +6,7 @@ const CallLog = require('../models/CallLog');
 const Transaction = require('../models/Transaction');
 const PricingPlan = require('../models/PricingPlan');
 const callService = require('../services/callService');
+const settingService = require('../services/settingService');
 const webrtcConfig = require('../config/webrtcConfig');
 
 // Helper to safely escape regex characters
@@ -231,7 +232,8 @@ exports.getDashboard = async (req, res) => {
       },
       todayUserUsageList,
       recentUsers,
-      recentCalls
+      recentCalls,
+      isVideoCallEnabled: await settingService.isVideoCallEnabled()
     });
   } catch (error) {
     console.error('[Admin Dashboard Error]', error);
@@ -817,11 +819,56 @@ exports.getReports = async (req, res) => {
   }
 };
 
-exports.getSettings = (req, res) => {
-  res.render('admin/settings', {
-    title: 'Platform Settings - Talk With Ashu Control',
-    activeTab: 'settings'
-  });
+exports.getSettings = async (req, res) => {
+  try {
+    const isVideoCallEnabled = await settingService.isVideoCallEnabled();
+    res.render('admin/settings', {
+      title: 'Platform Settings - Talk With Ashu Control',
+      activeTab: 'settings',
+      isVideoCallEnabled
+    });
+  } catch (error) {
+    console.error('[Admin Settings Error]', error);
+    res.status(500).send('Server Error');
+  }
+};
+
+exports.postToggleVideoCall = async (req, res) => {
+  try {
+    const { enabled } = req.body;
+    let targetState;
+    if (typeof enabled !== 'undefined') {
+      targetState = (enabled === true || enabled === 'true' || enabled === 'on' || enabled === 1 || enabled === '1');
+    } else {
+      const currentState = await settingService.isVideoCallEnabled();
+      targetState = !currentState;
+    }
+
+    const updatedState = await settingService.setVideoCallEnabled(targetState, req.user?.name || 'Ashu');
+
+    return res.json({
+      success: true,
+      isVideoCallEnabled: updatedState,
+      message: updatedState
+        ? 'Video calling feature enabled successfully. Users can now make video calls.'
+        : 'Video calling feature disabled. Audio calling remains 100% active and unaffected.'
+    });
+  } catch (error) {
+    console.error('[Admin Toggle Video Call Error]', error);
+    return res.status(500).json({ success: false, message: 'Failed to update video calling setting.' });
+  }
+};
+
+exports.getVideoCallStatus = async (req, res) => {
+  try {
+    const isVideoCallEnabled = await settingService.isVideoCallEnabled();
+    return res.json({
+      success: true,
+      isVideoCallEnabled
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to fetch status.' });
+  }
 };
 
 exports.getCall = async (req, res) => {

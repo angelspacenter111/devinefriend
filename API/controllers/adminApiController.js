@@ -480,3 +480,48 @@ exports.testPushNotification = async (req, res) => {
   }
 };
 
+// GET /api/admin/settings
+exports.getSettings = async (req, res) => {
+  try {
+    const settingService = require('../../services/settingService');
+    const isVideoCallEnabled = await settingService.isVideoCallEnabled();
+    return res.json({
+      success: true,
+      data: {
+        isVideoCallEnabled
+      }
+    });
+  } catch (error) {
+    console.error('[API Admin Get Settings Error]', error);
+    return res.status(500).json({ success: false, message: 'Failed to retrieve settings.' });
+  }
+};
+
+// POST /api/admin/settings/toggle-video-call
+exports.toggleVideoCall = async (req, res) => {
+  try {
+    const settingService = require('../../services/settingService');
+    const { enabled } = req.body;
+    let targetState;
+    if (typeof enabled !== 'undefined') {
+      targetState = (enabled === true || enabled === 'true' || enabled === 1 || enabled === '1' || enabled === 'on');
+    } else {
+      const currentState = await settingService.isVideoCallEnabled();
+      targetState = !currentState;
+    }
+
+    const updatedState = await settingService.setVideoCallEnabled(targetState, req.user?.name || 'Ashu');
+
+    return res.json({
+      success: true,
+      isVideoCallEnabled: updatedState,
+      message: updatedState
+        ? 'Video calling enabled successfully.'
+        : 'Video calling disabled. Audio calling remains 100% active.'
+    });
+  } catch (error) {
+    console.error('[API Admin Toggle Video Call Error]', error);
+    return res.status(500).json({ success: false, message: 'Failed to toggle video calling.' });
+  }
+};
+

@@ -52,6 +52,16 @@
         <div class="app-container">
 
           <!-- 1. Warm Greeting & Guidance Subtitle -->
+          <% if (typeof queryError !== 'undefined' && queryError === 'video_disabled') { %>
+            <div class="alert alert-info border-0 rounded-4 mb-3 p-3 shadow-sm d-flex align-items-center gap-2.5" style="background-color: #EEF2FF; border-left: 4px solid #4F46E5 !important;">
+              <i class="bi bi-info-circle-fill text-primary fs-5"></i>
+              <div>
+                <strong class="text-dark d-block">Video Calling is Currently Paused</strong>
+                <span class="text-muted small">Ashu is currently taking 1-on-1 Voice Calls only. Voice calling is 100% active and smooth — please start a Voice Call below!</span>
+              </div>
+            </div>
+          <% } %>
+
           <div class="d-flex align-items-center justify-content-between mb-3">
             <div>
               <span class="text-muted small fw-semibold text-uppercase letter-spacing-1">Personal Guidance Space</span>
@@ -97,7 +107,11 @@
                   </div>
                   <span class="text-white-50 small">
                     Available: <strong class="text-white"><span class="simulated-balance"><%= user.credits %></span> Coins</strong>
-                    (<%= user.credits %>m Voice / <%= Math.floor(user.credits / 2) %>m Video)
+                    <% if (typeof isVideoCallEnabled !== 'undefined' && isVideoCallEnabled) { %>
+                      (<%= user.credits %>m Voice / <%= Math.floor(user.credits / 2) %>m Video)
+                    <% } else { %>
+                      (<%= user.credits %>m Voice)
+                    <% } %>
                   </span>
                 </div>
               </div>
@@ -108,14 +122,16 @@
                     <a href="/user/call?type=voice" class="btn btn-brand btn-lg rounded-pill px-4 py-3 shadow-lg w-100 app-tap-active btn-start-call" id="dash-start-call-btn" style="font-size: 1.05rem;">
                       <i class="bi bi-telephone-fill me-2"></i> Voice Call <small class="text-white-50 ms-1">(1 coin/min)</small>
                     </a>
-                    <% if (user.credits >= 2) { %>
-                      <a href="/user/call?type=video" class="btn btn-outline-light btn-lg rounded-pill px-4 py-2.5 shadow-sm w-100 app-tap-active btn-start-call" id="dash-start-video-btn" style="font-size: 0.98rem; border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.12);">
-                        <i class="bi bi-camera-video-fill me-2 text-warning"></i> Video Call <small class="text-white-50 ms-1">(2 coins/min)</small>
-                      </a>
-                    <% } else { %>
-                      <a href="/user/buy-credits?lowCredits=true" class="btn btn-outline-light btn-lg rounded-pill px-4 py-2.5 shadow-sm w-100 app-tap-active" style="font-size: 0.95rem; border-color: rgba(255,255,255,0.3); opacity: 0.85;" title="Video call requires minimum 2 coins">
-                        <i class="bi bi-camera-video me-2"></i> Video Call <small class="text-white-50 ms-1">(Need 2 coins)</small>
-                      </a>
+                    <% if (typeof isVideoCallEnabled !== 'undefined' && isVideoCallEnabled) { %>
+                      <% if (user.credits >= 2) { %>
+                        <a href="/user/call?type=video" class="btn btn-outline-light btn-lg rounded-pill px-4 py-2.5 shadow-sm w-100 app-tap-active btn-start-call" id="dash-start-video-btn" style="font-size: 0.98rem; border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.12);">
+                          <i class="bi bi-camera-video-fill me-2 text-warning"></i> Video Call <small class="text-white-50 ms-1">(2 coins/min)</small>
+                        </a>
+                      <% } else { %>
+                        <a href="/user/buy-credits?lowCredits=true" class="btn btn-outline-light btn-lg rounded-pill px-4 py-2.5 shadow-sm w-100 app-tap-active" style="font-size: 0.95rem; border-color: rgba(255,255,255,0.3); opacity: 0.85;" title="Video call requires minimum 2 coins">
+                          <i class="bi bi-camera-video me-2"></i> Video Call <small class="text-white-50 ms-1">(Need 2 coins)</small>
+                        </a>
+                      <% } %>
                     <% } %>
                   </div>
                 <% } else { %>
@@ -124,7 +140,11 @@
                   </a>
                 <% } %>
                 <small class="text-white-50 d-block mt-2 text-center text-lg-end" style="font-size: 0.75rem;">
-                  Voice: 1 coin/min • Video: 2 coins/min • Encrypted
+                  <% if (typeof isVideoCallEnabled !== 'undefined' && isVideoCallEnabled) { %>
+                    Voice: 1 coin/min • Video: 2 coins/min • Encrypted
+                  <% } else { %>
+                    Voice: 1 coin/min • 100% Confidential Audio • Encrypted
+                  <% } %>
                 </small>
               </div>
             </div>

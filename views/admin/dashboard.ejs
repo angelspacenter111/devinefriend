@@ -32,6 +32,18 @@
             <span class="status-indicator-dot online"></span> Console Online (Ready)
           </span>
 
+          <!-- Video Calling Quick Toggle for Ashu -->
+          <div class="d-flex align-items-center gap-2 px-3 py-1.5 rounded-pill border bg-white shadow-xs" id="quickVideoToggleBtn" style="cursor: pointer;" title="Toggle Video Calling feature for users">
+            <i class="bi <%= typeof isVideoCallEnabled !== 'undefined' && isVideoCallEnabled ? 'bi-camera-video-fill text-success' : 'bi-camera-video-off-fill text-danger' %>" id="dashVideoIcon"></i>
+            <span class="small fw-semibold text-dark">Video Calls:</span>
+            <span class="badge <%= typeof isVideoCallEnabled !== 'undefined' && isVideoCallEnabled ? 'bg-success text-white' : 'bg-danger text-white' %> rounded-pill px-2 py-0.5" id="dashVideoBadge">
+              <%= typeof isVideoCallEnabled !== 'undefined' && isVideoCallEnabled ? 'ON' : 'OFF' %>
+            </span>
+            <div class="form-check form-switch mb-0 ms-1 p-0" style="min-height: auto;">
+              <input class="form-check-input ms-0" type="checkbox" id="dashVideoCheckbox" style="cursor: pointer;" <%= (typeof isVideoCallEnabled === 'undefined' || isVideoCallEnabled) ? 'checked' : '' %>>
+            </div>
+          </div>
+
           <a href="/admin/settings" class="btn btn-light d-flex align-items-center gap-2 border rounded-pill py-1.5 px-3">
             <i class="bi bi-shield-lock-fill text-primary"></i>
             <span class="fw-semibold text-dark small">Ashu</span>
@@ -102,6 +114,15 @@
                     <i class="bi bi-telephone-inbound"></i>
                     <span>Active Call Records</span>
                   </a>
+                  <button type="button" class="hero-action-btn-secondary app-tap-active border-0 w-100 text-start d-flex align-items-center justify-content-between" id="dashHeroVideoToggleBtn" style="background: rgba(255,255,255,0.15); color: white;" title="Click to Enable or Disable Video Calling for users">
+                    <div class="d-flex align-items-center gap-2">
+                      <i class="bi <%= typeof isVideoCallEnabled !== 'undefined' && isVideoCallEnabled ? 'bi-camera-video-fill text-success' : 'bi-camera-video-off-fill text-danger' %>" id="heroVideoIcon"></i>
+                      <span>Video Calls: <strong id="heroVideoText"><%= typeof isVideoCallEnabled !== 'undefined' && isVideoCallEnabled ? 'Active' : 'Disabled' %></strong></span>
+                    </div>
+                    <span class="badge <%= typeof isVideoCallEnabled !== 'undefined' && isVideoCallEnabled ? 'bg-success' : 'bg-danger' %> rounded-pill px-2 py-0.5" id="heroVideoBadge" style="font-size: 0.72rem;">
+                      <%= typeof isVideoCallEnabled !== 'undefined' && isVideoCallEnabled ? 'ON' : 'OFF' %>
+                    </span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -396,5 +417,96 @@
 
   <!-- Shared JavaScript Scripts -->
   <%- include('../partials/scripts') %>
+
+  <!-- Admin Video Calling Real-Time Quick Toggle Script -->
+  <script>
+    (function () {
+      const quickBtn = document.getElementById('quickVideoToggleBtn');
+      const quickCheckbox = document.getElementById('dashVideoCheckbox');
+      const quickBadge = document.getElementById('dashVideoBadge');
+      const quickIcon = document.getElementById('dashVideoIcon');
+
+      const heroBtn = document.getElementById('dashHeroVideoToggleBtn');
+      const heroIcon = document.getElementById('heroVideoIcon');
+      const heroBadge = document.getElementById('heroVideoBadge');
+      const heroText = document.getElementById('heroVideoText');
+
+      function updateUI(isEnabled) {
+        if (quickCheckbox) quickCheckbox.checked = isEnabled;
+        if (quickBadge) {
+          quickBadge.className = 'badge ' + (isEnabled ? 'bg-success text-white' : 'bg-danger text-white') + ' rounded-pill px-2 py-0.5';
+          quickBadge.textContent = isEnabled ? 'ON' : 'OFF';
+        }
+        if (quickIcon) {
+          quickIcon.className = 'bi ' + (isEnabled ? 'bi-camera-video-fill text-success' : 'bi-camera-video-off-fill text-danger');
+        }
+
+        if (heroBadge) {
+          heroBadge.className = 'badge ' + (isEnabled ? 'bg-success' : 'bg-danger') + ' rounded-pill px-2 py-0.5';
+          heroBadge.textContent = isEnabled ? 'ON' : 'OFF';
+        }
+        if (heroIcon) {
+          heroIcon.className = 'bi ' + (isEnabled ? 'bi-camera-video-fill text-success' : 'bi-camera-video-off-fill text-danger');
+        }
+        if (heroText) {
+          heroText.textContent = isEnabled ? 'Active' : 'Disabled';
+        }
+      }
+
+      async function toggleVideoCall(targetState) {
+        const isCurrentlyEnabled = quickCheckbox ? quickCheckbox.checked : true;
+        const newState = (typeof targetState !== 'undefined') ? targetState : !isCurrentlyEnabled;
+
+        try {
+          const res = await fetch('/admin/settings/toggle-video-call', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: newState })
+          });
+          const data = await res.json();
+          if (data && data.success) {
+            updateUI(data.isVideoCallEnabled);
+          } else {
+            alert(data.message || 'Failed to toggle video calling.');
+            updateUI(isCurrentlyEnabled);
+          }
+        } catch (err) {
+          console.error('[Video Toggle Error]', err);
+          alert('Network error while toggling video calling.');
+          updateUI(isCurrentlyEnabled);
+        }
+      }
+
+      if (quickBtn) {
+        quickBtn.addEventListener('click', function (e) {
+          if (e.target === quickCheckbox) return; // let checkbox change handle it
+          e.preventDefault();
+          toggleVideoCall();
+        });
+      }
+
+      if (quickCheckbox) {
+        quickCheckbox.addEventListener('change', function () {
+          toggleVideoCall(this.checked);
+        });
+      }
+
+      if (heroBtn) {
+        heroBtn.addEventListener('click', function (e) {
+          e.preventDefault();
+          toggleVideoCall();
+        });
+      }
+
+      // Listen to real-time socket events if available
+      if (typeof socket !== 'undefined' && socket) {
+        socket.on('video-calling-status-changed', function (data) {
+          if (data && typeof data.isVideoCallEnabled !== 'undefined') {
+            updateUI(data.isVideoCallEnabled);
+          }
+        });
+      }
+    })();
+  </script>
 </body>
 </html>

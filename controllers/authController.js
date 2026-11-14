@@ -408,27 +408,17 @@ exports.postRegister = async (req, res) => {
       });
     }
 
-    // Create and save new user (credits defaults to 5) with clean numeric contact number & trimmed password
+    // Create and save new user with 0 initial coins (Welcome bonus of 5 free coins is now awarded on first recharge)
     const newUser = new User({
       name: name.trim(),
       mobile: cleanMobile,
       email: cleanEmail,
-      password: cleanPassword
+      password: cleanPassword,
+      credits: 0,
+      hasReceivedFirstRechargeBonus: false
     });
 
     const savedUser = await newUser.save();
-
-    // Log the welcome credits transaction
-    const welcomeTxn = new Transaction({
-      txnId: "TXN-" + Math.floor(1000 + Math.random() * 9000) + Math.floor(10 + Math.random() * 90),
-      user: savedUser._id,
-      desc: "Welcome Bonus (5 Free Coins)",
-      type: "credit",
-      credits: 5,
-      amount: "AED 0",
-      status: "Successful"
-    });
-    await welcomeTxn.save();
 
     // Establish Session
     req.session.userId = savedUser._id;

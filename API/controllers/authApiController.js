@@ -93,28 +93,18 @@ exports.register = async (req, res) => {
       name: name.trim(),
       mobile: cleanMobile,
       email: cleanEmail,
-      password: cleanPassword
+      password: cleanPassword,
+      credits: 0,
+      hasReceivedFirstRechargeBonus: false
     });
 
     const savedUser = await newUser.save();
-
-    // Welcome bonus transaction
-    const welcomeTxn = new Transaction({
-      txnId: "TXN-" + Math.floor(1000 + Math.random() * 9000) + Math.floor(10 + Math.random() * 90),
-      user: savedUser._id,
-      desc: "Welcome Bonus (5 Free Credits)",
-      type: "credit",
-      credits: 5,
-      amount: "AED 0",
-      status: "Successful"
-    });
-    await welcomeTxn.save();
 
     const token = generateToken(savedUser);
 
     return res.status(201).json({
       success: true,
-      message: 'Registration successful! Welcome bonus of 5 credits credited.',
+      message: 'Registration successful! Please recharge to add coins and start calling.',
       token,
       user: {
         id: savedUser._id,

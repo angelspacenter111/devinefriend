@@ -41,4 +41,8 @@ router.post('/pricing/toggle/:id', adminController.postTogglePricing);
 router.post('/pricing/add', adminController.postAddPricing);
 router.post('/pricing/delete/:id', adminController.postDeletePricing);
 
+// Platform feature toggles (Video Calling control for Ashu)
+router.post('/settings/toggle-video-call', adminController.postToggleVideoCall);
+router.get('/settings/video-call-status', adminController.getVideoCallStatus);
+
 module.exports = router;

@@ -93,7 +93,9 @@ exports.verifyPayment = async (req, res) => {
       success: true,
       message: result.message,
       alreadyProcessed: result.alreadyProcessed || false,
-      credits: result.credits
+      credits: result.credits,
+      isFirstRecharge: result.isFirstRecharge || false,
+      bonusCredits: result.bonusCredits || 0
     });
   } catch (error) {
     const errorMsg = error.message || 'Payment verification failed';

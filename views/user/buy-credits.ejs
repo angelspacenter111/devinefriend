@@ -51,6 +51,21 @@
             </div>
           </div>
 
+          <!-- First Recharge 5 Free Coins Promotion Banner -->
+          <% if (typeof user !== 'undefined' && user && !user.hasReceivedFirstRechargeBonus) { %>
+            <div class="alert border-0 rounded-4 mb-4 p-3.5 shadow-sm position-relative overflow-hidden" style="background: linear-gradient(135deg, #4338CA 0%, #6366F1 50%, #A855F7 100%); color: white;">
+              <div class="d-flex align-items-center gap-3 position-relative z-1">
+                <div class="rounded-circle bg-white text-primary d-flex align-items-center justify-content-center shadow-xs" style="width: 48px; height: 48px; min-width: 48px; font-size: 1.4rem;">
+                  🎁
+                </div>
+                <div>
+                  <span class="badge bg-warning text-dark rounded-pill px-2.5 py-0.5 fw-bold text-uppercase mb-1" style="font-size: 0.7rem;">First Recharge Bonus</span>
+                  <h6 class="fw-bold mb-0 text-white">Get 5 FREE Bonus Coins on your First Recharge!</h6>
+                  <p class="mb-0 small text-white-50 mt-0.5">Recharge any pack below to automatically receive 5 Extra Free Coins credited to your wallet balance.</p>
+                </div>
+              </div>
+            </div>
+          <% } %>
 
           <!-- Current Balance Pill Banner -->
           <div class="app-card bg-light border-0 p-3 mb-4 d-flex flex-wrap align-items-center justify-content-between gap-2">
@@ -67,9 +82,11 @@
               <span class="badge bg-white text-dark border rounded-pill px-2.5 py-1 small">
                 <i class="bi bi-telephone-fill text-primary me-1"></i> Voice: 1 Coin/min
               </span>
-              <span class="badge bg-purple-subtle text-purple border border-purple-subtle rounded-pill px-2.5 py-1 small">
-                <i class="bi bi-camera-video-fill me-1"></i> Video: 2 Coins/min
-              </span>
+              <% if (typeof isVideoCallEnabled !== 'undefined' && isVideoCallEnabled) { %>
+                <span class="badge bg-purple-subtle text-purple border border-purple-subtle rounded-pill px-2.5 py-1 small">
+                  <i class="bi bi-camera-video-fill me-1"></i> Video: 2 Coins/min
+                </span>
+              <% } %>
             </div>
           </div>
 
@@ -81,9 +98,11 @@
               <button type="button" class="btn btn-sm rounded-pill fw-semibold btn-filter btn-light text-muted px-3" data-filter="Voice">
                 <i class="bi bi-telephone-fill me-1"></i> Voice
               </button>
-              <button type="button" class="btn btn-sm rounded-pill fw-semibold btn-filter btn-light text-muted px-3" data-filter="Video">
-                <i class="bi bi-camera-video-fill me-1"></i> Video
-              </button>
+              <% if (typeof isVideoCallEnabled !== 'undefined' && isVideoCallEnabled) { %>
+                <button type="button" class="btn btn-sm rounded-pill fw-semibold btn-filter btn-light text-muted px-3" data-filter="Video">
+                  <i class="bi bi-camera-video-fill me-1"></i> Video
+                </button>
+              <% } %>
             </div>
           </div>
 

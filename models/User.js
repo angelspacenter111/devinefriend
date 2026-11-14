@@ -25,7 +25,11 @@ const userSchema = new mongoose.Schema({
   },
   credits: {
     type: Number,
-    default: 5
+    default: 0
+  },
+  hasReceivedFirstRechargeBonus: {
+    type: Boolean,
+    default: false
   },
   role: {
     type: String,
